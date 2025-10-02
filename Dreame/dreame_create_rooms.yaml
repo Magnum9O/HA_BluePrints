@@ -31,9 +31,12 @@ blueprint:
 sequence:
   # Estrarre la lista dei nomi delle stanze dall'attributo rooms
   - variables:
+      # Copia le entità di input in variabili locali per evitare errori di Jinja quando gli input non sono definiti
+      map_ent: !input map_camera
+      select_ent: !input select_entity
       room_names: >-
         {% set names = [] %}
-        {% set rooms = state_attr(map_camera, 'rooms') %}
+        {% set rooms = state_attr(map_ent, 'rooms') %}
         {% if rooms is mapping %}
           {% for key, val in rooms.items() %}
             {% set names = names + [val.name] %}
@@ -43,6 +46,6 @@ sequence:
   # Aggiornare l'input_select con la nuova lista
   - service: input_select.set_options
     data:
-      entity_id: !input select_entity
+      entity_id: "{{ select_ent }}"
       options: >-
         {{ room_names }}
