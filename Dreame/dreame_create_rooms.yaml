@@ -1,26 +1,20 @@
 blueprint:
-  name: "Dreame: Aggiorna elenco stanze"
+  name: "Dreame: Aggiorna elenco stanze (Sostituzione)"
   description: |
     Questo blueprint crea uno script che legge l'attributo ``rooms`` della mappa
     tasshack e aggiorna un helper `input_select` con l'elenco delle stanze.
 
     Ogni voce dell'elenco viene formata concatenando il nome della stanza e il suo
-    ``room_id`` fra parentesi, ad esempio ``Cucina (3)``. Questo formato può
-    tornare utile in altri blueprint per recuperare l'ID del segmento a partire
-    dal nome.
+    ``room_id`` fra parentesi, ad esempio ``Cucina (3)``.
 
-    Prima di utilizzare questo blueprint devi creare manualmente un helper
-    `input_select` tramite l'interfaccia di Home Assistant (Impostazioni → Dispositivi
-    e servizi → Helper → Aggiungi → Input Select). Lascia l'elenco delle opzioni
-    vuoto oppure inserisci temporaneamente un valore segnaposto; questo script
-    sostituirà o integrerà la lista esistente con le stanze rilevate.
+    Diversamente dal blueprint originale che integra le nuove voci con quelle esistenti,
+    questo script **sostituisce completamente** l'elenco dell'`input_select` con le
+    stanze rilevate sulla mappa. Prima di utilizzarlo ti consigliamo di creare
+    l'helper `input_select` lasciando l'elenco delle opzioni vuoto.
 
-    Una volta eseguito lo script creato dal blueprint, l'`input_select` conterrà
-    tutte le stanze rilevate sulla mappa più eventuali opzioni personalizzate
-    aggiunte manualmente. Potrai quindi utilizzarlo in altri blueprint o
-    automazioni per scegliere una stanza senza dover digitare il nome.
+    Se non vengono trovate stanze nell'attributo ``rooms``, viene generata una notifica.
   domain: script
-  source_url: https://raw.githubusercontent.com/Magnum9O/HA_BluePrints/main/blueprints/BP_Dreame_Automation/dreame_update_rooms.yaml
+  source_url: https://raw.githubusercontent.com/Magnum9O/HA_BluePrints/main/blueprints/BP_Dreame_Automation/dreame_update_rooms_replace.yaml
   input:
     map_camera:
       name: "Mappa del robot"
@@ -35,28 +29,26 @@ blueprint:
         entity:
           domain: input_select
 
-
 sequence:
+  # Variabili locali per mappa e input select
   - variables:
-    map_ent: !input map_camera
-    select_ent: !input select_entity
-    rooms_raw: >-
-      {{ state_attr(map_ent, 'rooms') }}
-    room_options: >-
-      {% set ns = namespace(opts=[]) %}
-      {% set rooms = state_attr(map_ent, 'rooms') %}
-      {% if rooms %}
-        {% for pair in rooms | dictsort %}
-          {% set key = pair[0] %}
-          {% set val = pair[1] %}
-          {% set name = (val['name'] if 'name' in val else key) %}
-          {% set rid = (val['room_id'] if 'room_id' in val else key) %}
-          {% set ns.opts = ns.opts + [name ~ ' (' ~ rid ~ ')'] %}
-        {% endfor %}
-      {% endif %}
-      {{ ns.opts }}
-
-
+      map_ent: !input map_camera
+      select_ent: !input select_entity
+      # Costruisci una lista delle stanze formattate come "Nome (ID)" partendo dall'attributo rooms.
+      room_options: >-
+        {% set ns = namespace(opts=[]) %}
+        {% set rooms = state_attr(map_ent, 'rooms') %}
+        {% if rooms %}
+          {% for pair in rooms | dictsort %}
+            {% set key = pair[0] %}
+            {% set val = pair[1] %}
+            {% set name = (val['name'] if 'name' in val else key) %}
+            {% set rid = (val['room_id'] if 'room_id' in val else key) %}
+            {% set ns.opts = ns.opts + [name ~ ' (' ~ rid ~ ')'] %}
+          {% endfor %}
+        {% endif %}
+        {{ ns.opts }}
+  # Aggiorna l'input_select con la lista, oppure notifica se vuota
   - choose:
       - conditions:
           - condition: template
@@ -66,11 +58,13 @@ sequence:
             data:
               entity_id: "{{ select_ent }}"
               options: "{{ room_options }}"
+      # Se non ci sono stanze, invia una notifica
       - conditions: []
         sequence:
           - service: persistent_notification.create
-            title: "Aggiornamento stanze"
-            message: >-
-              Non sono state trovate stanze nell'attributo 'rooms' della mappa {{ map_ent }}.
-              Assicurati che l'integrazione tasshack abbia creato la mappa e che il robot abbia
-              generato un layout con le stanze.
+            data:
+              title: "Aggiornamento stanze"
+              message: >-
+                Non sono state trovate stanze nell'attributo 'rooms' della mappa {{ map_ent }}.
+                Assicurati che l'integrazione tasshack abbia creato la mappa e che il robot abbia
+                generato un layout con le stanze.
