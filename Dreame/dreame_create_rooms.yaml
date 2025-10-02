@@ -42,11 +42,13 @@ sequence:
       map_ent: !input map_camera
       select_ent: !input select_entity
       # Costruisci una lista delle stanze formattate come "Nome (ID)" partendo dall'attributo rooms.
-      # Se l'attributo non è una mappa, restituisci una lista vuota.
+      # Se l'attributo è assente o vuoto, restituisci una lista vuota. Evitiamo il test ``is mapping``
+      # poiché l'oggetto restituito da ``state_attr`` potrebbe non essere interpretato come mappatura
+      # da Jinja, anche se è un dizionario.
       room_options: >-
         {% set opts = [] %}
         {% set rooms = state_attr(map_ent, 'rooms') %}
-        {% if rooms is mapping %}
+        {% if rooms %}
           {% for key, val in rooms.items() %}
             {% set label = val.name ~ ' (' ~ val.room_id ~ ')' %}
             {% set opts = opts + [label] %}
