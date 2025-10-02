@@ -1,0 +1,71 @@
+blueprint:
+  name: "Dreame Vacuum: Clean Room via Map"
+  description: |
+    Blueprint per creare uno script che avvia la pulizia di una singola stanza con un robot
+    Dreame o Xiaomi compatibile.  Utilizza l'integrazione tasshack (Dreame) e la card
+    Vacuum Map per ricavare dinamicamente l'elenco delle stanze e l'ID del segmento da
+    pulire.
+
+    Fornire l'entità del robot aspirapolvere, l'entità della mappa (camera) e il nome
+    della stanza esattamente come appare nell'attributo ``rooms`` della mappa.  Lo script
+    cercherà l'ID della stanza nell'attributo ``rooms`` e invierà il comando
+    ``app_segment_clean`` al robot.  Se il nome non viene trovato, verrà generata una
+    notifica persistente con un messaggio di errore.
+
+    È possibile importare questo blueprint su qualsiasi installazione di Home Assistant
+    dotata dell'integrazione Dreame e della Vacuum Map Card.  Una volta creato lo
+    script, rinominatelo a piacere per poterlo richiamare con un comando vocale (ad es.
+    "avvia pulizia camera da letto").
+  domain: script
+  source_url: https://raw.githubusercontent.com/Magnum9O/HA_BluePrints/main/blueprints/BP_Dreame_Automation/dreame_clean_room.yaml
+  input:
+    vacuum:
+      name: "Aspirapolvere"
+      description: "Entità del robot aspirapolvere da controllare (es. vacuum.ambrogio)"
+      selector:
+        entity:
+          domain: vacuum
+    map_camera:
+      name: "Mappa del robot"
+      description: "Entità camera che contiene la mappa corrente con l'attributo 'rooms' (es. camera.ambrogio_map_2)"
+      selector:
+        entity:
+          domain: camera
+    room_name:
+      name: "Nome stanza"
+      description: "Nome della stanza da pulire, identico a quello visualizzato nella mappa"
+      selector:
+        text: {}
+
+sequence:
+  # Estrarre l'attributo rooms dalla mappa e trovare l'ID della stanza
+  - variables:
+      _rooms: "{{ state_attr(map_camera, 'rooms') }}"
+      segment_id: >-
+        {% set found = '' %}
+        {% if _rooms is mapping %}
+        {% for key, val in _rooms.items() %}
+          {% if val.name == room_name %}
+            {% set found = key %}
+          {% endif %}
+        {% endfor %}
+        {% endif %}
+        {{ found }}
+  # Se è stato trovato un ID di segmento, invia il comando di pulizia.  Altrimenti notifica errore.
+  - choose:
+      - conditions:
+          - "{{ segment_id != '' }}"
+        sequence:
+          - service: vacuum.send_command
+            data:
+              entity_id: "{{ vacuum }}"
+              command: app_segment_clean
+              params:
+                - "{{ segment_id | int }}"
+      # Caso in cui non viene trovato alcun ID corrispondente al nome fornito
+      - conditions: []
+        sequence:
+          - service: persistent_notification.create
+            data:
+              title: "Dreame: stanza non trovata"
+              message: "Il nome '{{ room_name }}' non corrisponde ad alcuna stanza nella mappa {{ map_camera }}."
