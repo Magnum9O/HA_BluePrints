@@ -40,10 +40,8 @@ sequence:
   - variables:
       map_ent: !input map_camera
       select_ent: !input select_entity
-      # Risultato grezzo dell'attributo rooms
       rooms_raw: >-
         {{ state_attr(map_ent, 'rooms') }}
-      # Costruisci una lista delle stanze formattate come "Nome (ID)" partendo dall'attributo rooms.
       room_options: >-
         {% set ns = namespace(opts=[]) %}
         {% set rooms = state_attr(map_ent, 'rooms') %}
@@ -57,19 +55,18 @@ sequence:
           {% endfor %}
         {% endif %}
         {{ ns.opts }}
-            # Recupera la lista attuale di opzioni dell'input_select. Se non è una lista, restituisci lista vuota.
-        existing_options: >-
-          {% set opts = state_attr(select_ent, 'options') %}
-          {{ opts if opts is sequence else [] }}
-          # Crea la lista unione mantenendo l'ordine
-        merged_options: >-
-          {% set merged = existing_options + [] %}
-          {% for item in room_options %}
-            {% if item not in merged %}
-              {% set merged = merged + [item] %}
-            {% endif %}
-          {% endfor %}
-          {{ merged }}
+      existing_options: >-
+        {% set opts = state_attr(select_ent, 'options') %}
+        {{ opts if opts is sequence else [] }}
+      merged_options: >-
+        {% set ns = namespace(merged=existing_options + []) %}
+        {% for item in room_options %}
+          {% if item not in ns.merged %}
+            {% set ns.merged = ns.merged + [item] %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.merged }}
+
 
   # Invia notifica di debug
   - service: persistent_notification.create
