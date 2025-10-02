@@ -35,26 +35,28 @@ blueprint:
         entity:
           domain: input_select
 
-variables:
-  map_ent: !input map_camera
-  select_ent: !input select_entity
-  rooms_raw: >-
-    {{ state_attr(map_ent, 'rooms') }}
-  room_options: >-
-    {% set ns = namespace(opts=[]) %}
-    {% set rooms = state_attr(map_ent, 'rooms') %}
-    {% if rooms %}
-      {% for pair in rooms | dictsort %}
-        {% set key = pair[0] %}
-        {% set val = pair[1] %}
-        {% set name = (val['name'] if 'name' in val else key) %}
-        {% set rid = (val['room_id'] if 'room_id' in val else key) %}
-        {% set ns.opts = ns.opts + [name ~ ' (' ~ rid ~ ')'] %}
-      {% endfor %}
-    {% endif %}
-    {{ ns.opts }}
 
 sequence:
+  - variables:
+    map_ent: !input map_camera
+    select_ent: !input select_entity
+    rooms_raw: >-
+      {{ state_attr(map_ent, 'rooms') }}
+    room_options: >-
+      {% set ns = namespace(opts=[]) %}
+      {% set rooms = state_attr(map_ent, 'rooms') %}
+      {% if rooms %}
+        {% for pair in rooms | dictsort %}
+          {% set key = pair[0] %}
+          {% set val = pair[1] %}
+          {% set name = (val['name'] if 'name' in val else key) %}
+          {% set rid = (val['room_id'] if 'room_id' in val else key) %}
+          {% set ns.opts = ns.opts + [name ~ ' (' ~ rid ~ ')'] %}
+        {% endfor %}
+      {% endif %}
+      {{ ns.opts }}
+
+
   - choose:
       - conditions:
           - condition: template
