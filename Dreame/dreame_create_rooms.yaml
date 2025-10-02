@@ -1,0 +1,48 @@
+blueprint:
+  name: "Dreame: Aggiorna elenco stanze"
+  description: |
+    Questo blueprint crea uno script che legge l'attributo ``rooms`` della mappa
+    tasshack e aggiorna un helper `input_select` con l'elenco dei nomi delle stanze.
+
+    Prima di utilizzare questo blueprint devi creare manualmente un helper
+    `input_select` tramite l'interfaccia di Home Assistant (Impostazioni → Dispositivi
+    e servizi → Helper → Aggiungi → Input Select). Lascia l'elenco delle opzioni
+    vuoto. Seleziona poi quell'helper tra i campi di input di questo blueprint.
+
+    Una volta eseguito lo script creato dal blueprint, l'`input_select` conterrà
+    tutte le stanze rilevate sulla mappa. Potrai quindi utilizzarlo in altri
+    blueprint o automazioni per scegliere una stanza senza dover digitare il nome.
+  domain: script
+  source_url: https://raw.githubusercontent.com/Magnum9O/HA_BluePrints/main/blueprints/BP_Dreame_Automation/dreame_update_rooms.yaml
+  input:
+    map_camera:
+      name: "Mappa del robot"
+      description: "Seleziona la camera tasshack che contiene l'attributo 'rooms'."
+      selector:
+        entity:
+          domain: camera
+    select_entity:
+      name: "Input Select per le stanze"
+      description: "Seleziona l'helper input_select da aggiornare con i nomi delle stanze."
+      selector:
+        entity:
+          domain: input_select
+
+sequence:
+  # Estrarre la lista dei nomi delle stanze dall'attributo rooms
+  - variables:
+      room_names: >-
+        {% set names = [] %}
+        {% set rooms = state_attr(map_camera, 'rooms') %}
+        {% if rooms is mapping %}
+          {% for key, val in rooms.items() %}
+            {% set names = names + [val.name] %}
+          {% endfor %}
+        {% endif %}
+        {{ names }}
+  # Aggiornare l'input_select con la nuova lista
+  - service: input_select.set_options
+    data:
+      entity_id: !input select_entity
+      options: >-
+        {{ room_names }}
