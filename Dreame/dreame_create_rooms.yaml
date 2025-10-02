@@ -1,26 +1,26 @@
 blueprint:
-  name: "Dreame: Aggiorna elenco stanze"
+  name: "Dreame: Debug aggiornamento stanze"
   description: |
-    Questo blueprint crea uno script che legge l'attributo ``rooms`` della mappa
-    tasshack e aggiorna un helper `input_select` con l'elenco delle stanze.
+    Questo blueprint di debug aiuta a comprendere cosa vede lo script quando
+    legge l'attributo ``rooms`` della mappa tasshack. Oltre ad aggiornare
+    l'`input_select` con l'elenco delle stanze (come nella versione
+    standard), questo blueprint invia una notifica persistente con il contenuto
+    di `rooms` e la lista ``room_options`` che viene utilizzata per
+    popolare l'helper.
 
-    Ogni voce dell'elenco viene formata concatenando il nome della stanza e il suo
-    ``room_id`` fra parentesi, ad esempio ``Cucina (3)``. Questo formato può
-    tornare utile in altri blueprint per recuperare l'ID del segmento a partire
-    dal nome.
+    **Prerequisiti:**
+      - Devi avere installato l'integrazione Dreame tasshack e avere una mappa
+        generata dal robot, con l'attributo ``rooms`` popolato.
+      - Devi creare manualmente un `input_select` vuoto (o con opzioni
+        provvisorie) tramite l'interfaccia di Home Assistant. Lo script
+        aggiungerà o aggiornerà le opzioni con le stanze rilevate.
 
-    Prima di utilizzare questo blueprint devi creare manualmente un helper
-    `input_select` tramite l'interfaccia di Home Assistant (Impostazioni → Dispositivi
-    e servizi → Helper → Aggiungi → Input Select). Lascia l'elenco delle opzioni
-    vuoto oppure inserisci temporaneamente un valore segnaposto; questo script
-    sostituirà o integrerà la lista esistente con le stanze rilevate.
-
-    Una volta eseguito lo script creato dal blueprint, l'`input_select` conterrà
-    tutte le stanze rilevate sulla mappa più eventuali opzioni personalizzate
-    aggiunte manualmente. Potrai quindi utilizzarlo in altri blueprint o
-    automazioni per scegliere una stanza senza dover digitare il nome.
+    Dopo l'esecuzione dello script creato da questo blueprint, vedrai una
+    notifica con la rappresentazione grezza delle stanze e l'elenco
+    ``room_options`` creato. Questo può aiutare a capire se l'attributo
+    ``rooms`` è vuoto o se ci sono problemi nel template.
   domain: script
-  source_url: https://raw.githubusercontent.com/Magnum9O/HA_BluePrints/main/blueprints/BP_Dreame_Automation/dreame_update_rooms.yaml
+  source_url: https://raw.githubusercontent.com/Magnum9O/HA_BluePrints/main/blueprints/BP_Dreame_Automation/dreame_update_rooms_debug.yaml
   input:
     map_camera:
       name: "Mappa del robot"
@@ -36,30 +36,29 @@ blueprint:
           domain: input_select
 
 sequence:
-  # Estrarre la lista dei nomi delle stanze dall'attributo rooms
+  # Variabili locali per map entità e input select
   - variables:
-      # Copia le entità di input in variabili locali per evitare errori di Jinja quando gli input non sono definiti
       map_ent: !input map_camera
       select_ent: !input select_entity
+      # Risultato grezzo dell'attributo rooms
+      rooms_raw: >-
+        {{ state_attr(map_ent, 'rooms') }}
       # Costruisci una lista delle stanze formattate come "Nome (ID)" partendo dall'attributo rooms.
-      # Se l'attributo è assente o vuoto, restituisci una lista vuota. Evitiamo il test ``is mapping``
-      # poiché l'oggetto restituito da ``state_attr`` potrebbe non essere interpretato come mappatura
-      # da Jinja, anche se è un dizionario.
       room_options: >-
         {% set opts = [] %}
         {% set rooms = state_attr(map_ent, 'rooms') %}
         {% if rooms %}
           {% for key, val in rooms.items() %}
-            {% set label = val.name ~ ' (' ~ val.room_id ~ ')' %}
+            {% set label = val['name'] ~ ' (' ~ val['room_id'] ~ ')' %}
             {% set opts = opts + [label] %}
           {% endfor %}
         {% endif %}
         {{ opts }}
-      # Recupera la lista attuale di opzioni dell'input_select. Se non è una sequenza restituisci lista vuota.
+      # Recupera la lista attuale di opzioni dell'input_select. Se non è una lista, restituisci lista vuota.
       existing_options: >-
         {% set opts = state_attr(select_ent, 'options') %}
         {{ opts if opts is sequence else [] }}
-      # Costruisci la lista unione mantenendo l'ordine: opzioni esistenti seguite dalle nuove che non sono già presenti.
+      # Crea la lista unione mantenendo l'ordine
       merged_options: >-
         {% set merged = existing_options + [] %}
         {% for item in room_options %}
@@ -68,9 +67,17 @@ sequence:
           {% endif %}
         {% endfor %}
         {{ merged }}
-  # Aggiornare l'input_select con la nuova lista (solo se ci sono stanze)
+
+  # Invia notifica di debug
+  - service: persistent_notification.create
+    data:
+      title: "Debug stanze Dreame"
+      message: >-
+        rooms_raw: {{ rooms_raw }}
+        \n\nroom_options ("Nome (ID)"): {{ room_options }}
+
+  # Aggiorna l'input_select se ci sono stanze
   - choose:
-      # Se c'è almeno una stanza, aggiorna l'input_select con la lista unita
       - conditions:
           - condition: template
             value_template: "{{ room_options | length > 0 }}"
@@ -79,7 +86,6 @@ sequence:
             data:
               entity_id: "{{ select_ent }}"
               options: "{{ merged_options }}"
-      # Altrimenti, notifica che non sono state trovate stanze
       - conditions: []
         sequence:
           - service: persistent_notification.create
