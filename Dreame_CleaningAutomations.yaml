@@ -1,71 +1,186 @@
 blueprint:
-  name: "Dreame Vacuum: Clean Room via Map"
+  name: "Ultimate Automation for Dreame Vaccum"
   description: |
-    Blueprint per creare uno script che avvia la pulizia di una singola stanza con un robot
-    Dreame o Xiaomi compatibile.  Utilizza l'integrazione tasshack (Dreame) e la card
-    Vacuum Map per ricavare dinamicamente l'elenco delle stanze e l'ID del segmento da
-    pulire.
+    Questo blueprint crea un'automazione che esegue la pulizia programmata di una o
+    più stanze con un robot Dreame/Xiaomi. Utilizza l'integrazione tasshack con la
+    Vacuum Map Card per ricavare dinamicamente l'ID dei segmenti da pulire. Puoi
+    configurare quali stanze, l'orario di esecuzione e i giorni della settimana,
+    nonché un sensore di presenza per evitare la pulizia quando c'è qualcuno in
+    casa.
 
-    Fornire l'entità del robot aspirapolvere, l'entità della mappa (camera) e il nome
-    della stanza esattamente come appare nell'attributo ``rooms`` della mappa.  Lo script
-    cercherà l'ID della stanza nell'attributo ``rooms`` e invierà il comando
-    ``app_segment_clean`` al robot.  Se il nome non viene trovato, verrà generata una
-    notifica persistente con un messaggio di errore.
+    ⚠️ *Presenza obbligatoria manuale*: questo blueprint **non** può creare
+    automaticamente un sensore di presenza. Prima di utilizzarlo devi creare un
+    sensore o un helper (`binary_sensor` o `input_boolean`) che indichi se la
+    casa è occupata (`on` = qualcuno è in casa, `off` = casa vuota). Puoi
+    farlo dall'interfaccia di Home Assistant tramite **Impostazioni → Dispositivi e
+    servizi → Helper**. Una volta creato, selezionalo qui tra gli input.
 
-    È possibile importare questo blueprint su qualsiasi installazione di Home Assistant
-    dotata dell'integrazione Dreame e della Vacuum Map Card.  Una volta creato lo
-    script, rinominatelo a piacere per poterlo richiamare con un comando vocale (ad es.
-    "avvia pulizia camera da letto").
-  domain: script
-  source_url: https://raw.githubusercontent.com/Magnum9O/HA_BluePrints/main/blueprints/BP_Dreame_Automation/dreame_clean_room.yaml
+    Dopo aver importato il blueprint, potrai scegliere:
+      • L'entità del robot aspirapolvere (`vacuum.⋯`).
+      • L'entità della mappa (`camera.⋯`) generata dall'integrazione tasshack.
+      • I nomi delle stanze da pulire, separati da virgole (devono corrispondere
+        esattamente ai nomi mostrati sulla mappa, ad es. "Kitchen, Bathroom").
+      • Il sensore di presenza che hai creato (binary_sensor o input_boolean).
+      • L'orario giornaliero in cui avviare la pulizia.
+      • Un elenco di giorni della settimana (in italiano: Lun, Mar, Mer, Gio,
+        Ven, Sab, Dom) separati da virgola; lascia vuoto per eseguire la
+        pulizia ogni giorno.
+      • Opzionalmente, se inviare una notifica quando la pulizia viene
+        rimandata perché qualcuno è in casa.
+
+    L'automazione controllerà se oggi è uno dei giorni selezionati e se il
+    sensore di presenza segnala che la casa è vuota. In caso affermativo,
+    ricaverà l'ID delle stanze dall'attributo ``rooms`` della mappa e invierà il
+    comando ``app_segment_clean`` al robot con tutti i segmenti selezionati. Se
+    nessuna stanza viene trovata, verrà mostrata una notifica di errore. Se
+    qualcuno è presente e hai attivato la notifica di rimando, verrà inviata
+    una notifica che spiega il motivo del rinvio.
+
+  domain: automation
+  source_url: https://raw.githubusercontent.com/Magnum9O/HA_BluePrints/main/blueprints/BP_Dreame_Automation/dreame_scheduled_cleaning.yaml
   input:
     vacuum:
       name: "Aspirapolvere"
-      description: "Entità del robot aspirapolvere da controllare (es. vacuum.ambrogio)"
+      description: "Seleziona l'entità del robot aspirapolvere da controllare."
       selector:
         entity:
           domain: vacuum
     map_camera:
       name: "Mappa del robot"
-      description: "Entità camera che contiene la mappa corrente con l'attributo 'rooms' (es. camera.ambrogio_map_2)"
+      description: "Seleziona la camera che contiene la mappa tasshack con l'attributo 'rooms'."
       selector:
         entity:
           domain: camera
-    room_name:
-      name: "Nome stanza"
-      description: "Nome della stanza da pulire, identico a quello visualizzato nella mappa"
+    rooms:
+      name: "Stanze da pulire"
+      description: "Nomi delle stanze da pulire, separati da virgola (devono corrispondere ai nomi mostrati sulla mappa, ad es. 'Kitchen, Bathroom')."
       selector:
         text: {}
+    presence_sensor:
+      name: "Sensore di presenza"
+      description: |
+        Entità che indica se qualcuno è presente in casa. Deve essere un
+        `binary_sensor` o un `input_boolean` che sia `on` quando la casa è
+        occupata e `off` quando è vuota. Crea questo helper manualmente
+        dall'interfaccia di Home Assistant prima di utilizzare il blueprint.
+      selector:
+        entity:
+          domain:
+            - binary_sensor
+            - input_boolean
+    run_time:
+      name: "Orario di esecuzione"
+      description: "Orario giornaliero (HH:MM) in cui avviare la pulizia."
+      selector:
+        time: {}
+    days:
+      name: "Giorni della settimana"
+      description: |
+        Elenco dei giorni (in italiano) in cui eseguire la pulizia, separati
+        da virgola. Usa 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'. Lascia
+        vuoto per pulire ogni giorno.
+      default: ""
+      selector:
+        text: {}
+    notify_if_home:
+      name: "Notifica se qualcuno è in casa"
+      description: "Se attivato, invierà una notifica quando la pulizia programmata viene saltata perché il sensore di presenza indica che la casa è occupata."
+      default: false
+      selector:
+        boolean: {}
 
-sequence:
-  # Estrarre l'attributo rooms dalla mappa e trovare l'ID della stanza
-  - variables:
-      _rooms: "{{ state_attr(map_camera, 'rooms') }}"
-      segment_id: >-
-        {% set found = '' %}
-        {% if _rooms is mapping %}
-        {% for key, val in _rooms.items() %}
-          {% if val.name == room_name %}
-            {% set found = key %}
+trigger:
+  - platform: time
+    at: "!input run_time"
+
+condition: []
+
+variables:
+  rooms_list: >-
+    {{ (rooms.split(',') | map('trim') | select('!=', '') | list) if rooms is defined else [] }}
+  map_rooms: >-
+    {{ state_attr(map_camera, 'rooms') if map_camera is defined else {} }}
+  segment_ids: >-
+    {% set segs = [] %}
+    {% if map_rooms is mapping %}
+      {% for room in rooms_list %}
+        {% for key, val in map_rooms.items() %}
+          {% if val.name == room %}
+            {% set segs = segs + [key | int] %}
           {% endif %}
         {% endfor %}
+      {% endfor %}
+    {% endif %}
+    {{ segs }}
+  run_days: >-
+    {{ (days.split(',') | map('trim') | select('!=', '') | list) if days is string else [] }}
+  today_ok: >-
+    {# Se non sono specificati giorni, esegui tutti i giorni #}
+    {% if run_days | length == 0 %}
+      true
+    {% else %}
+      {% set idx = now().weekday() %}
+      {% set day_indexes = [] %}
+      {% for d in run_days %}
+        {% set dl = d | lower %}
+        {% if dl.startswith('lun') %}
+          {% set day_indexes = day_indexes + [0] %}
+        {% elif dl.startswith('mar') %}
+          {% set day_indexes = day_indexes + [1] %}
+        {% elif dl.startswith('mer') %}
+          {% set day_indexes = day_indexes + [2] %}
+        {% elif dl.startswith('gio') %}
+          {% set day_indexes = day_indexes + [3] %}
+        {% elif dl.startswith('ven') %}
+          {% set day_indexes = day_indexes + [4] %}
+        {% elif dl.startswith('sab') %}
+          {% set day_indexes = day_indexes + [5] %}
+        {% elif dl.startswith('dom') %}
+          {% set day_indexes = day_indexes + [6] %}
         {% endif %}
-        {{ found }}
-  # Se è stato trovato un ID di segmento, invia il comando di pulizia.  Altrimenti notifica errore.
+      {% endfor %}
+      {{ idx in day_indexes }}
+    {% endif %}
+  presence_on: >-
+    {% set s = states(presence_sensor) %}
+    {{ s in ['on', 'home', 'true', 'open'] }}
+  is_empty: >-
+    {{ segment_ids | length == 0 }}
+
+action:
   - choose:
       - conditions:
-          - "{{ segment_id != '' }}"
+          - condition: template
+            value_template: "{{ not presence_on }}"
+          - condition: template
+            value_template: "{{ today_ok }}"
+          - condition: template
+            value_template: "{{ not is_empty }}"
         sequence:
           - service: vacuum.send_command
             data:
               entity_id: "{{ vacuum }}"
               command: app_segment_clean
-              params:
-                - "{{ segment_id | int }}"
-      # Caso in cui non viene trovato alcun ID corrispondente al nome fornito
-      - conditions: []
+              params: "{{ segment_ids }}"
+      - conditions:
+          - condition: template
+            value_template: "{{ is_empty }}"
         sequence:
           - service: persistent_notification.create
             data:
-              title: "Dreame: stanza non trovata"
-              message: "Il nome '{{ room_name }}' non corrisponde ad alcuna stanza nella mappa {{ map_camera }}."
+              title: "Dreame: stanze non trovate"
+              message: "Le stanze {{ rooms_list }} non sono state trovate nella mappa {{ map_camera }}."
+      - conditions:
+          - condition: template
+            value_template: "{{ presence_on }}"
+          - condition: template
+            value_template: "{{ notify_if_home }}"
+        sequence:
+          - service: persistent_notification.create
+            data:
+              title: "Dreame: pulizia rimandata"
+              message: "La pulizia programmata è stata saltata perché il sensore di presenza indica che qualcuno è in casa."
+      - conditions: []
+        sequence: []
+
+mode: single
