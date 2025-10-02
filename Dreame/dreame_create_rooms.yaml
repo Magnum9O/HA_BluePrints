@@ -35,39 +35,27 @@ blueprint:
         entity:
           domain: input_select
 
+variables:
+  map_ent: !input map_camera
+  select_ent: !input select_entity
+  rooms_raw: >-
+    {{ state_attr(map_ent, 'rooms') }}
+  room_options: >-
+    {% set ns = namespace(opts=[]) %}
+    {% set rooms = state_attr(map_ent, 'rooms') %}
+    {% if rooms %}
+      {% for pair in rooms | dictsort %}
+        {% set key = pair[0] %}
+        {% set val = pair[1] %}
+        {% set name = (val['name'] if 'name' in val else key) %}
+        {% set rid = (val['room_id'] if 'room_id' in val else key) %}
+        {% set ns.opts = ns.opts + [name ~ ' (' ~ rid ~ ')'] %}
+      {% endfor %}
+    {% endif %}
+    {{ ns.opts }}
+
 sequence:
-  # Estrarre la lista dei nomi delle stanze dall'attributo rooms
-  - variables:
-      # Copia le entità di input in variabili locali per evitare errori di Jinja quando gli input non sono definiti
-      map_ent: !input map_camera
-      select_ent: !input select_entity
-      # Costruisci una lista delle stanze formattate come "Nome (ID)" partendo dall'attributo rooms.
-      # Se l'attributo è assente o vuoto, restituisci una lista vuota. Evitiamo il test ``is mapping``
-      # poiché l'oggetto restituito da ``state_attr`` potrebbe non essere interpretato come mappatura
-      # da Jinja, anche se è un dizionario.
-      room_options: >-
-        {#
-          Usa il filtro ``dictsort`` per iterare sull'attributo ``rooms``. ``dictsort`` restituisce
-          una lista di coppie [chiave, valore] ordinata per chiave. Per accumulare le
-          opzioni utilizziamo un oggetto ``namespace`` che mantiene lo stato anche
-          all'interno del ciclo. Se manca il nome o l'ID all'interno del dizionario, utilizziamo
-          la chiave stessa come ripiego.
-        #}
-        {% set ns = namespace(opts=[]) %}
-        {% set rooms = state_attr(map_ent, 'rooms') %}
-        {% if rooms %}
-          {% for pair in rooms | dictsort %}
-            {% set key = pair[0] %}
-            {% set val = pair[1] %}
-            {% set name = (val['name'] if 'name' in val else key) %}
-            {% set rid = (val['room_id'] if 'room_id' in val else key) %}
-            {% set ns.opts = ns.opts + [name ~ ' (' ~ rid ~ ')'] %}
-          {% endfor %}
-        {% endif %}
-        {{ ns.opts }}
-  # Aggiornare l'input_select con la nuova lista (solo se ci sono stanze)
   - choose:
-      # Se c'è almeno una stanza, aggiorna l'input_select con la lista unita
       - conditions:
           - condition: template
             value_template: "{{ room_options | length > 0 }}"
@@ -76,13 +64,11 @@ sequence:
             data:
               entity_id: "{{ select_ent }}"
               options: "{{ room_options }}"
-      # Altrimenti, notifica che non sono state trovate stanze
       - conditions: []
         sequence:
           - service: persistent_notification.create
-            data:
-              title: "Aggiornamento stanze"
-              message: >-
-                Non sono state trovate stanze nell'attributo 'rooms' della mappa {{ map_ent }}.
-                Assicurati che l'integrazione tasshack abbia creato la mappa e che il robot abbia
-                generato un layout con le stanze.
+            title: "Aggiornamento stanze"
+            message: >-
+              Non sono state trovate stanze nell'attributo 'rooms' della mappa {{ map_ent }}.
+              Assicurati che l'integrazione tasshack abbia creato la mappa e che il robot abbia
+              generato un layout con le stanze.
