@@ -45,12 +45,16 @@ sequence:
         {{ state_attr(map_ent, 'rooms') }}
       # Costruisci una lista delle stanze formattate come "Nome (ID)" partendo dall'attributo rooms.
       room_options: >-
+        {# Usa il filtro ``dict2items`` per iterare sui valori del dizionario rooms #}
         {% set opts = [] %}
         {% set rooms = state_attr(map_ent, 'rooms') %}
         {% if rooms %}
-          {% for key, val in rooms.items() %}
-            {% set label = val['name'] ~ ' (' ~ val['room_id'] ~ ')' %}
-            {% set opts = opts + [label] %}
+          {% for item in rooms | dict2items %}
+            {% set val = item.value %}
+            {% if val is mapping %}
+              {% set label = val['name'] ~ ' (' ~ val['room_id'] ~ ')' %}
+              {% set opts = opts + [label] %}
+            {% endif %}
           {% endfor %}
         {% endif %}
         {{ opts }}
