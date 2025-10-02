@@ -95,6 +95,6 @@ sequence:
             data:
               title: "Aggiornamento stanze"
               message: >-
-                Non sono state trovate stanze nell'attributo 'rooms' della mappa {{ map_ent }}.
+                Ultimo Non sono state trovate stanze nell'attributo 'rooms' della mappa {{ map_ent }}.
                 Assicurati che l'integrazione tasshack abbia creato la mappa e che il robot abbia
                 generato un layout con le stanze.
