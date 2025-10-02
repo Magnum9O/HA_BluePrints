@@ -75,7 +75,7 @@ sequence:
           - service: input_select.set_options
             data:
               entity_id: "{{ select_ent }}"
-              options: "{{ merged_options }}"
+              options: "{{ room_options }}"
       # Altrimenti, notifica che non sono state trovate stanze
       - conditions: []
         sequence:
