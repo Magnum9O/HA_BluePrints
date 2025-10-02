@@ -65,19 +65,6 @@ sequence:
           {% endfor %}
         {% endif %}
         {{ ns.opts }}
-      # Recupera la lista attuale di opzioni dell'input_select. Se non è una sequenza restituisci lista vuota.
-      existing_options: >-
-        {% set opts = state_attr(select_ent, 'options') %}
-        {{ opts if opts is sequence else [] }}
-      # Costruisci la lista unione mantenendo l'ordine: opzioni esistenti seguite dalle nuove che non sono già presenti.
-      merged_options: >-
-        {% set ns = namespace(merged = existing_options + []) %}
-        {% for item in room_options %}
-          {% if item not in ns.merged %}
-            {% set ns.merged = ns.merged + [item] %}
-          {% endif %}
-        {% endfor %}
-        {{ ns.merged }}
   # Aggiornare l'input_select con la nuova lista (solo se ci sono stanze)
   - choose:
       # Se c'è almeno una stanza, aggiorna l'input_select con la lista unita
