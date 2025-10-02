@@ -45,15 +45,7 @@ sequence:
         {{ state_attr(map_ent, 'rooms') }}
       # Costruisci una lista delle stanze formattate come "Nome (ID)" partendo dall'attributo rooms.
       room_options: >-
-        {#
-          Usa ``dictsort`` per iterare sull'attributo ``rooms``. ``dictsort`` restituisce
-          una lista di coppie [chiave, valore] ordinata per chiave. Questo evita l'uso del filtro
-          ``dict2items`` non disponibile in alcuni contesti. Per ogni coppia estraiamo la
-          chiave (l'ID segmento) e il valore (un dizionario contenente le proprietà della stanza).
-          Se manca il nome o l'ID all'interno del dizionario, utilizziamo la chiave come
-          ripiego.
-        #}
-        {% set opts = [] %}
+        {% set ns = namespace(opts=[]) %}
         {% set rooms = state_attr(map_ent, 'rooms') %}
         {% if rooms %}
           {% for pair in rooms | dictsort %}
@@ -61,24 +53,23 @@ sequence:
             {% set val = pair[1] %}
             {% set name = (val['name'] if 'name' in val else key) %}
             {% set rid = (val['room_id'] if 'room_id' in val else key) %}
-            {% set label = name ~ ' (' ~ rid ~ ')' %}
-            {% set opts = opts + [label] %}
+            {% set ns.opts = ns.opts + [name ~ ' (' ~ rid ~ ')'] %}
           {% endfor %}
         {% endif %}
-        {{ opts }}
-      # Recupera la lista attuale di opzioni dell'input_select. Se non è una lista, restituisci lista vuota.
-      existing_options: >-
-        {% set opts = state_attr(select_ent, 'options') %}
-        {{ opts if opts is sequence else [] }}
-      # Crea la lista unione mantenendo l'ordine
-      merged_options: >-
-        {% set merged = existing_options + [] %}
-        {% for item in room_options %}
-          {% if item not in merged %}
-            {% set merged = merged + [item] %}
-          {% endif %}
-        {% endfor %}
-        {{ merged }}
+        {{ ns.opts }}
+            # Recupera la lista attuale di opzioni dell'input_select. Se non è una lista, restituisci lista vuota.
+            existing_options: >-
+              {% set opts = state_attr(select_ent, 'options') %}
+              {{ opts if opts is sequence else [] }}
+            # Crea la lista unione mantenendo l'ordine
+            merged_options: >-
+              {% set merged = existing_options + [] %}
+              {% for item in room_options %}
+                {% if item not in merged %}
+                  {% set merged = merged + [item] %}
+                {% endif %}
+              {% endfor %}
+              {{ merged }}
 
   # Invia notifica di debug
   - service: persistent_notification.create
