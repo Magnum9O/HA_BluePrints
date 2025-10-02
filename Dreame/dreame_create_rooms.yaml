@@ -44,8 +44,24 @@ sequence:
         {% endif %}
         {{ names }}
   # Aggiornare l'input_select con la nuova lista
-  - service: input_select.set_options
-    data:
-      entity_id: "{{ select_ent }}"
-      options: >-
-        {{ room_names }}
+  - choose:
+      # Se c'è almeno una stanza, aggiorna l'input_select con la lista
+      - conditions:
+          - condition: template
+            value_template: "{{ room_names | length > 0 }}"
+        sequence:
+          - service: input_select.set_options
+            data:
+              entity_id: "{{ select_ent }}"
+              options: >-
+                {{ room_names }}
+      # Altrimenti, notifica che non sono state trovate stanze
+      - conditions: []
+        sequence:
+          - service: persistent_notification.create
+            data:
+              title: "Aggiornamento stanze"
+              message: >-
+                Non sono state trovate stanze nell'attributo 'rooms' della mappa {{ map_ent }}.
+                Assicurati che l'integrazione tasshack abbia creato la mappa e che il robot abbia
+                generato un layout con le stanze.
