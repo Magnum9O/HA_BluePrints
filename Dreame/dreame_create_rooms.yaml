@@ -45,16 +45,22 @@ sequence:
         {{ state_attr(map_ent, 'rooms') }}
       # Costruisci una lista delle stanze formattate come "Nome (ID)" partendo dall'attributo rooms.
       room_options: >-
-        {# Usa il filtro ``dict2items`` per iterare sui valori del dizionario rooms #}
+        {#
+          Usa ``dict2items`` per iterare sull'attributo ``rooms``. Non effettuiamo test
+          ``is mapping`` perché i valori possono essere semplici dizionari non riconosciuti
+          come mapping da Jinja. Per ciascun elemento estraiamo il nome e l'ID stanza;
+          se una delle due proprietà non è presente, utilizziamo la chiave stessa come
+          valore di riserva.
+        #}
         {% set opts = [] %}
         {% set rooms = state_attr(map_ent, 'rooms') %}
         {% if rooms %}
           {% for item in rooms | dict2items %}
             {% set val = item.value %}
-            {% if val is mapping %}
-              {% set label = val['name'] ~ ' (' ~ val['room_id'] ~ ')' %}
-              {% set opts = opts + [label] %}
-            {% endif %}
+            {% set name = val['name'] if 'name' in val else val.name if val.name is defined else item.key %}
+            {% set rid = val['room_id'] if 'room_id' in val else val.room_id if val.room_id is defined else item.key %}
+            {% set label = name ~ ' (' ~ rid ~ ')' %}
+            {% set opts = opts + [label] %}
           {% endfor %}
         {% endif %}
         {{ opts }}
@@ -96,6 +102,6 @@ sequence:
             data:
               title: "Aggiornamento stanze"
               message: >-
-                Non sono state trovate stanze nell'attributo 'rooms' della mappa {{ map_ent }}.
+                ultimo debug Non sono state trovate stanze nell'attributo 'rooms' della mappa {{ map_ent }}.
                 Assicurati che l'integrazione tasshack abbia creato la mappa e che il robot abbia
-                generato un layout con le stanze.
+                generato un layout con le stanze.   
