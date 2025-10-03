@@ -1,13 +1,15 @@
 blueprint:
-  name: Dreame · Script Alexa (stanze dinamiche, stile "setup di Magnum")
+  name: Dreame · Script Alexa (stanza da index, duplicabile)
   description: >
-    Crea uno script da esporre ad Alexa per avviare la pulizia di una stanza del Dreame
-    usando i segment ID dalla mappa tasshack.
-    • Invocazione con Alexa (Nabu Casa): dì "avvia <nome script>" oppure "apri <nome script>".
-    • Consiglio: duplica questo script dalla GUI per creare versioni per ciascuna stanza/modalità.
-    • Opzioni incluse: aggiornamento elenco stanze, preservazione della selezione, stanza forzata,
-      profilo/logica di pulizia (livello aspirazione, acqua, passate) se supportati dal tuo modello.
-
+    Crea uno script per avviare la pulizia di una **stanza** del Dreame usando i segment ID letti
+    dalla mappa tasshack e dall'index (input_select). Pensato per essere **duplicato** dalla GUI:
+    una istanza = uno script (esponibile ad Alexa).
+    • Invocazione Alexa (Nabu Casa): dì **"avvia <nome script>"** oppure **"apri <nome script>"**.
+    • Flusso consigliato:
+      1) Seleziona la stanza nell'helper `input_select` popolato dal Blueprint Index Stanze,
+      2) Attiva "Cattura stanza dall’helper", salva/esegui una volta → memorizzata in `input_text`,
+      3) Disattiva la cattura: lo script userà sempre quella stanza (perfetto per Alexa),
+      4) Duplica lo script per ogni altra stanza/modalità che ti serve.
   domain: script
   input:
     map_camera:
@@ -15,41 +17,47 @@ blueprint:
       selector:
         entity:
           domain: camera
+
     select_entity:
-      name: Input select stanze ("Nome (ID)")
+      name: Helper index stanze ("Nome (ID)")
+      description: Input select popolato dal Blueprint Index Stanze (contiene voci tipo "Cucina (3)")
       selector:
         entity:
           domain: input_select
+
     vacuum_entity:
       name: Entità aspirapolvere (vacuum.*)
       selector:
         entity:
           domain: vacuum
 
+    # Opzionale: refresh dell'elenco stanze (di solito NON serve: lo fa il BP#1)
     update_rooms_before:
       name: Aggiorna elenco stanze prima di eseguire
-      description: Sostituisce completamente le opzioni dell'input_select con i valori letti dalla mappa
+      description: Sostituisce TUTTE le opzioni dell'input_select con quelle lette dalla mappa
       default: false
       selector:
         boolean: {}
 
-    preserve_selection:
-      name: Preserva selezione stanza dopo il refresh
-      description: Se attivo, dopo il refresh prova a ripristinare la stanza che era selezionata
-      default: true
+    # Meccanismo "seleziona senza scrivere": cattura dall'helper e salva in un input_text
+    capture_from_helper_now:
+      name: Cattura stanza dall’helper adesso
+      description: Se attivo, alla prossima esecuzione prende la stanza dall'helper e la salva in input_text, che diventa la stanza "bloccata" per questo script.
+      default: false
       selector:
         boolean: {}
 
-    forced_room_label:
-      name: Stanza forzata per questo script ("Nome (ID)")
-      description: Se impostata (es. "Kitchen (3)"), lo script userà sempre questa stanza (ideale per Alexa)
+    room_lock_text:
+      name: Input text dove salvare la stanza bloccata ("Nome (ID)")
+      description: Lascialo vuoto se non vuoi memorizzare; consigliato per script fissi esposti ad Alexa
       default: ""
       selector:
-        text: {}
+        entity:
+          domain: input_text
 
+    # Profilo/parametri (opzionali, se supportati dal modello)
     cleaning_profile:
-      name: Tipo di pulizia (logica)
-      description: Etichetta logica/descrittiva; i servizi chiamati dipendono dagli input sotto
+      name: Tipo di pulizia
       default: aspirazione
       selector:
         select:
@@ -61,7 +69,7 @@ blueprint:
 
     suction_level:
       name: Livello aspirazione (opzionale)
-      description: Se supportato (1..4). Vuoto = non cambiare
+      description: 1..4 se supportato. Vuoto = non cambiare
       default:
       selector:
         number:
@@ -72,7 +80,7 @@ blueprint:
 
     water_volume:
       name: Quantità acqua (opzionale)
-      description: Se supportato (1..3). Vuoto = non cambiare
+      description: 1..3 se supportato. Vuoto = non cambiare
       default:
       selector:
         number:
@@ -83,7 +91,7 @@ blueprint:
 
     cleaning_passes:
       name: Numero passate (opzionale)
-      description: Se supportato (1..3). Vuoto = non cambiare
+      description: 1..3 se supportato. Vuoto = non cambiare
       default:
       selector:
         number:
@@ -106,8 +114,8 @@ sequence:
       select_ent: !input select_entity
       vac: !input vacuum_entity
       do_refresh: !input update_rooms_before
-      preserve: !input preserve_selection
-      forced_label: !input forced_room_label
+      capture_now: !input capture_from_helper_now
+      room_lock_ent: !input room_lock_text
       profile: !input cleaning_profile
       s_level: !input suction_level
       w_vol: !input water_volume
@@ -115,7 +123,7 @@ sequence:
       debug: !input notify_debug
       prev_option: "{{ states(select_ent) }}"
 
-  # (Opzionale) Aggiorna elenco stanze sostituendo TUTTE le opzioni
+  # (Opzionale) Refresh elenco stanze nell'input_select (sostituzione completa)
   - if:
       - condition: template
         value_template: "{{ do_refresh }}"
@@ -143,21 +151,11 @@ sequence:
                 data:
                   entity_id: "{{ select_ent }}"
                   options: "{{ room_options }}"
-              # Stanza forzata prioritaria
-              - if:
-                  - condition: template
-                    value_template: "{{ forced_label | length > 0 and forced_label in room_options }}"
-                then:
-                  - service: input_select.select_option
-                    data:
-                      entity_id: "{{ select_ent }}"
-                      option: "{{ forced_label }}"
-                else:
-                  # In mancanza di forzatura, prova a ripristinare la precedente
-                  - if:
+              - choose:
+                  - conditions:
                       - condition: template
-                        value_template: "{{ preserve and prev_option in room_options }}"
-                    then:
+                        value_template: "{{ prev_option in room_options }}"
+                    sequence:
                       - service: input_select.select_option
                         data:
                           entity_id: "{{ select_ent }}"
@@ -169,49 +167,79 @@ sequence:
               message: >-
                 Nessuna stanza trovata in {{ map_ent }} (attributo 'rooms'). Verifica integrazione tasshack e mappa.
 
-  # Se NON ho appena refreshato o se voglio forzare comunque, seleziona la stanza forzata (se impostata)
-  - if:
-      - condition: template
-        value_template: "{{ forced_label | length > 0 }}"
-    then:
-      - service: input_select.select_option
-        data:
-          entity_id: "{{ select_ent }}"
-          option: "{{ forced_label }}"
+  # Se richiesto: cattura la stanza dall'helper e memorizzala nell'input_text (diventa stanza "bloccata")
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: >-
+              {{ capture_now and room_lock_ent is string and room_lock_ent | length > 0 }}
+        sequence:
+          - variables:
+              helper_choice: "{{ states(select_ent) | default('') }}"
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ helper_choice | length > 0 }}"
+                sequence:
+                  - service: input_text.set_value
+                    data:
+                      entity_id: "{{ room_lock_ent }}"
+                      value: "{{ helper_choice }}"
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ debug }}"
+                        sequence:
+                          - service: persistent_notification.create
+                            data:
+                              title: "Dreame · Script Alexa"
+                              message: "Memorizzata stanza: {{ helper_choice }} in {{ room_lock_ent }}"
 
   # Parametri opzionali (se supportati dal modello)
   - choose:
-      - conditions: "{{ s_level is number }}"
+      - conditions:
+          - condition: template
+            value_template: "{{ s_level is number }}"
         sequence:
           - service: dreame_vacuum.vacuum_set_fan_speed
             data:
               entity_id: "{{ vac }}"
               speed_level: "{{ s_level | int }}"
-      - conditions: "{{ w_vol is number }}"
+      - conditions:
+          - condition: template
+            value_template: "{{ w_vol is number }}"
         sequence:
           - service: dreame_vacuum.vacuum_set_water_volume
             data:
               entity_id: "{{ vac }}"
               volume: "{{ w_vol | int }}"
-      - conditions: "{{ passes is number }}"
+      - conditions:
+          - condition: template
+            value_template: "{{ passes is number }}"
         sequence:
           - service: dreame_vacuum.vacuum_set_cleaning_passes
             data:
               entity_id: "{{ vac }}"
               passes: "{{ passes | int }}"
 
-  # Estrai ID segmento dalla voce selezionata ("Nome (ID)")
+  # Determina la stanza finale: preferisci input_text (bloccata), altrimenti usa la selezione attuale dell'helper
   - variables:
-      selected_option: "{{ states(select_ent) }}"
+      locked_label: >-
+        {% if room_lock_ent is string and room_lock_ent | length > 0 %}
+          {{ states(room_lock_ent) | default('') }}
+        {% else %}
+          {{ '' }}
+        {% endif %}
+      selected_label: "{{ locked_label if locked_label | length > 0 else states(select_ent) | default('') }}"
       segment_id: >-
-        {% set opt = selected_option | default('') %}
+        {% set opt = selected_label | default('') %}
         {% if '(' in opt and ')' in opt %}
           {{ opt.split('(')[-1].split(')')[0] | int }}
         {% else %}
           {{ opt | int(default=-1) }}
         {% endif %}
 
-  # Avvio pulizia stanza (segmento)
+  # Avvio pulizia del segmento (stanza)
   - choose:
       - conditions:
           - condition: template
@@ -221,19 +249,19 @@ sequence:
             data:
               entity_id: "{{ vac }}"
               segments: ["{{ segment_id | int }}"]
-          - if:
-              - condition: template
-                value_template: "{{ debug }}"
-            then:
-              - service: persistent_notification.create
-                data:
-                  title: "Dreame · Script Alexa"
-                  message: >-
-                    Avviata '{{ profile }}' su {{ selected_option }} (segment {{ segment_id }}).
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ debug }}"
+                sequence:
+                  - service: persistent_notification.create
+                    data:
+                      title: "Dreame · Script Alexa"
+                      message: "Avviata '{{ profile }}' su {{ selected_label }} (segment {{ segment_id }})"
     default:
       - service: persistent_notification.create
         data:
           title: "Dreame · Script Alexa"
           message: >-
-            Impossibile determinare l'ID stanza da '{{ selected_option }}'.
-            Assicurati che l'input_select abbia voci nel formato 'Nome (ID)'.
+            Impossibile determinare l'ID stanza da '{{ selected_label }}'.
+            Assicurati che l'input_select contenga voci nel formato 'Nome (ID)'.
