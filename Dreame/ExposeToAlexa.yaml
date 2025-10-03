@@ -1,9 +1,12 @@
 blueprint:
-  name: Dreame · Script Alexa (stanze dinamiche)
+  name: Dreame · Script Alexa (stanze dinamiche, stile "setup di Magnum")
   description: >
-    Crea uno script da esporre ad Alexa per pulire una stanza specifica del Dreame.
-    Opzionalmente aggiorna l'input_select con i nomi/ID stanza leggendo l'attributo 'rooms' dalla mappa (tasshack).
-    Lo script utilizza l'opzione attualmente selezionata nell'input_select (formato "Nome (ID)").
+    Crea uno script da esporre ad Alexa per avviare la pulizia di una stanza del Dreame
+    usando i segment ID dalla mappa tasshack.
+    • Invocazione con Alexa (Nabu Casa): dì "avvia <nome script>" oppure "apri <nome script>".
+    • Consiglio: duplica questo script dalla GUI per creare versioni per ciascuna stanza/modalità.
+    • Opzioni incluse: aggiornamento elenco stanze, preservazione della selezione, stanza forzata,
+      profilo/logica di pulizia (livello aspirazione, acqua, passate) se supportati dal tuo modello.
 
   domain: script
   input:
@@ -13,7 +16,7 @@ blueprint:
         entity:
           domain: camera
     select_entity:
-      name: Input select stanze
+      name: Input select stanze ("Nome (ID)")
       selector:
         entity:
           domain: input_select
@@ -22,14 +25,31 @@ blueprint:
       selector:
         entity:
           domain: vacuum
+
     update_rooms_before:
       name: Aggiorna elenco stanze prima di eseguire
+      description: Sostituisce completamente le opzioni dell'input_select con i valori letti dalla mappa
+      default: false
+      selector:
+        boolean: {}
+
+    preserve_selection:
+      name: Preserva selezione stanza dopo il refresh
+      description: Se attivo, dopo il refresh prova a ripristinare la stanza che era selezionata
       default: true
       selector:
         boolean: {}
+
+    forced_room_label:
+      name: Stanza forzata per questo script ("Nome (ID)")
+      description: Se impostata (es. "Kitchen (3)"), lo script userà sempre questa stanza (ideale per Alexa)
+      default: ""
+      selector:
+        text: {}
+
     cleaning_profile:
-      name: Tipo di pulizia
-      description: Scelta "logica" (non tutti i modelli supportano tutti i parametri).
+      name: Tipo di pulizia (logica)
+      description: Etichetta logica/descrittiva; i servizi chiamati dipendono dagli input sotto
       default: aspirazione
       selector:
         select:
@@ -38,9 +58,10 @@ blueprint:
             - lavaggio
             - pulizia
             - pulizia profonda
+
     suction_level:
       name: Livello aspirazione (opzionale)
-      description: Se supportato. Lascia vuoto per non toccare.
+      description: Se supportato (1..4). Vuoto = non cambiare
       default:
       selector:
         number:
@@ -48,9 +69,10 @@ blueprint:
           max: 4
           step: 1
           mode: slider
+
     water_volume:
       name: Quantità acqua (opzionale)
-      description: Se supportato. Lascia vuoto per non toccare.
+      description: Se supportato (1..3). Vuoto = non cambiare
       default:
       selector:
         number:
@@ -58,9 +80,10 @@ blueprint:
           max: 3
           step: 1
           mode: slider
+
     cleaning_passes:
       name: Numero passate (opzionale)
-      description: Se supportato. Lascia vuoto per non toccare.
+      description: Se supportato (1..3). Vuoto = non cambiare
       default:
       selector:
         number:
@@ -68,6 +91,7 @@ blueprint:
           max: 3
           step: 1
           mode: slider
+
     notify_debug:
       name: Notifica di debug
       default: false
@@ -75,19 +99,23 @@ blueprint:
         boolean: {}
 
 mode: single
+
 sequence:
   - variables:
       map_ent: !input map_camera
       select_ent: !input select_entity
       vac: !input vacuum_entity
       do_refresh: !input update_rooms_before
+      preserve: !input preserve_selection
+      forced_label: !input forced_room_label
       profile: !input cleaning_profile
       s_level: !input suction_level
       w_vol: !input water_volume
       passes: !input cleaning_passes
       debug: !input notify_debug
+      prev_option: "{{ states(select_ent) }}"
 
-  # (Opzionale) Aggiorna l'elenco stanze nell'input_select sostituendo completamente le opzioni
+  # (Opzionale) Aggiorna elenco stanze sostituendo TUTTE le opzioni
   - if:
       - condition: template
         value_template: "{{ do_refresh }}"
@@ -115,25 +143,43 @@ sequence:
                 data:
                   entity_id: "{{ select_ent }}"
                   options: "{{ room_options }}"
+              # Stanza forzata prioritaria
+              - if:
+                  - condition: template
+                    value_template: "{{ forced_label | length > 0 and forced_label in room_options }}"
+                then:
+                  - service: input_select.select_option
+                    data:
+                      entity_id: "{{ select_ent }}"
+                      option: "{{ forced_label }}"
+                else:
+                  # In mancanza di forzatura, prova a ripristinare la precedente
+                  - if:
+                      - condition: template
+                        value_template: "{{ preserve and prev_option in room_options }}"
+                    then:
+                      - service: input_select.select_option
+                        data:
+                          entity_id: "{{ select_ent }}"
+                          option: "{{ prev_option }}"
         default:
           - service: persistent_notification.create
             data:
               title: "Dreame · Script Alexa"
               message: >-
-                Nessuna stanza trovata in {{ map_ent }} (attributo 'rooms'). Verifica tasshack/map.
+                Nessuna stanza trovata in {{ map_ent }} (attributo 'rooms'). Verifica integrazione tasshack e mappa.
 
-  # Estrai la stanza selezionata e l'ID segmento
-  - variables:
-      selected_option: "{{ states(select_ent) }}"
-      segment_id: >-
-        {% set opt = selected_option | default('') %}
-        {% if '(' in opt and ')' in opt %}
-          {{ opt.split('(')[-1].split(')')[0] | int }}
-        {% else %}
-          {{ opt | int(default=-1) }}
-        {% endif %}
+  # Se NON ho appena refreshato o se voglio forzare comunque, seleziona la stanza forzata (se impostata)
+  - if:
+      - condition: template
+        value_template: "{{ forced_label | length > 0 }}"
+    then:
+      - service: input_select.select_option
+        data:
+          entity_id: "{{ select_ent }}"
+          option: "{{ forced_label }}"
 
-  # (Opzionali) imposta parametri profilo se supportati dal tuo modello
+  # Parametri opzionali (se supportati dal modello)
   - choose:
       - conditions: "{{ s_level is number }}"
         sequence:
@@ -154,7 +200,18 @@ sequence:
               entity_id: "{{ vac }}"
               passes: "{{ passes | int }}"
 
-  # Avvio pulizia segmento (stanza)
+  # Estrai ID segmento dalla voce selezionata ("Nome (ID)")
+  - variables:
+      selected_option: "{{ states(select_ent) }}"
+      segment_id: >-
+        {% set opt = selected_option | default('') %}
+        {% if '(' in opt and ')' in opt %}
+          {{ opt.split('(')[-1].split(')')[0] | int }}
+        {% else %}
+          {{ opt | int(default=-1) }}
+        {% endif %}
+
+  # Avvio pulizia stanza (segmento)
   - choose:
       - conditions:
           - condition: template
@@ -172,10 +229,11 @@ sequence:
                 data:
                   title: "Dreame · Script Alexa"
                   message: >-
-                    Avviata '{{ profile }}' su stanza {{ selected_option }} (segment {{ segment_id }}).
+                    Avviata '{{ profile }}' su {{ selected_option }} (segment {{ segment_id }}).
     default:
       - service: persistent_notification.create
         data:
           title: "Dreame · Script Alexa"
           message: >-
-            Impossibile determinare l'ID stanza da '{{ selected_option }}'. Controlla l'input_select.
+            Impossibile determinare l'ID stanza da '{{ selected_option }}'.
+            Assicurati che l'input_select abbia voci nel formato 'Nome (ID)'.
