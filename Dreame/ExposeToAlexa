@@ -1,0 +1,181 @@
+blueprint:
+  name: Dreame · Script Alexa (stanze dinamiche)
+  description: >
+    Crea uno script da esporre ad Alexa per pulire una stanza specifica del Dreame.
+    Opzionalmente aggiorna l'input_select con i nomi/ID stanza leggendo l'attributo 'rooms' dalla mappa (tasshack).
+    Lo script utilizza l'opzione attualmente selezionata nell'input_select (formato "Nome (ID)").
+
+  domain: script
+  input:
+    map_camera:
+      name: Mappa tasshack (camera.*)
+      selector:
+        entity:
+          domain: camera
+    select_entity:
+      name: Input select stanze
+      selector:
+        entity:
+          domain: input_select
+    vacuum_entity:
+      name: Entità aspirapolvere (vacuum.*)
+      selector:
+        entity:
+          domain: vacuum
+    update_rooms_before:
+      name: Aggiorna elenco stanze prima di eseguire
+      default: true
+      selector:
+        boolean: {}
+    cleaning_profile:
+      name: Tipo di pulizia
+      description: Scelta "logica" (non tutti i modelli supportano tutti i parametri).
+      default: aspirazione
+      selector:
+        select:
+          options:
+            - aspirazione
+            - lavaggio
+            - pulizia
+            - pulizia profonda
+    suction_level:
+      name: Livello aspirazione (opzionale)
+      description: Se supportato. Lascia vuoto per non toccare.
+      default:
+      selector:
+        number:
+          min: 1
+          max: 4
+          step: 1
+          mode: slider
+    water_volume:
+      name: Quantità acqua (opzionale)
+      description: Se supportato. Lascia vuoto per non toccare.
+      default:
+      selector:
+        number:
+          min: 1
+          max: 3
+          step: 1
+          mode: slider
+    cleaning_passes:
+      name: Numero passate (opzionale)
+      description: Se supportato. Lascia vuoto per non toccare.
+      default:
+      selector:
+        number:
+          min: 1
+          max: 3
+          step: 1
+          mode: slider
+    notify_debug:
+      name: Notifica di debug
+      default: false
+      selector:
+        boolean: {}
+
+mode: single
+sequence:
+  - variables:
+      map_ent: !input map_camera
+      select_ent: !input select_entity
+      vac: !input vacuum_entity
+      do_refresh: !input update_rooms_before
+      profile: !input cleaning_profile
+      s_level: !input suction_level
+      w_vol: !input water_volume
+      passes: !input cleaning_passes
+      debug: !input notify_debug
+
+  # (Opzionale) Aggiorna l'elenco stanze nell'input_select sostituendo completamente le opzioni
+  - if:
+      - condition: template
+        value_template: "{{ do_refresh }}"
+    then:
+      - variables:
+          room_options: >-
+            {% set ns = namespace(opts=[]) %}
+            {% set rooms = state_attr(map_ent, 'rooms') %}
+            {% if rooms %}
+              {% for pair in rooms | dictsort %}
+                {% set key = pair[0] %}
+                {% set val = pair[1] %}
+                {% set name = (val['name'] if 'name' in val else key) %}
+                {% set rid = (val['room_id'] if 'room_id' in val else key) %}
+                {% set ns.opts = ns.opts + [name ~ ' (' ~ rid ~ ')'] %}
+              {% endfor %}
+            {% endif %}
+            {{ ns.opts }}
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ room_options | length > 0 }}"
+            sequence:
+              - service: input_select.set_options
+                data:
+                  entity_id: "{{ select_ent }}"
+                  options: "{{ room_options }}"
+        default:
+          - service: persistent_notification.create
+            data:
+              title: "Dreame · Script Alexa"
+              message: >-
+                Nessuna stanza trovata in {{ map_ent }} (attributo 'rooms'). Verifica tasshack/map.
+
+  # Estrai la stanza selezionata e l'ID segmento
+  - variables:
+      selected_option: "{{ states(select_ent) }}"
+      segment_id: >-
+        {% set opt = selected_option | default('') %}
+        {% if '(' in opt and ')' in opt %}
+          {{ opt.split('(')[-1].split(')')[0] | int }}
+        {% else %}
+          {{ opt | int(default=-1) }}
+        {% endif %}
+
+  # (Opzionali) imposta parametri profilo se supportati dal tuo modello
+  - choose:
+      - conditions: "{{ s_level is number }}"
+        sequence:
+          - service: dreame_vacuum.vacuum_set_fan_speed
+            data:
+              entity_id: "{{ vac }}"
+              speed_level: "{{ s_level | int }}"
+      - conditions: "{{ w_vol is number }}"
+        sequence:
+          - service: dreame_vacuum.vacuum_set_water_volume
+            data:
+              entity_id: "{{ vac }}"
+              volume: "{{ w_vol | int }}"
+      - conditions: "{{ passes is number }}"
+        sequence:
+          - service: dreame_vacuum.vacuum_set_cleaning_passes
+            data:
+              entity_id: "{{ vac }}"
+              passes: "{{ passes | int }}"
+
+  # Avvio pulizia segmento (stanza)
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ segment_id | int(-1) >= 0 }}"
+        sequence:
+          - service: dreame_vacuum.vacuum_clean_segment
+            data:
+              entity_id: "{{ vac }}"
+              segments: ["{{ segment_id | int }}"]
+          - if:
+              - condition: template
+                value_template: "{{ debug }}"
+            then:
+              - service: persistent_notification.create
+                data:
+                  title: "Dreame · Script Alexa"
+                  message: >-
+                    Avviata '{{ profile }}' su stanza {{ selected_option }} (segment {{ segment_id }}).
+    default:
+      - service: persistent_notification.create
+        data:
+          title: "Dreame · Script Alexa"
+          message: >-
+            Impossibile determinare l'ID stanza da '{{ selected_option }}'. Controlla l'input_select.
