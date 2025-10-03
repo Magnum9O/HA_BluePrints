@@ -1,26 +1,20 @@
 blueprint:
-  name: Dreame · Script Alexa (stanza da index, duplicabile)
+  name: Dreame · Script Alexa (da index stanze)
   description: >
-    Crea uno script per avviare la pulizia di una **stanza** del Dreame usando i segment ID letti
-    dalla mappa tasshack e dall'index (input_select). Pensato per essere **duplicato** dalla GUI:
-    una istanza = uno script (esponibile ad Alexa).
-    • Invocazione Alexa (Nabu Casa): dì **"avvia <nome script>"** oppure **"apri <nome script>"**.
-    • Flusso consigliato:
-      1) Seleziona la stanza nell'helper `input_select` popolato dal Blueprint Index Stanze,
-      2) Attiva "Cattura stanza dall’helper", salva/esegui una volta → memorizzata in `input_text`,
-      3) Disattiva la cattura: lo script userà sempre quella stanza (perfetto per Alexa),
-      4) Duplica lo script per ogni altra stanza/modalità che ti serve.
-  domain: script
-  input:
-    map_camera:
-      name: Mappa tasshack (camera.*)
-      selector:
-        entity:
-          domain: camera
+    Crea uno script che avvia la pulizia di una stanza del Dreame usando l'helper
+    `input_select` popolato dal Blueprint Index Stanze (BP#1).
+    Flusso consigliato:
+      1) Seleziona la stanza nell'helper (menù a tendina),
+      2) (Opzionale) attiva "Cattura stanza dall’helper" per salvarla in un input_text,
+      3) Duplica lo script dalla GUI per crearne uno per ogni stanza/modalità.
+    Alexa (Nabu Casa): invoca con **"avvia <nome script>"** o **"apri <nome script>"**.
 
+  domain: script
+
+  input:
     select_entity:
       name: Helper index stanze ("Nome (ID)")
-      description: Input select popolato dal Blueprint Index Stanze (contiene voci tipo "Cucina (3)")
+      description: L'input_select popolato dal Blueprint Index Stanze (contiene voci tipo "Cucina (3)")
       selector:
         entity:
           domain: input_select
@@ -31,33 +25,26 @@ blueprint:
         entity:
           domain: vacuum
 
-    # Opzionale: refresh dell'elenco stanze (di solito NON serve: lo fa il BP#1)
-    update_rooms_before:
-      name: Aggiorna elenco stanze prima di eseguire
-      description: Sostituisce TUTTE le opzioni dell'input_select con quelle lette dalla mappa
-      default: false
-      selector:
-        boolean: {}
-
-    # Meccanismo "seleziona senza scrivere": cattura dall'helper e salva in un input_text
+    # Opzionale: cattura e "blocca" la stanza corrente dell'helper
     capture_from_helper_now:
       name: Cattura stanza dall’helper adesso
-      description: Se attivo, alla prossima esecuzione prende la stanza dall'helper e la salva in input_text, che diventa la stanza "bloccata" per questo script.
+      description: Se attivo alla prossima esecuzione, copia la stanza selezionata nell'helper dentro l'input_text indicato, rendendo lo script fisso per Alexa.
       default: false
       selector:
         boolean: {}
 
     room_lock_text:
-      name: Input text dove salvare la stanza bloccata ("Nome (ID)")
-      description: Lascialo vuoto se non vuoi memorizzare; consigliato per script fissi esposti ad Alexa
+      name: Input text dove salvare la stanza ("Nome (ID)")
+      description: Opzionale ma consigliato per avere uno script che non dipende dall'helper.
       default: ""
       selector:
         entity:
           domain: input_text
 
-    # Profilo/parametri (opzionali, se supportati dal modello)
+    # Parametri opzionali (usa solo se supportati dal tuo modello)
     cleaning_profile:
       name: Tipo di pulizia
+      description: Solo informativa/log; il comando usato è la pulizia di segmento.
       default: aspirazione
       selector:
         select:
@@ -110,10 +97,8 @@ mode: single
 
 sequence:
   - variables:
-      map_ent: !input map_camera
       select_ent: !input select_entity
       vac: !input vacuum_entity
-      do_refresh: !input update_rooms_before
       capture_now: !input capture_from_helper_now
       room_lock_ent: !input room_lock_text
       profile: !input cleaning_profile
@@ -121,58 +106,13 @@ sequence:
       w_vol: !input water_volume
       passes: !input cleaning_passes
       debug: !input notify_debug
-      prev_option: "{{ states(select_ent) }}"
 
-  # (Opzionale) Refresh elenco stanze nell'input_select (sostituzione completa)
-  - if:
-      - condition: template
-        value_template: "{{ do_refresh }}"
-    then:
-      - variables:
-          room_options: >-
-            {% set ns = namespace(opts=[]) %}
-            {% set rooms = state_attr(map_ent, 'rooms') %}
-            {% if rooms %}
-              {% for pair in rooms | dictsort %}
-                {% set key = pair[0] %}
-                {% set val = pair[1] %}
-                {% set name = (val['name'] if 'name' in val else key) %}
-                {% set rid = (val['room_id'] if 'room_id' in val else key) %}
-                {% set ns.opts = ns.opts + [name ~ ' (' ~ rid ~ ')'] %}
-              {% endfor %}
-            {% endif %}
-            {{ ns.opts }}
-      - choose:
-          - conditions:
-              - condition: template
-                value_template: "{{ room_options | length > 0 }}"
-            sequence:
-              - service: input_select.set_options
-                data:
-                  entity_id: "{{ select_ent }}"
-                  options: "{{ room_options }}"
-              - choose:
-                  - conditions:
-                      - condition: template
-                        value_template: "{{ prev_option in room_options }}"
-                    sequence:
-                      - service: input_select.select_option
-                        data:
-                          entity_id: "{{ select_ent }}"
-                          option: "{{ prev_option }}"
-        default:
-          - service: persistent_notification.create
-            data:
-              title: "Dreame · Script Alexa"
-              message: >-
-                Nessuna stanza trovata in {{ map_ent }} (attributo 'rooms'). Verifica integrazione tasshack e mappa.
-
-  # Se richiesto: cattura la stanza dall'helper e memorizzala nell'input_text (diventa stanza "bloccata")
+  # Se richiesto: cattura la selezione corrente dell'helper e salvala in input_text
   - choose:
       - conditions:
           - condition: template
             value_template: >-
-              {{ capture_now and room_lock_ent is string and room_lock_ent | length > 0 }}
+              {{ capture_now and (room_lock_ent is string) and (room_lock_ent | length > 0) }}
         sequence:
           - variables:
               helper_choice: "{{ states(select_ent) | default('') }}"
@@ -195,7 +135,7 @@ sequence:
                               title: "Dreame · Script Alexa"
                               message: "Memorizzata stanza: {{ helper_choice }} in {{ room_lock_ent }}"
 
-  # Parametri opzionali (se supportati dal modello)
+  # Parametri opzionali (applicati solo se specificati)
   - choose:
       - conditions:
           - condition: template
@@ -222,7 +162,7 @@ sequence:
               entity_id: "{{ vac }}"
               passes: "{{ passes | int }}"
 
-  # Determina la stanza finale: preferisci input_text (bloccata), altrimenti usa la selezione attuale dell'helper
+  # Determina la stanza finale: preferisci input_text (bloccata), altrimenti usa la selezione attuale dell’helper
   - variables:
       locked_label: >-
         {% if room_lock_ent is string and room_lock_ent | length > 0 %}
