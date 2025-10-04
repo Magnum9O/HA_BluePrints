@@ -69,6 +69,3 @@ sequence:
     data:
       segments:
         - "{{ room_id | int }}"
-      suction_level: "{{ suction_out }}"
-      water_volume: "{{ water_out }}"
-      cleaning_times: "{{ passes_out }}"
