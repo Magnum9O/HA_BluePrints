@@ -67,7 +67,9 @@ sequence:
       _water: !input water_volume
       _passes: !input cleaning_passes
 
+      # Testo selezionato nell'input_select, es. "Kitchen (3)"
       room_label: "{{ states(_helper) | string }}"
+      # Estrai ID (tra parentesi)
       room_id: >-
         {% set s = room_label %}
         {% if '(' in s and ')' in s %}
@@ -76,9 +78,11 @@ sequence:
           {{ -1 }}
         {% endif %}
 
+  # Verifica che l'ID sia valido
   - condition: template
     value_template: "{{ room_id | int(-1) >= 0 }}"
 
+  # Applica opzionali se presenti
   - choose:
       - conditions:
           - condition: template
@@ -88,7 +92,8 @@ sequence:
             target:
               entity_id: "{{ _vac }}"
             data:
-              segments: [ {{ room_id | int }} ]
+              segments:
+                - "{{ room_id | int }}"
               suction_level: "{{ _suction | int }}"
               water_volume: "{{ _water | int }}"
               cleaning_times: "{{ _passes | int }}"
@@ -101,7 +106,8 @@ sequence:
             target:
               entity_id: "{{ _vac }}"
             data:
-              segments: [ {{ room_id | int }} ]
+              segments:
+                - "{{ room_id | int }}"
               suction_level: "{{ _suction | int }}"
               cleaning_times: "{{ _passes | int }}"
 
@@ -113,7 +119,8 @@ sequence:
             target:
               entity_id: "{{ _vac }}"
             data:
-              segments: [ {{ room_id | int }} ]
+              segments:
+                - "{{ room_id | int }}"
               water_volume: "{{ _water | int }}"
               cleaning_times: "{{ _passes | int }}"
 
@@ -125,7 +132,8 @@ sequence:
             target:
               entity_id: "{{ _vac }}"
             data:
-              segments: [ {{ room_id | int }} ]
+              segments:
+                - "{{ room_id | int }}"
               cleaning_times: "{{ _passes | int }}"
 
       - conditions:
@@ -136,7 +144,8 @@ sequence:
             target:
               entity_id: "{{ _vac }}"
             data:
-              segments: [ {{ room_id | int }} ]
+              segments:
+                - "{{ room_id | int }}"
               suction_level: "{{ _suction | int }}"
 
       - conditions:
@@ -147,7 +156,8 @@ sequence:
             target:
               entity_id: "{{ _vac }}"
             data:
-              segments: [ {{ room_id | int }} ]
+              segments:
+                - "{{ room_id | int }}"
               water_volume: "{{ _water | int }}"
 
     default:
@@ -155,4 +165,5 @@ sequence:
         target:
           entity_id: "{{ _vac }}"
         data:
-          segments: [ {{ room_id | int }} ]
+          segments:
+            - "{{ room_id | int }}"
