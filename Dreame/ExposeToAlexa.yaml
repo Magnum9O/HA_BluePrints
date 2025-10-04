@@ -1,10 +1,10 @@
-blueprint:
-  name: Dreame · Script Alexa (fisso per stanza o dinamico da index)
+blueprint: ExposeToAlexa
+  name: Espone gli script di pulizia ad Alexa
   description: >
     Crea uno script Alexa per pulire una stanza Dreame.
     - Se imposti **Segment ID fisso (override)**, lo script userà sempre quell'ID (consigliato per Alexa).
     - Se lo lasci vuoto, leggerà l'ID dall'helper `input_select` popolato dal Blueprint Index Stanze (BP#1).
-    Invocazione Alexa (Nabu Casa): "avvia <nome script>" o "apri <nome script>".
+    Se usi matter: Imposta subito un label agli script che crei in modo da esporli ad Alexa!
 
   domain: script
 
@@ -25,8 +25,9 @@ blueprint:
     segment_id_override:
       name: Segment ID fisso (override)
       description: >
-        (Consigliato per script fissi) Inserisci l'ID numerico della stanza (es. "3" per "Kitchen (3)").
-        Se lasci vuoto, verrà usato l'ID ricavato dal valore corrente dell'helper.
+        Inserisci l'ID numerico della stanza (es. "3" per "Cucina (3)") che puoi ricavare dall'helper creato con il BP#1. 
+        Attenzione: lascianod questo valore vuoto, lo script avvierà sempre la pulizia della stanza indiciata dall'helper!
+        Per creare uno script indipendente dall'helper, questo campo va riempito con l'ID della stanza corrispondente
       default:
       selector:
         number:
@@ -42,10 +43,10 @@ blueprint:
       selector:
         select:
           options:
-            - aspirazione
-            - lavaggio
-            - pulizia
-            - pulizia profonda
+            - Sola Aspirazione
+            - Solo Lavaggio con moci/rullo
+            - Pulizia (Clean Genius)
+            - Pulizia profonda (Clean Genius)
 
     suction_level:
       name: Livello aspirazione (opzionale)
