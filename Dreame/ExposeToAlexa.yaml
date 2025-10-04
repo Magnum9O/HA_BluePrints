@@ -1,16 +1,17 @@
 blueprint:
-  name: Dreame · Script Alexa (da index stanze) — minimal
+  name: Dreame · Script Alexa (fisso per stanza o dinamico da index)
   description: >
-    Avvia la pulizia di una stanza del Dreame leggendo l'ID segmento
-    dall'helper `input_select` popolato dal Blueprint Index Stanze.
-    Uso: seleziona la stanza nell'helper (formato "Nome (ID)") e lancia lo script.
-    
+    Crea uno script Alexa per pulire una stanza Dreame.
+    - Se imposti **Segment ID fisso (override)**, lo script userà sempre quell'ID (consigliato per Alexa).
+    - Se lo lasci vuoto, leggerà l'ID dall'helper `input_select` popolato dal Blueprint Index Stanze (BP#1).
+    Invocazione Alexa (Nabu Casa): "avvia <nome script>" o "apri <nome script>".
+
   domain: script
 
   input:
     select_entity:
       name: Helper index stanze ("Nome (ID)")
-      description: L'input_select popolato dal BP#1 (voci come "Cucina (3)")
+      description: L'input_select popolato dal BP#1 (voci come "Cucina (3)"). Usato solo se l'override è vuoto.
       selector:
         entity:
           domain: input_select
@@ -21,9 +22,22 @@ blueprint:
         entity:
           domain: vacuum
 
-    # Parametri opzionali (applicati solo se supportati dal modello)
+    segment_id_override:
+      name: Segment ID fisso (override)
+      description: >
+        (Consigliato per script fissi) Inserisci l'ID numerico della stanza (es. "3" per "Kitchen (3)").
+        Se lasci vuoto, verrà usato l'ID ricavato dal valore corrente dell'helper.
+      default:
+      selector:
+        number:
+          min: 0
+          max: 9999
+          step: 1
+          mode: box
+
+    # Opzionali: applicati solo se supportati dal modello
     cleaning_profile:
-      name: Tipo di pulizia (solo etichetta informativa)
+      name: Tipo di pulizia (etichetta informativa)
       default: aspirazione
       selector:
         select:
@@ -72,46 +86,44 @@ sequence:
   - variables:
       select_ent: !input select_entity
       vac: !input vacuum_entity
+      seg_override: !input segment_id_override
       s_level: !input suction_level
       w_vol: !input water_volume
       passes: !input cleaning_passes
 
   # Parametri opzionali: applica solo se forniti
   - choose:
-      - conditions:
-          - condition: template
-            value_template: "{{ s_level is number }}"
+      - conditions: "{{ s_level is number }}"
         sequence:
           - service: dreame_vacuum.vacuum_set_fan_speed
             data:
               entity_id: "{{ vac }}"
               speed_level: "{{ s_level | int }}"
-      - conditions:
-          - condition: template
-            value_template: "{{ w_vol is number }}"
+      - conditions: "{{ w_vol is number }}"
         sequence:
           - service: dreame_vacuum.vacuum_set_water_volume
             data:
               entity_id: "{{ vac }}"
               volume: "{{ w_vol | int }}"
-      - conditions:
-          - condition: template
-            value_template: "{{ passes is number }}"
+      - conditions: "{{ passes is number }}"
         sequence:
           - service: dreame_vacuum.vacuum_set_cleaning_passes
             data:
               entity_id: "{{ vac }}"
               passes: "{{ passes | int }}"
 
-  # Leggi etichetta dall'helper e ricava l'ID segmento
+  # Determina il segment_id finale: prima l'override, altrimenti derivato dall'helper
   - variables:
-      selected_label: "{{ states(select_ent) | default('') }}"
       segment_id: >-
-        {% set opt = selected_label | trim %}
-        {% if '(' in opt and ')' in opt %}
-          {{ opt.split('(')[-1].split(')')[0] | int }}
+        {% if seg_override is number %}
+          {{ seg_override | int }}
         {% else %}
-          {{ opt | int(default=-1) }}
+          {% set opt = (states(select_ent) | default('')) | trim %}
+          {% if '(' in opt and ')' in opt %}
+            {{ opt.split('(')[-1].split(')')[0] | int }}
+          {% else %}
+            {{ opt | int(default=-1) }}
+          {% endif %}
         {% endif %}
 
   # Avvia pulizia solo se l'ID è valido
