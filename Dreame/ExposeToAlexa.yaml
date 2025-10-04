@@ -29,43 +29,32 @@ blueprint:
     suction_level:
       name: Livello aspirazione (opzionale)
       description: Lascia vuoto per usare il valore predefinito del robot.
-      default: !input default_suction_placeholder
       selector:
         number:
           min: 1
           max: 4
-          mode: slider
           step: 1
-          unit_of_measurement: ""
+          mode: slider
 
     water_volume:
       name: Livello acqua (opzionale)
       description: Lascia vuoto per usare il valore predefinito del robot (solo modelli che lavano).
-      default: !input default_water_placeholder
       selector:
         number:
           min: 1
           max: 3
-          mode: slider
           step: 1
-          unit_of_measurement: ""
+          mode: slider
 
     cleaning_passes:
       name: Passate (opzionale)
       description: Numero di passate su stanza. Lascia vuoto per default.
-      default: !input default_passes_placeholder
       selector:
         number:
           min: 1
           max: 3
-          mode: slider
           step: 1
-          unit_of_measurement: ""
-
-# Placeholders vuoti per distinguere "non impostato" da 0
-default_suction_placeholder: null
-default_water_placeholder: null
-default_passes_placeholder: null
+          mode: slider
 
 mode: restart
 icon: mdi:robot-vacuum
@@ -86,66 +75,52 @@ sequence:
         {% if '(' in s and ')' in s %}
           {{ s.split('(')[-1].split(')')[0] | int }}
         {% else %}
-          {{ 0 }}
-        {% endif %}
-      room_name: >-
-        {% set s = room_label %}
-        {% if ' (' in s %}
-          {{ s.rsplit(' (', 1)[0] }}
-        {% else %}
-          {{ s }}
+          {{ -1 }}
         {% endif %}
 
+  # Se è stato selezionato un ID valido
+  - condition: template
+    value_template: "{{ room_id | int(-1) >= 0 }}"
+
+  # Applica opzionali solo se presenti
   - choose:
-      # Suction + water + passes tutti presenti
       - conditions:
           - condition: template
-            value_template: "{{ _suction is number }}"
-          - condition: template
-            value_template: "{{ _water is number }}"
-          - condition: template
-            value_template: "{{ _passes is number }}"
+            value_template: "{{ _suction is number and _water is number and _passes is number }}"
         sequence:
           - service: dreame_vacuum.vacuum_clean_segment
             target:
               entity_id: "{{ _vac }}"
             data:
-              segment_ids: ["{{ room_id }}"]
+              segments: [ {{ room_id | int }} ]
               suction_level: "{{ _suction | int }}"
               water_volume: "{{ _water | int }}"
               cleaning_times: "{{ _passes | int }}"
 
-      # Solo suction + passes
       - conditions:
           - condition: template
-            value_template: "{{ _suction is number }}"
-          - condition: template
-            value_template: "{{ _passes is number }}"
+            value_template: "{{ _suction is number and _passes is number }}"
         sequence:
           - service: dreame_vacuum.vacuum_clean_segment
             target:
               entity_id: "{{ _vac }}"
             data:
-              segment_ids: ["{{ room_id }}"]
+              segments: [ {{ room_id | int }} ]
               suction_level: "{{ _suction | int }}"
               cleaning_times: "{{ _passes | int }}"
 
-      # Solo water + passes
       - conditions:
           - condition: template
-            value_template: "{{ _water is number }}"
-          - condition: template
-            value_template: "{{ _passes is number }}"
+            value_template: "{{ _water is number and _passes is number }}"
         sequence:
           - service: dreame_vacuum.vacuum_clean_segment
             target:
               entity_id: "{{ _vac }}"
             data:
-              segment_ids: ["{{ room_id }}"]
+              segments: [ {{ room_id | int }} ]
               water_volume: "{{ _water | int }}"
               cleaning_times: "{{ _passes | int }}"
 
-      # Solo passes
       - conditions:
           - condition: template
             value_template: "{{ _passes is number }}"
@@ -154,10 +129,9 @@ sequence:
             target:
               entity_id: "{{ _vac }}"
             data:
-              segment_ids: ["{{ room_id }}"]
+              segments: [ {{ room_id | int }} ]
               cleaning_times: "{{ _passes | int }}"
 
-      # Solo suction
       - conditions:
           - condition: template
             value_template: "{{ _suction is number }}"
@@ -166,10 +140,9 @@ sequence:
             target:
               entity_id: "{{ _vac }}"
             data:
-              segment_ids: ["{{ room_id }}"]
+              segments: [ {{ room_id | int }} ]
               suction_level: "{{ _suction | int }}"
 
-      # Solo water
       - conditions:
           - condition: template
             value_template: "{{ _water is number }}"
@@ -178,7 +151,7 @@ sequence:
             target:
               entity_id: "{{ _vac }}"
             data:
-              segment_ids: ["{{ room_id }}"]
+              segments: [ {{ room_id | int }} ]
               water_volume: "{{ _water | int }}"
 
     default:
@@ -186,4 +159,4 @@ sequence:
         target:
           entity_id: "{{ _vac }}"
         data:
-          segment_ids: ["{{ room_id }}"]
+          segments: [ {{ room_id | int }} ]
