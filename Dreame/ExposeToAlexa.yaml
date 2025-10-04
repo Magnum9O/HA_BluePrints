@@ -1,5 +1,5 @@
-blueprint: 
-  name: Espone gli script di pulizia ad Alexa
+blueprint:
+  name: Creazione Script Alexa (fisso per stanza o dinamico da index)
   description: >
     Crea uno script Alexa per pulire una stanza Dreame.
     - Se imposti **Segment ID fisso (override)**, lo script userà sempre quell'ID (consigliato per Alexa).
