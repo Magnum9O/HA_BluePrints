@@ -1,958 +1,542 @@
 blueprint:
-  name: Dreame – Pianificazione avanzata (settimanale)
-  description: >-
-    Pianifica pulizie per gruppi di giorni e orari, con preset allineati ai tuoi
-    script: "Pulizia" e "Pulizia profonda" usano CleanGenius (routine/deep);
-    "Aspirazione" e "Lavaggio" usano le modalità pure (sweeping/mopping) con
-    CleanGenius disattivato. Supporta presenza (counter 0/1 o boolean), attesa
-    stato robot (idle/charging/...), mappatura Nome→ID stanza da camera mappa e
-    reset giornaliero dell'helper "pulito oggi". Offre anche una modalità semplice
-    (mattina/sera) come nel primo step, più 4 blocchi avanzati (A–D) per
-    combinazioni tipo: lun/mer/ven, mar/gio, sabato tutta casa, ecc.
+  name: Dreame – Pianificazione avanzata (Semplice/Avanzata + Blocchi A–D)
+  description: >
+    Pianifica pulizie Dreame per stanze specifiche con modalità **Semplice (mattina/sera)**
+    oppure **Avanzata (blocchi A–D)**. Supporta preset "Pulizia" e "Pulizia profonda"
+    (CleanGenius attivo), "Sola Aspirazione" e "Solo Lavaggio" (CleanGenius off).
+    Come funziona la modalità semplice? Imposto la pulizia delle stanze ad orari predefiniti e nei giorni stabiliti.
+    Come funziona la modalità avanzata? Posso diversificare la pulizia in base ai giorni della settimana, quindi
+    decidere di pulire 2 stanze il martedì e il giovedì e altre tre il mercoledì e il venerdì, ecc.
+    Attivare la modalità avanzata **NON esclude la modalità semplice!** 
+    Opzionalmente si può attivare un controllo presenza e un reset del flag "Pulizia Effettuata" a fine giornata.
   domain: automation
-  source_url: https://raw.githubusercontent.com/Magnum9O/HA_BluePrints/main/Dreame/ScheduledCleaningAdvanced.yaml
+  source_url: https://github.com/Magnum9O/HA_BluePrints/blob/main/Dreame/ScheduledCleaningAdvanced.yaml
 
-  input:
+input:
+  vacuum_entity:
+    name: Robot Dreame
+    description: "Entità vacuum del robot (es. vacuum.ambrogio)."
+    selector:
+      entity:
+        domain: vacuum
 
-    # --- ENTITÀ DREAME / STATO ---
-    vacuum_entity:
-      name: Robot aspirapolvere
-      description: >-
-        Entità del tuo robot Dreame (es. vacuum.ambrogio).
-      selector:
-        entity:
-          domain: vacuum
+  map_camera:
+    name: Mappa
+    description: "Camera mappa di tasshack/Vacuum Map Card con attributo 'rooms'."
+    default: ""
+    selector:
+      entity:
+        domain: camera
+        multiple: false
 
-    cleangenius_select:
-      name: Select – CleanGenius
-      description: >-
-        Select dell’integrazione Dreame per "routine_cleaning" / "deep_cleaning" / "off".
-      selector:
-        entity:
-          domain: select
+  presence_helper:
+    name: Helper presenza (opzionale)
+    description: "Counter/boolean usato come presenza. Se impostato, la pulizia parte solo se il valore richiesto coincide."
+    default: ""
+    selector:
+      entity:
+        multiple: false
 
-    cleaning_mode_select:
-      name: Select – Cleaning mode (pure)
-      description: >-
-        Select della modalità pura: "sweeping" (aspirazione) o "mopping" (lavaggio).
-      selector:
-        entity:
-          domain: select
+  presence_required_value:
+    name: Valore richiesto per presenza (opzionale)
+    description: "Esempio: '1' (in casa) oppure '0' (via). Confronto testuale."
+    default: ""
 
-    vacuum_status:
-      name: Sensore stato robot
-      description: >-
-        Sensore di stato del robot (idle / sleeping / charging / ...).
-      selector:
-        entity:
-          domain: sensor
+  cleaned_today_helper:
+    name: Flag “Pulizia Effettuata” (input_boolean)
+    description: "Viene attivato al termine della routine e resettato a fine giornata."
+    selector:
+      entity:
+        domain: input_boolean
 
-    # --- OPZIONALI: CAMERA MAPPA / PRESENZA / FLAG GIORNALIERO ---
-    map_camera:
-      name: Camera mappa (opzionale, per Nome→ID)
-      description: >-
-        Se fornita, i Nomi stanza verranno mappati agli ID leggendo
-        state_attr(camera,'rooms').
-      default:
-      selector:
-        entity:
-          domain: camera
+  reset_time:
+    name: Orario reset giornaliero del flag "Pulizia Effettuata"
+    default: "23:59:00"
+    selector:
+      time: {}
 
-    presence_counter:
-      name: Entità presenza (opzionale)
-      description: >-
-        Contatore/boolean della presenza (es. 1=via di casa). Se compilato, ogni esecuzione
-        verificherà che "Valore presenza richiesto" combaci.
-      default:
-      selector:
-        entity: {}
+  simple_mode_enabled:
+    name: Abilita modalità semplice (Pulizia mattina/sera)
+    description: "Se ON, usa solo Mattina/Sera. Se usi anche i blocchi, entrambi potranno attivarsi."
+    default: true
+    selector:
+      boolean: {}
 
-    presence_required_value:
-      name: Valore presenza richiesto
-      description: >-
-        Valore atteso dell’entità di presenza per consentire l’avvio (es. "1" o "on").
-      default: "1"
-      selector:
-        text: {}
+  advanced_mode_enabled:
+    name: Abilita opzioni avanzate (blocchi A–D)
+    description: "Se ON, abilita la pianificazione per blocchi giornalieri A–D."
+    default: false
+    selector:
+      boolean: {}
 
-    cleaned_today:
-      name: Helper "pulito oggi"
-      description: >-
-        input_boolean che viene impostato a ON dopo una pulizia riuscita e azzerato alle 23:59.
-      selector:
-        entity:
-          domain: input_boolean
+  morning_enabled:
+    name: Mattina – Abilita
+    default: true
+    selector:
+      boolean: {}
 
-    # --- ATTESA STATO ROBOT ---
-    wait_before_start:
-      name: Attendi che il robot sia fermo prima di avviare
-      default: true
-      selector:
-        boolean: {}
+  morning_time:
+    name: Mattina – Orario
+    default: "09:00:00"
+    selector:
+      time: {}
 
-    idle_states_csv:
-      name: Stati considerati "fermo"
-      description: >-
-        Elenco separato da virgola confrontato con il sensore di stato (es. idle,sleeping,charging).
-      default: idle,sleeping,charging
-      selector:
-        text: {}
+  morning_days:
+    name: Mattina – Giorni
+    default: [mon,tue,wed,thu,fri]
+    selector:
+      select:
+        mode: list
+        multiple: true
+        options: [mon,tue,wed,thu,fri,sat,sun]
 
-    # ------------------------- MODALITÀ SEMPLICE -------------------------
-    enable_simple:
-      name: Abilita modalità semplice (mattina/sera)
-      default: true
-      selector:
-        boolean: {}
+  morning_preset:
+    name: Mattina – Preset
+    default: "Pulizia"
+    selector:
+      select:
+        options: ["Pulizia","Pulizia profonda","Aspirazione","Lavaggio"]
 
-    morning_time:
-      name: Orario mattina
-      default: "09:00:00"
-      selector:
-        time: {}
+  morning_rooms:
+    name: Mattina – Stanze (ID o nomi separati da virgola)
+    description: "Esempi: '2,3,4' oppure 'Kitchen,Bathroom'. Se usi nomi, serve 'Mappa' sopra."
+    default: ""
+    selector:
+      text: {}
 
-    morning_days:
-      name: Giorni mattina
-      description: Giorni in cui eseguire la pulizia mattutina.
-      default: ["mon","tue","wed","thu","fri"]
-      selector:
-        select:
-          multiple: true
-          mode: list
-          options: ["mon","tue","wed","thu","fri","sat","sun"]
+  evening_enabled:
+    name: Sera – Abilita
+    default: false
+    selector:
+      boolean: {}
 
-    morning_rooms:
-      name: Stanze mattina (ID o Nomi separati da virgola)
-      description: >-
-        Esempi: 2,3,4 oppure Kitchen,Bathroom. I nomi richiedono la camera mappa.
-      selector:
-        text: {}
+  evening_time:
+    name: Sera – Orario
+    default: "19:00:00"
+    selector:
+      time: {}
 
-    morning_preset:
-      name: Tipo pulizia mattina
-      default: Pulizia
-      selector:
-        select:
-          options: ["Pulizia","Pulizia profonda","Aspirazione","Lavaggio"]
+  evening_days:
+    name: Sera – Giorni
+    default: [mon,tue,wed,thu,fri]
+    selector:
+      select:
+        mode: list
+        multiple: true
+        options: [mon,tue,wed,thu,fri,sat,sun]
 
-    evening_time:
-      name: Orario sera
-      default: "19:00:00"
-      selector:
-        time: {}
+  evening_preset:
+    name: Sera – Preset
+    default: "Pulizia"
+    selector:
+      select:
+        options: ["Pulizia","Pulizia profonda","Aspirazione","Lavaggio"]
 
-    evening_days:
-      name: Giorni sera
-      description: Giorni in cui eseguire la pulizia serale.
-      default: ["mon","tue","wed","thu","fri"]
-      selector:
-        select:
-          multiple: true
-          mode: list
-          options: ["mon","tue","wed","thu","fri","sat","sun"]
+  evening_rooms:
+    name: Sera – Stanze (ID o nomi separati da virgola)
+    default: ""
+    selector:
+      text: {}
 
-    evening_rooms:
-      name: Stanze sera (ID o Nomi separati da virgola)
-      description: >-
-        Esempi: 7,10 oppure Living Room,Kitchen. I nomi richiedono la camera mappa.
-      selector:
-        text: {}
+  blockA_enabled:
+    name: Blocco A – Abilita
+    default: false
+    selector:
+      boolean: {}
+  blockA_time:
+    name: Blocco A – Orario
+    default: "08:30:00"
+    selector:
+      time: {}
+  blockA_days:
+    name: Blocco A – Giorni
+    default: []
+    selector:
+      select:
+        mode: list
+        multiple: true
+        options: [mon,tue,wed,thu,fri,sat,sun]
+  blockA_preset:
+    name: Blocco A – Preset
+    default: "Pulizia"
+    selector:
+      select:
+        options: ["Pulizia","Pulizia profonda","Aspirazione","Lavaggio"]
+  blockA_rooms:
+    name: Blocco A – Stanze (ID o nomi separati da virgola)
+    default: ""
+    selector:
+      text: {}
 
-    evening_preset:
-      name: Tipo pulizia sera
-      default: Pulizia
-      selector:
-        select:
-          options: ["Pulizia","Pulizia profonda","Aspirazione","Lavaggio"]
+  blockB_enabled:
+    name: Blocco B – Abilita
+    default: false
+    selector:
+      boolean: {}
+  blockB_time:
+    name: Blocco B – Orario
+    default: "12:30:00"
+    selector:
+      time: {}
+  blockB_days:
+    name: Blocco B – Giorni
+    default: []
+    selector:
+      select:
+        mode: list
+        multiple: true
+        options: [mon,tue,wed,thu,fri,sat,sun]
+  blockB_preset:
+    name: Blocco B – Preset
+    default: "Pulizia"
+    selector:
+      select:
+        options: ["Pulizia","Pulizia profonda","Aspirazione","Lavaggio"]
+  blockB_rooms:
+    name: Blocco B – Stanze (ID o nomi separati da virgola)
+    default: ""
+    selector:
+      text: {}
 
-    run_evening_only_if_not_cleaned:
-      name: Esegui sera solo se non ha già pulito oggi
-      default: true
-      selector:
-        boolean: {}
+  blockC_enabled:
+    name: Blocco C – Abilita
+    default: false
+    selector:
+      boolean: {}
+  blockC_time:
+    name: Blocco C – Orario
+    default: "17:00:00"
+    selector:
+      time: {}
+  blockC_days:
+    name: Blocco C – Giorni
+    default: []
+    selector:
+      select:
+        mode: list
+        multiple: true
+        options: [mon,tue,wed,thu,fri,sat,sun]
+  blockC_preset:
+    name: Blocco C – Preset
+    default: "Pulizia"
+    selector:
+      select:
+        options: ["Pulizia","Pulizia profonda","Aspirazione","Lavaggio"]
+  blockC_rooms:
+    name: Blocco C – Stanze (ID o nomi separati da virgola)
+    default: ""
+    selector:
+      text: {}
 
-    # ------------------------- MODALITÀ AVANZATA (BLOCCHI A–D) -------------------------
-    enable_block_a:
-      name: Abilita blocco A
-      default: false
-      selector:
-        boolean: {}
+  blockD_enabled:
+    name: Blocco D – Abilita
+    default: false
+    selector:
+      boolean: {}
+  blockD_time:
+    name: Blocco D – Orario
+    default: "21:00:00"
+    selector:
+      time: {}
+  blockD_days:
+    name: Blocco D – Giorni
+    default: []
+    selector:
+      select:
+        mode: list
+        multiple: true
+        options: [mon,tue,wed,thu,fri,sat,sun]
+  blockD_preset:
+    name: Blocco D – Preset
+    default: "Pulizia"
+    selector:
+      select:
+        options: ["Pulizia","Pulizia profonda","Aspirazione","Lavaggio"]
+  blockD_rooms:
+    name: Blocco D – Stanze (ID o nomi separati da virgola)
+    default: ""
+    selector:
+      text: {}
 
-    block_a_time:
-      name: Orario blocco A
-      default: "09:00:00"
-      selector:
-        time: {}
-
-    block_a_days:
-      name: Giorni blocco A
-      default: ["mon","wed","fri"]
-      selector:
-        select:
-          multiple: true
-          mode: list
-          options: ["mon","tue","wed","thu","fri","sat","sun"]
-
-    block_a_all_rooms:
-      name: Tutte le stanze (blocco A)
-      default: false
-      selector:
-        boolean: {}
-
-    block_a_rooms:
-      name: Stanze blocco A (ID o Nomi CSV)
-      description: >-
-        Se "Tutte le stanze" è off: Esempi 2,3,4 oppure Kitchen,Bathroom.
-      selector:
-        text: {}
-
-    block_a_preset:
-      name: Tipo pulizia blocco A
-      default: Pulizia
-      selector:
-        select:
-          options: ["Pulizia","Pulizia profonda","Aspirazione","Lavaggio"]
-
-    block_a_skip_if_cleaned:
-      name: Salta blocco A se ha già pulito oggi
-      default: false
-      selector:
-        boolean: {}
-
-    enable_block_b:
-      name: Abilita blocco B
-      default: false
-      selector:
-        boolean: {}
-
-    block_b_time:
-      name: Orario blocco B
-      default: "10:00:00"
-      selector:
-        time: {}
-
-    block_b_days:
-      name: Giorni blocco B
-      default: ["tue","thu"]
-      selector:
-        select:
-          multiple: true
-          mode: list
-          options: ["mon","tue","wed","thu","fri","sat","sun"]
-
-    block_b_all_rooms:
-      name: Tutte le stanze (blocco B)
-      default: false
-      selector:
-        boolean: {}
-
-    block_b_rooms:
-      name: Stanze blocco B (ID o Nomi CSV)
-      selector:
-        text: {}
-
-    block_b_preset:
-      name: Tipo pulizia blocco B
-      default: Aspirazione
-      selector:
-        select:
-          options: ["Pulizia","Pulizia profonda","Aspirazione","Lavaggio"]
-
-    block_b_skip_if_cleaned:
-      name: Salta blocco B se ha già pulito oggi
-      default: false
-      selector:
-        boolean: {}
-
-    enable_block_c:
-      name: Abilita blocco C
-      default: false
-      selector:
-        boolean: {}
-
-    block_c_time:
-      name: Orario blocco C
-      default: "11:00:00"
-      selector:
-        time: {}
-
-    block_c_days:
-      name: Giorni blocco C
-      default: ["sat"]
-      selector:
-        select:
-          multiple: true
-          mode: list
-          options: ["mon","tue","wed","thu","fri","sat","sun"]
-
-    block_c_all_rooms:
-      name: Tutte le stanze (blocco C)
-      default: true
-      selector:
-        boolean: {}
-
-    block_c_rooms:
-      name: Stanze blocco C (ID o Nomi CSV)
-      description: >-
-        Ignorato se "Tutte le stanze" è attivo.
-      selector:
-        text: {}
-
-    block_c_preset:
-      name: Tipo pulizia blocco C
-      default: Pulizia profonda
-      selector:
-        select:
-          options: ["Pulizia","Pulizia profonda","Aspirazione","Lavaggio"]
-
-    block_c_skip_if_cleaned:
-      name: Salta blocco C se ha già pulito oggi
-      default: false
-      selector:
-        boolean: {}
-
-    enable_block_d:
-      name: Abilita blocco D
-      default: false
-      selector:
-        boolean: {}
-
-    block_d_time:
-      name: Orario blocco D
-      default: "12:00:00"
-      selector:
-        time: {}
-
-    block_d_days:
-      name: Giorni blocco D
-      default: []
-      selector:
-        select:
-          multiple: true
-          mode: list
-          options: ["mon","tue","wed","thu","fri","sat","sun"]
-
-    block_d_all_rooms:
-      name: Tutte le stanze (blocco D)
-      default: false
-      selector:
-        boolean: {}
-
-    block_d_rooms:
-      name: Stanze blocco D (ID o Nomi CSV)
-      selector:
-        text: {}
-
-    block_d_preset:
-      name: Tipo pulizia blocco D
-      default: Pulizia
-      selector:
-        select:
-          options: ["Pulizia","Pulizia profonda","Aspirazione","Lavaggio"]
-
-    block_d_skip_if_cleaned:
-      name: Salta blocco D se ha già pulito oggi
-      default: false
-      selector:
-        boolean: {}
-
-mode: restart
+mode: single
 max_exceeded: silent
 
-# ----------------------------- VARIABILI COMUNI -----------------------------
 variables:
   vac: !input vacuum_entity
-  sel_cg: !input cleangenius_select
-  sel_mode: !input cleaning_mode_select
-  sens_status: !input vacuum_status
   map_cam: !input map_camera
-
-  presence_ent: !input presence_counter
+  presence_ent: !input presence_helper
   presence_required: !input presence_required_value
+  flag_cleaned: !input cleaned_today_helper
 
-  ib_cleaned: !input cleaned_today
+  simple_on: !input simple_mode_enabled
+  adv_on: !input advanced_mode_enabled
 
-  wait_before: !input wait_before_start
-  idle_set: >
-    {{ ( !input idle_states_csv ) | lower | replace(' ','') | split(',') }}
+  morning_on: !input morning_enabled
+  morning_time_in: !input morning_time
+  morning_days_in: !input morning_days
+  morning_preset_in: !input morning_preset
+  morning_rooms_in: !input morning_rooms
 
-  # Mappa Nome -> ID dalle rooms (se disponibile)
-  rooms_map: >
-    {% set r = state_attr(map_cam, 'rooms') if map_cam else none %}
-    {{ r if r is mapping else dict() }}
+  evening_on: !input evening_enabled
+  evening_time_in: !input evening_time
+  evening_days_in: !input evening_days
+  evening_preset_in: !input evening_preset
+  evening_rooms_in: !input evening_rooms
 
-  # Utility: restituisce tutti gli ID stanza dalla mappa (se disponibile)
-  all_segment_ids: >
-    {% set out = [] %}
-    {% for k,v in rooms_map.items() %}
-      {% set rid = (v.room_id if 'room_id' in v else k)|int %}
-      {% set out = out + [rid] %}
-    {% endfor %}
-    {{ out | unique | list }}
+  A_on: !input blockA_enabled
+  A_time: !input blockA_time
+  A_days: !input blockA_days
+  A_preset: !input blockA_preset
+  A_rooms: !input blockA_rooms
 
-  # Parser "ID o Nomi CSV" -> lista ID usando rooms_map (se presente)
-  parse_csv_to_segments: >
-    {% set txt = caller %}
-    {% set parts = (txt or '') | string | replace('\n','') | split(',') %}
-    {% set out = [] %}
-    {% for p in parts %}
-      {% set s = p | trim %}
-      {% if s == '' %}
-        {% continue %}
-      {% endif %}
-      {% if s|int|string == s %}
-        {% set out = out + [ s|int ] %}
-      {% else %}
-        {% set rid = none %}
-        {% for k,v in rooms_map.items() %}
-          {% if (v.name|string)|lower == s|lower %}
-            {% set rid = (v.room_id if 'room_id' in v else k)|int %}
-            {% break %}
-          {% endif %}
-        {% endfor %}
-        {% if rid is not none %}
-          {% set out = out + [ rid ] %}
-        {% endif %}
-      {% endif %}
-    {% endfor %}
-    {{ out | unique | list }}
+  B_on: !input blockB_enabled
+  B_time: !input blockB_time
+  B_days: !input blockB_days
+  B_preset: !input blockB_preset
+  B_rooms: !input blockB_rooms
 
-  # --- Semplice ---
-  enable_simple: !input enable_simple
-  m_time: !input morning_time
-  m_days: !input morning_days
-  m_rooms_raw: !input morning_rooms
-  m_preset: !input morning_preset
+  C_on: !input blockC_enabled
+  C_time: !input blockC_time
+  C_days: !input blockC_days
+  C_preset: !input blockC_preset
+  C_rooms: !input blockC_rooms
 
-  e_time: !input evening_time
-  e_days: !input evening_days
-  e_rooms_raw: !input evening_rooms
-  e_preset: !input evening_preset
-  e_only_if_not: !input run_evening_only_if_not_cleaned
+  D_on: !input blockD_enabled
+  D_time: !input blockD_time
+  D_days: !input blockD_days
+  D_preset: !input blockD_preset
+  D_rooms: !input blockD_rooms
 
-  segments_morning: >
-    {% call parse_csv_to_segments %}{{ m_rooms_raw }}{% endcall %}
-  segments_evening: >
-    {% call parse_csv_to_segments %}{{ e_rooms_raw }}{% endcall %}
-
-  # --- Avanzata A–D ---
-  ena_a: !input enable_block_a
-  a_time: !input block_a_time
-  a_days: !input block_a_days
-  a_all: !input block_a_all_rooms
-  a_rooms_raw: !input block_a_rooms
-  a_preset: !input block_a_preset
-  a_skip_if: !input block_a_skip_if_cleaned
-  segments_a: >
-    {{ all_segment_ids if a_all else ( (caller|default('')) and ( ( (caller|default('')) ,) ) ) }}
-  # Workaround per poter usare call in HA: ridefiniamo con call sotto
-  segments_a_call: >
-    {% if a_all %}{{ all_segment_ids }}
-    {% else %}{% call parse_csv_to_segments %}{{ a_rooms_raw }}{% endcall %}{% endif %}
-
-  ena_b: !input enable_block_b
-  b_time: !input block_b_time
-  b_days: !input block_b_days
-  b_all: !input block_b_all_rooms
-  b_rooms_raw: !input block_b_rooms
-  b_preset: !input block_b_preset
-  b_skip_if: !input block_b_skip_if_cleaned
-  segments_b_call: >
-    {% if b_all %}{{ all_segment_ids }}
-    {% else %}{% call parse_csv_to_segments %}{{ b_rooms_raw }}{% endcall %}{% endif %}
-
-  ena_c: !input enable_block_c
-  c_time: !input block_c_time
-  c_days: !input block_c_days
-  c_all: !input block_c_all_rooms
-  c_rooms_raw: !input block_c_rooms
-  c_preset: !input block_c_preset
-  c_skip_if: !input block_c_skip_if_cleaned
-  segments_c_call: >
-    {% if c_all %}{{ all_segment_ids }}
-    {% else %}{% call parse_csv_to_segments %}{{ c_rooms_raw }}{% endcall %}{% endif %}
-
-  ena_d: !input enable_block_d
-  d_time: !input block_d_time
-  d_days: !input block_d_days
-  d_all: !input block_d_all_rooms
-  d_rooms_raw: !input block_d_rooms
-  d_preset: !input block_d_preset
-  d_skip_if: !input block_d_skip_if_cleaned
-  segments_d_call: >
-    {% if d_all %}{{ all_segment_ids }}
-    {% else %}{% call parse_csv_to_segments %}{{ d_rooms_raw }}{% endcall %}{% endif %}
-
-  today_code: >
-    {{ ['sun','mon','tue','wed','thu','fri','sat'][ now().weekday() + 1 if now().weekday() < 6 else 0 ] }}
-
-# ----------------------------- TRIGGER -----------------------------
 trigger:
-  # Reset giornaliero alle 23:59
-  - platform: time
-    at: "23:59:00"
-    id: reset_midnight
-
-  # Semplice – mattina/sera
   - platform: time
     at: !input morning_time
-    id: morning_time
+    id: morning
   - platform: time
     at: !input evening_time
-    id: evening_time
-
-  # Avanzata – blocchi A–D
+    id: evening
   - platform: time
-    at: !input block_a_time
-    id: block_a_time
+    at: !input blockA_time
+    id: blockA
   - platform: time
-    at: !input block_b_time
-    id: block_b_time
+    at: !input blockB_time
+    id: blockB
   - platform: time
-    at: !input block_c_time
-    id: block_c_time
+    at: !input blockC_time
+    id: blockC
   - platform: time
-    at: !input block_d_time
-    id: block_d_time
+    at: !input blockD_time
+    id: blockD
+  - platform: time
+    at: !input reset_time
+    id: midnight_reset
 
 condition: []
 
-# ----------------------------- AZIONI -----------------------------
 action:
   - choose:
-
-      # ---------- RESET A MEZZANOTTE ----------
       - conditions:
           - condition: trigger
-            id: reset_midnight
+            id: midnight_reset
         sequence:
           - service: input_boolean.turn_off
             target:
-              entity_id: !input cleaned_today
+              entity_id: "{{ flag_cleaned }}"
+          - stop: "Reset effettuato"
 
-      # ---------- SEMPLICE: MATTINA ----------
       - conditions:
           - condition: trigger
-            id: morning_time
+            id: morning
           - condition: template
-            value_template: "{{ enable_simple }}"
+            value_template: "{{ simple_on and morning_on }}"
           - condition: template
-            value_template: "{{ today_code in m_days }}"
-          - condition: or
-            conditions:
-              - condition: template
-                value_template: "{{ not presence_ent }}"
-              - condition: template
-                value_template: "{{ presence_ent and states(presence_ent) == presence_required }}"
-          - condition: or
-            conditions:
-              - condition: template
-                value_template: "{{ not wait_before }}"
-              - condition: template
-                value_template: "{{ states(sens_status)|lower in idle_set }}"
-        sequence:
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: "{{ m_preset in ['Pulizia','Pulizia profonda'] }}"
-                sequence:
-                  - service: select.select_option
-                    target: { entity_id: !input cleangenius_select }
-                    data:
-                      option: "{{ 'routine_cleaning' if m_preset == 'Pulizia' else 'deep_cleaning' }}"
-                  - wait_template: >-
-                      {{ states( sel_cg ) in ['routine_cleaning','deep_cleaning','off','unknown','unavailable','none'] }}
-                    timeout: "00:01:00"
-                  - condition: template
-                    value_template: "{{ (segments_morning | count) > 0 }}"
-                  - service: dreame_vacuum.vacuum_clean_segment
-                    target: { entity_id: !input vacuum_entity }
-                    data:
-                      segments: "{{ segments_morning }}"
-              - conditions:
-                  - condition: template
-                    value_template: "{{ m_preset in ['Aspirazione','Lavaggio'] }}"
-                sequence:
-                  - service: select.select_option
-                    target: { entity_id: !input cleangenius_select }
-                    data:
-                      option: "off"
-                  - wait_template: >-
-                      {{ states( sel_cg ) in ['off','unknown','unavailable','none'] }}
-                    timeout: "00:01:00"
-                  - service: select.select_option
-                    target: { entity_id: !input cleaning_mode_select }
-                    data:
-                      option: "{{ 'sweeping' if m_preset == 'Aspirazione' else 'mopping' }}"
-                  - condition: template
-                    value_template: "{{ (segments_morning | count) > 0 }}"
-                  - service: dreame_vacuum.vacuum_clean_segment
-                    target: { entity_id: !input vacuum_entity }
-                    data:
-                      segments: "{{ segments_morning }}"
-          - service: input_boolean.turn_on
-            target: { entity_id: !input cleaned_today }
-
-      # ---------- SEMPLICE: SERA ----------
-      - conditions:
-          - condition: trigger
-            id: evening_time
+            value_template: "{{ ['mon','tue','wed','thu','fri','sat','sun'][now().weekday()] in morning_days_in }}"
           - condition: template
-            value_template: "{{ enable_simple }}"
-          - condition: template
-            value_template: "{{ today_code in e_days }}"
-          - condition: or
-            conditions:
-              - condition: template
-                value_template: "{{ not presence_ent }}"
-              - condition: template
-                value_template: "{{ presence_ent and states(presence_ent) == presence_required }}"
-          - condition: or
-            conditions:
-              - condition: template
-                value_template: "{{ not wait_before }}"
-              - condition: template
-                value_template: "{{ states(sens_status)|lower in idle_set }}"
-          - condition: or
-            conditions:
-              - condition: template
-                value_template: "{{ not e_only_if_not }}"
-              - condition: state
-                entity_id: !input cleaned_today
-                state: "off"
-        sequence:
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: "{{ e_preset in ['Pulizia','Pulizia profonda'] }}"
-                sequence:
-                  - service: select.select_option
-                    target: { entity_id: !input cleangenius_select }
-                    data:
-                      option: "{{ 'routine_cleaning' if e_preset == 'Pulizia' else 'deep_cleaning' }}"
-                  - wait_template: >-
-                      {{ states( sel_cg ) in ['routine_cleaning','deep_cleaning','off','unknown','unavailable','none'] }}
-                    timeout: "00:01:00"
-                  - condition: template
-                    value_template: "{{ (segments_evening | count) > 0 }}"
-                  - service: dreame_vacuum.vacuum_clean_segment
-                    target: { entity_id: !input vacuum_entity }
-                    data:
-                      segments: "{{ segments_evening }}"
-              - conditions:
-                  - condition: template
-                    value_template: "{{ e_preset in ['Aspirazione','Lavaggio'] }}"
-                sequence:
-                  - service: select.select_option
-                    target: { entity_id: !input cleangenius_select }
-                    data:
-                      option: "off"
-                  - wait_template: >-
-                      {{ states( sel_cg ) in ['off','unknown','unavailable','none'] }}
-                    timeout: "00:01:00"
-                  - service: select.select_option
-                    target: { entity_id: !input cleaning_mode_select }
-                    data:
-                      option: "{{ 'sweeping' if e_preset == 'Aspirazione' else 'mopping' }}"
-                  - condition: template
-                    value_template: "{{ (segments_evening | count) > 0 }}"
-                  - service: dreame_vacuum.vacuum_clean_segment
-                    target: { entity_id: !input vacuum_entity }
-                    data:
-                      segments: "{{ segments_evening }}"
-          - service: input_boolean.turn_on
-            target: { entity_id: !input cleaned_today }
-
-      # ---------- AVANZATA: BLOCCO A ----------
-      - conditions:
-          - condition: trigger
-            id: block_a_time
-          - condition: template
-            value_template: "{{ ena_a }}"
-          - condition: template
-            value_template: "{{ today_code in a_days }}"
-          - condition: or
-            conditions:
-              - condition: template
-                value_template: "{{ not presence_ent }}"
-              - condition: template
-                value_template: "{{ presence_ent and states(presence_ent) == presence_required }}"
-          - condition: or
-            conditions:
-              - condition: template
-                value_template: "{{ not wait_before }}"
-              - condition: template
-                value_template: "{{ states(sens_status)|lower in idle_set }}"
-          - condition: or
-            conditions:
-              - condition: template
-                value_template: "{{ not a_skip_if }}"
-              - condition: state
-                entity_id: !input cleaned_today
-                state: "off"
+            value_template: >-
+              {% if presence_ent and presence_required|length > 0 %}
+                {{ states(presence_ent) == presence_required }}
+              {% else %}
+                true
+              {% endif %}
         sequence:
           - variables:
-              seg_a: >-
-                {{ segments_a_call }}
+              _preset: "{{ morning_preset_in }}"
+              _rooms: "{{ morning_rooms_in }}"
           - choose:
-              - conditions:
+              - conditions: []
+                sequence: &clean_sequence
+                  - variables:
+                      segments: >-
+                        {% set txt = (_rooms or '') | string %}
+                        {% set parts = txt.split(',') | map('trim') | list %}
+                        {% set segs = [] %}
+                        {% if parts|length == 0 or (parts|length == 1 and parts[0] == '') %}
+                          []
+                        {% else %}
+                          {% for p in parts %}
+                            {% if p|regex_match('^\d+$') %}
+                              {% set segs = segs + [ p | int ] %}
+                            {% else %}
+                              {% set rooms = state_attr(map_cam, 'rooms') if map_cam else none %}
+                              {% if rooms %}
+                                {% set found = namespace(id=null) %}
+                                {% for k, v in rooms.items() %}
+                                  {% if (v.name | default(v['name'], true)) | string | lower == p | lower %}
+                                    {% set found.id = v.room_id | default(v['room_id'], true) %}
+                                  {% endif %}
+                                {% endfor %}
+                                {% if found.id is not none %}
+                                  {% set segs = segs + [ found.id | int ] %}
+                                {% endif %}
+                              {% endif %}
+                            {% endif %}
+                          {% endfor %}
+                          {{ segs }}
+                        {% endif %}
                   - condition: template
-                    value_template: "{{ a_preset in ['Pulizia','Pulizia profonda'] }}"
-                  - condition: template
-                    value_template: "{{ (seg_a | count) > 0 }}"
-                sequence:
-                  - service: select.select_option
-                    target: { entity_id: !input cleangenius_select }
-                    data:
-                      option: "{{ 'routine_cleaning' if a_preset == 'Pulizia' else 'deep_cleaning' }}"
-                  - wait_template: >-
-                      {{ states( sel_cg ) in ['routine_cleaning','deep_cleaning','off','unknown','unavailable','none'] }}
-                    timeout: "00:01:00"
+                    value_template: "{{ segments | count > 0 }}"
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ _preset | lower in ['pulizia','pulizia profonda'] }}"
+                        sequence:
+                          - service: select.select_option
+                            target:
+                              entity_id: >-
+                                {{ 'select.' ~ (vac.split('.')[-1]) ~ '_cleangenius_2' }}
+                            data:
+                              option: >-
+                                {{ 'deep_cleaning' if _preset | lower == 'pulizia profonda' else 'routine_cleaning' }}
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ _preset | lower in ['aspirazione','lavaggio'] }}"
+                        sequence:
+                          - service: select.select_option
+                            target:
+                              entity_id: >-
+                                {{ 'select.' ~ (vac.split('.')[-1]) ~ '_cleangenius_2' }}
+                            data:
+                              option: "off"
                   - service: dreame_vacuum.vacuum_clean_segment
-                    target: { entity_id: !input vacuum_entity }
+                    target:
+                      entity_id: "{{ vac }}"
                     data:
-                      segments: "{{ seg_a }}"
-              - conditions:
-                  - condition: template
-                    value_template: "{{ a_preset in ['Aspirazione','Lavaggio'] }}"
-                  - condition: template
-                    value_template: "{{ (seg_a | count) > 0 }}"
-                sequence:
-                  - service: select.select_option
-                    target: { entity_id: !input cleangenius_select }
-                    data:
-                      option: "off"
-                  - wait_template: >-
-                      {{ states( sel_cg ) in ['off','unknown','unavailable','none'] }}
-                    timeout: "00:01:00"
-                  - service: select.select_option
-                    target: { entity_id: !input cleaning_mode_select }
-                    data:
-                      option: "{{ 'sweeping' if a_preset == 'Aspirazione' else 'mopping' }}"
-                  - service: dreame_vacuum.vacuum_clean_segment
-                    target: { entity_id: !input vacuum_entity }
-                    data:
-                      segments: "{{ seg_a }}"
-          - service: input_boolean.turn_on
-            target: { entity_id: !input cleaned_today }
+                      segments: "{{ segments }}"
+                  - service: input_boolean.turn_on
+                    target:
+                      entity_id: "{{ flag_cleaned }}"
+          - stop: "Eseguito (Mattina)"
 
-      # ---------- AVANZATA: BLOCCO B ----------
       - conditions:
           - condition: trigger
-            id: block_b_time
+            id: evening
           - condition: template
-            value_template: "{{ ena_b }}"
+            value_template: "{{ simple_on and evening_on }}"
           - condition: template
-            value_template: "{{ today_code in b_days }}"
-          - condition: or
-            conditions:
-              - condition: template
-                value_template: "{{ not presence_ent }}"
-              - condition: template
-                value_template: "{{ presence_ent and states(presence_ent) == presence_required }}"
-          - condition: or
-            conditions:
-              - condition: template
-                value_template: "{{ not wait_before }}"
-              - condition: template
-                value_template: "{{ states(sens_status)|lower in idle_set }}"
-          - condition: or
-            conditions:
-              - condition: template
-                value_template: "{{ not b_skip_if }}"
-              - condition: state
-                entity_id: !input cleaned_today
-                state: "off"
+            value_template: "{{ ['mon','tue','wed','thu','fri','sat','sun'][now().weekday()] in evening_days_in }}"
+          - condition: template
+            value_template: >-
+              {% if presence_ent and presence_required|length > 0 %}
+                {{ states(presence_ent) == presence_required }}
+              {% else %}
+                true
+              {% endif %}
         sequence:
           - variables:
-              seg_b: >-
-                {{ segments_b_call }}
+              _preset: "{{ evening_preset_in }}"
+              _rooms: "{{ evening_rooms_in }}"
           - choose:
-              - conditions:
-                  - condition: template
-                    value_template: "{{ b_preset in ['Pulizia','Pulizia profonda'] }}"
-                  - condition: template
-                    value_template: "{{ (seg_b | count) > 0 }}"
-                sequence:
-                  - service: select.select_option
-                    target: { entity_id: !input cleangenius_select }
-                    data:
-                      option: "{{ 'routine_cleaning' if b_preset == 'Pulizia' else 'deep_cleaning' }}"
-                  - wait_template: >-
-                      {{ states( sel_cg ) in ['routine_cleaning','deep_cleaning','off','unknown','unavailable','none'] }}
-                    timeout: "00:01:00"
-                  - service: dreame_vacuum.vacuum_clean_segment
-                    target: { entity_id: !input vacuum_entity }
-                    data:
-                      segments: "{{ seg_b }}"
-              - conditions:
-                  - condition: template
-                    value_template: "{{ b_preset in ['Aspirazione','Lavaggio'] }}"
-                  - condition: template
-                    value_template: "{{ (seg_b | count) > 0 }}"
-                sequence:
-                  - service: select.select_option
-                    target: { entity_id: !input cleangenius_select }
-                    data:
-                      option: "off"
-                  - wait_template: >-
-                      {{ states( sel_cg ) in ['off','unknown','unavailable','none'] }}
-                    timeout: "00:01:00"
-                  - service: select.select_option
-                    target: { entity_id: !input cleaning_mode_select }
-                    data:
-                      option: "{{ 'sweeping' if b_preset == 'Aspirazione' else 'mopping' }}"
-                  - service: dreame_vacuum.vacuum_clean_segment
-                    target: { entity_id: !input vacuum_entity }
-                    data:
-                      segments: "{{ seg_b }}"
-          - service: input_boolean.turn_on
-            target: { entity_id: !input cleaned_today }
+              - conditions: []
+                sequence: *clean_sequence
+          - stop: "Eseguito (Sera)"
 
-      # ---------- AVANZATA: BLOCCO C ----------
       - conditions:
           - condition: trigger
-            id: block_c_time
+            id: blockA
           - condition: template
-            value_template: "{{ ena_c }}"
+            value_template: "{{ adv_on and A_on }}"
           - condition: template
-            value_template: "{{ today_code in c_days }}"
-          - condition: or
-            conditions:
-              - condition: template
-                value_template: "{{ not presence_ent }}"
-              - condition: template
-                value_template: "{{ presence_ent and states(presence_ent) == presence_required }}"
-          - condition: or
-            conditions:
-              - condition: template
-                value_template: "{{ not wait_before }}"
-              - condition: template
-                value_template: "{{ states(sens_status)|lower in idle_set }}"
-          - condition: or
-            conditions:
-              - condition: template
-                value_template: "{{ not c_skip_if }}"
-              - condition: state
-                entity_id: !input cleaned_today
-                state: "off"
+            value_template: "{{ ['mon','tue','wed','thu','fri','sat','sun'][now().weekday()] in A_days }}"
+          - condition: template
+            value_template: >-
+              {% if presence_ent and presence_required|length > 0 %}
+                {{ states(presence_ent) == presence_required }}
+              {% else %}
+                true
+              {% endif %}
         sequence:
           - variables:
-              seg_c: >-
-                {{ segments_c_call }}
+              _preset: "{{ A_preset }}"
+              _rooms: "{{ A_rooms }}"
           - choose:
-              - conditions:
-                  - condition: template
-                    value_template: "{{ c_preset in ['Pulizia','Pulizia profonda'] }}"
-                  - condition: template
-                    value_template: "{{ (seg_c | count) > 0 }}"
-                sequence:
-                  - service: select.select_option
-                    target: { entity_id: !input cleangenius_select }
-                    data:
-                      option: "{{ 'routine_cleaning' if c_preset == 'Pulizia' else 'deep_cleaning' }}"
-                  - wait_template: >-
-                      {{ states( sel_cg ) in ['routine_cleaning','deep_cleaning','off','unknown','unavailable','none'] }}
-                    timeout: "00:01:00"
-                  - service: dreame_vacuum.vacuum_clean_segment
-                    target: { entity_id: !input vacuum_entity }
-                    data:
-                      segments: "{{ seg_c }}"
-              - conditions:
-                  - condition: template
-                    value_template: "{{ c_preset in ['Aspirazione','Lavaggio'] }}"
-                  - condition: template
-                    value_template: "{{ (seg_c | count) > 0 }}"
-                sequence:
-                  - service: select.select_option
-                    target: { entity_id: !input cleangenius_select }
-                    data:
-                      option: "off"
-                  - wait_template: >-
-                      {{ states( sel_cg ) in ['off','unknown','unavailable','none'] }}
-                    timeout: "00:01:00"
-                  - service: select.select_option
-                    target: { entity_id: !input cleaning_mode_select }
-                    data:
-                      option: "{{ 'sweeping' if c_preset == 'Aspirazione' else 'mopping' }}"
-                  - service: dreame_vacuum.vacuum_clean_segment
-                    target: { entity_id: !input vacuum_entity }
-                    data:
-                      segments: "{{ seg_c }}"
-          - service: input_boolean.turn_on
-            target: { entity_id: !input cleaned_today }
+              - conditions: []
+                sequence: *clean_sequence
+          - stop: "Eseguito (Blocco A)"
 
-      # ---------- AVANZATA: BLOCCO D ----------
       - conditions:
           - condition: trigger
-            id: block_d_time
+            id: blockB
           - condition: template
-            value_template: "{{ ena_d }}"
+            value_template: "{{ adv_on and B_on }}"
           - condition: template
-            value_template: "{{ today_code in d_days }}"
-          - condition: or
-            conditions:
-              - condition: template
-                value_template: "{{ not presence_ent }}"
-              - condition: template
-                value_template: "{{ presence_ent and states(presence_ent) == presence_required }}"
-          - condition: or
-            conditions:
-              - condition: template
-                value_template: "{{ not wait_before }}"
-              - condition: template
-                value_template: "{{ states(sens_status)|lower in idle_set }}"
-          - condition: or
-            conditions:
-              - condition: template
-                value_template: "{{ not d_skip_if }}"
-              - condition: state
-                entity_id: !input cleaned_today
-                state: "off"
+            value_template: "{{ ['mon','tue','wed','thu','fri','sat','sun'][now().weekday()] in B_days }}"
+          - condition: template
+            value_template: >-
+              {% if presence_ent and presence_required|length > 0 %}
+                {{ states(presence_ent) == presence_required }}
+              {% else %}
+                true
+              {% endif %}
         sequence:
           - variables:
-              seg_d: >-
-                {{ segments_d_call }}
+              _preset: "{{ B_preset }}"
+              _rooms: "{{ B_rooms }}"
           - choose:
-              - conditions:
-                  - condition: template
-                    value_template: "{{ d_preset in ['Pulizia','Pulizia profonda'] }}"
-                  - condition: template
-                    value_template: "{{ (seg_d | count) > 0 }}"
-                sequence:
-                  - service: select.select_option
-                    target: { entity_id: !input cleangenius_select }
-                    data:
-                      option: "{{ 'routine_cleaning' if d_preset == 'Pulizia' else 'deep_cleaning' }}"
-                  - wait_template: >-
-                      {{ states( sel_cg ) in ['routine_cleaning','deep_cleaning','off','unknown','unavailable','none'] }}
-                    timeout: "00:01:00"
-                  - service: dreame_vacuum.vacuum_clean_segment
-                    target: { entity_id: !input vacuum_entity }
-                    data:
-                      segments: "{{ seg_d }}"
-              - conditions:
-                  - condition: template
-                    value_template: "{{ d_preset in ['Aspirazione','Lavaggio'] }}"
-                  - condition: template
-                    value_template: "{{ (seg_d | count) > 0 }}"
-                sequence:
-                  - service: select.select_option
-                    target: { entity_id: !input cleangenius_select }
-                    data:
-                      option: "off"
-                  - wait_template: >-
-                      {{ states( sel_cg ) in ['off','unknown','unavailable','none'] }}
-                    timeout: "00:01:00"
-                  - service: select.select_option
-                    target: { entity_id: !input cleaning_mode_select }
-                    data:
-                      option: "{{ 'sweeping' if d_preset == 'Aspirazione' else 'mopping' }}"
-                  - service: dreame_vacuum.vacuum_clean_segment
-                    target: { entity_id: !input vacuum_entity }
-                    data:
-                      segments: "{{ seg_d }}"
-          - service: input_boolean.turn_on
-            target: { entity_id: !input cleaned_today }
+              - conditions: []
+                sequence: *clean_sequence
+          - stop: "Eseguito (Blocco B)"
 
-    default: []
+      - conditions:
+          - condition: trigger
+            id: blockC
+          - condition: template
+            value_template: "{{ adv_on and C_on }}"
+          - condition: template
+            value_template: "{{ ['mon','tue','wed','thu','fri','sat','sun'][now().weekday()] in C_days }}"
+          - condition: template
+            value_template: >-
+              {% if presence_ent and presence_required|length > 0 %}
+                {{ states(presence_ent) == presence_required }}
+              {% else %}
+                true
+              {% endif %}
+        sequence:
+          - variables:
+              _preset: "{{ C_preset }}"
+              _rooms: "{{ C_rooms }}"
+          - choose:
+              - conditions: []
+                sequence: *clean_sequence
+          - stop: "Eseguito (Blocco C)"
+
+      - conditions:
+          - condition: trigger
+            id: blockD
+          - condition: template
+            value_template: "{{ adv_on and D_on }}"
+          - condition: template
+            value_template: "{{ ['mon','tue','wed','thu','fri','sat','sun'][now().weekday()] in D_days }}"
+          - condition: template
+            value_template: >-
+              {% if presence_ent and presence_required|length > 0 %}
+                {{ states(presence_ent) == presence_required }}
+              {% else %}
+                true
+              {% endif %}
+        sequence:
+          - variables:
+              _preset: "{{ D_preset }}"
+              _rooms: "{{ D_rooms }}"
+          - choose:
+              - conditions: []
+                sequence: *clean_sequence
+          - stop: "Eseguito (Blocco D)"
