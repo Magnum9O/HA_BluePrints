@@ -22,7 +22,7 @@ blueprint:
           domain: camera
     select_entity:
       name: "Input Select per le stanze"
-      description: "Seleziona l'helper input_select da aggiornare con i nomi delle stanze."
+      description: "Crea e seleziona l'helper ``input_select`` da aggiornare con i nomi delle stanze."
       selector:
         entity:
           domain: input_select
