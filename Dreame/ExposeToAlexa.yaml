@@ -1,10 +1,10 @@
 blueprint:
   name: Espone gli script di pulizia a Alexa (Dreame + Vacuum Map)
   description: |
-    Crea uno script eseguibile da Alexa per avviare la pulizia di una stanza del robot Dreame.
+    Crea uno script eseguibile da Alexa per avviare la pulizia di una stanza direttamente da Alexa.
     Requisiti:
-    - Integrazione Dreame funzionante.
-    - Vacuum Map card (tasshack) che popola l’helper con opzioni tipo "Nome (ID)".
+    - Integrazione Dreame.
+    - Vacuum Map card (tasshack) per l’helper con opzioni tipo "Nome (ID)".
     - Un input_select (già popolato dal primo blueprint) con le stanze in formato "Nome (ID)".
     Uso con Alexa: dire "avvia <nome script>" oppure "apri <nome script>".
 
