@@ -1,20 +1,17 @@
 blueprint:
-  name: Dreame · Script Alexa (da index stanze)
+  name: Dreame · Script Alexa (da index stanze) — minimal
   description: >
-    Crea uno script che avvia la pulizia di una stanza del Dreame usando l'helper
-    `input_select` popolato dal Blueprint Index Stanze (BP#1).
-    Flusso consigliato:
-      1) Seleziona la stanza nell'helper (menù a tendina),
-      2) (Opzionale) attiva "Cattura stanza dall’helper" per salvarla in un input_text,
-      3) Duplica lo script dalla GUI per crearne uno per ogni stanza/modalità.
-    Alexa (Nabu Casa): invoca con **"avvia <nome script>"** o **"apri <nome script>"**.
+    Avvia la pulizia di una stanza del Dreame leggendo l'ID segmento
+    dall'helper `input_select` popolato dal Blueprint Index Stanze (BP#1).
+    Uso: seleziona la stanza nell'helper (formato "Nome (ID)") e lancia lo script.
+    Alexa (Nabu Casa): invoca con "avvia <nome script>" o "apri <nome script>".
 
   domain: script
 
   input:
     select_entity:
       name: Helper index stanze ("Nome (ID)")
-      description: L'input_select popolato dal Blueprint Index Stanze (contiene voci tipo "Cucina (3)")
+      description: L'input_select popolato dal BP#1 (voci come "Cucina (3)")
       selector:
         entity:
           domain: input_select
@@ -25,26 +22,9 @@ blueprint:
         entity:
           domain: vacuum
 
-    # Opzionale: cattura e "blocca" la stanza corrente dell'helper
-    capture_from_helper_now:
-      name: Cattura stanza dall’helper adesso
-      description: Se attivo alla prossima esecuzione, copia la stanza selezionata nell'helper dentro l'input_text indicato, rendendo lo script fisso per Alexa.
-      default: false
-      selector:
-        boolean: {}
-
-    room_lock_text:
-      name: Input text dove salvare la stanza ("Nome (ID)")
-      description: Opzionale ma consigliato per avere uno script che non dipende dall'helper.
-      default: ""
-      selector:
-        entity:
-          domain: input_text
-
-    # Parametri opzionali (usa solo se supportati dal tuo modello)
+    # Parametri opzionali (applicati solo se supportati dal modello)
     cleaning_profile:
-      name: Tipo di pulizia
-      description: Solo informativa/log; il comando usato è la pulizia di segmento.
+      name: Tipo di pulizia (solo etichetta informativa)
       default: aspirazione
       selector:
         select:
@@ -87,55 +67,17 @@ blueprint:
           step: 1
           mode: slider
 
-    notify_debug:
-      name: Notifica di debug
-      default: false
-      selector:
-        boolean: {}
-
 mode: single
 
 sequence:
   - variables:
       select_ent: !input select_entity
       vac: !input vacuum_entity
-      capture_now: !input capture_from_helper_now
-      room_lock_ent: !input room_lock_text
-      profile: !input cleaning_profile
       s_level: !input suction_level
       w_vol: !input water_volume
       passes: !input cleaning_passes
-      debug: !input notify_debug
 
-  # Se richiesto: cattura la selezione corrente dell'helper e salvala in input_text
-  - choose:
-      - conditions:
-          - condition: template
-            value_template: >-
-              {{ capture_now and (room_lock_ent is string) and (room_lock_ent | length > 0) }}
-        sequence:
-          - variables:
-              helper_choice: "{{ states(select_ent) | default('') }}"
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: "{{ helper_choice | length > 0 }}"
-                sequence:
-                  - service: input_text.set_value
-                    data:
-                      entity_id: "{{ room_lock_ent }}"
-                      value: "{{ helper_choice }}"
-                  - choose:
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ debug }}"
-                        sequence:
-                          - service: persistent_notification.create
-                            data:
-                              title: "Dreame · Script Alexa"
-                              message: "Memorizzata stanza: {{ helper_choice }} in {{ room_lock_ent }}"
-
-  # Parametri opzionali (applicati solo se specificati)
+  # Parametri opzionali: applica solo se forniti
   - choose:
       - conditions:
           - condition: template
@@ -162,46 +104,22 @@ sequence:
               entity_id: "{{ vac }}"
               passes: "{{ passes | int }}"
 
-  # Determina la stanza finale: preferisci input_text (bloccata), altrimenti usa la selezione attuale dell’helper
+  # Leggi etichetta dall'helper e ricava l'ID segmento
   - variables:
-      locked_label: >-
-        {% if room_lock_ent is string and room_lock_ent | length > 0 %}
-          {{ states(room_lock_ent) | default('') }}
-        {% else %}
-          {{ '' }}
-        {% endif %}
-      selected_label: "{{ locked_label if locked_label | length > 0 else states(select_ent) | default('') }}"
+      selected_label: "{{ states(select_ent) | default('') }}"
       segment_id: >-
-        {% set opt = selected_label | default('') %}
+        {% set opt = selected_label | trim %}
         {% if '(' in opt and ')' in opt %}
           {{ opt.split('(')[-1].split(')')[0] | int }}
         {% else %}
           {{ opt | int(default=-1) }}
         {% endif %}
 
-  # Avvio pulizia del segmento (stanza)
-  - choose:
-      - conditions:
-          - condition: template
-            value_template: "{{ segment_id | int(-1) >= 0 }}"
-        sequence:
-          - service: dreame_vacuum.vacuum_clean_segment
-            data:
-              entity_id: "{{ vac }}"
-              segments: ["{{ segment_id | int }}"]
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: "{{ debug }}"
-                sequence:
-                  - service: persistent_notification.create
-                    data:
-                      title: "Dreame · Script Alexa"
-                      message: "Avviata '{{ profile }}' su {{ selected_label }} (segment {{ segment_id }})"
-    default:
-      - service: persistent_notification.create
-        data:
-          title: "Dreame · Script Alexa"
-          message: >-
-            Impossibile determinare l'ID stanza da '{{ selected_label }}'.
-            Assicurati che l'input_select contenga voci nel formato 'Nome (ID)'.
+  # Avvia pulizia solo se l'ID è valido
+  - condition: template
+    value_template: "{{ segment_id | int(-1) >= 0 }}"
+
+  - service: dreame_vacuum.vacuum_clean_segment
+    data:
+      entity_id: "{{ vac }}"
+      segments: ["{{ segment_id | int }}"]
