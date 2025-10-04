@@ -1,41 +1,48 @@
 blueprint:
   name: Dreame – Automazione pulizie (mattina/sera)
   description: >
-    Pianifica pulizie mattina/sera con presenza opzionale, CleanGenius per "Pulizia"
-    e "Pulizia profonda", modalità "pure" per "Aspirazione" e "Lavaggio", reset
-    giornaliero del flag "pulito oggi". Le stanze possono essere indicate per ID
-    (es. 2,3,4) o per Nome (es. Kitchen,Bathroom). Se specifichi la camera mappa,
-    i Nomi verranno mappati agli ID attingendo da state_attr(camera,'rooms').
+    Pianifica pulizie mattina/sera con presenza opzionale, CleanGenius per
+    "Pulizia" e "Pulizia profonda", modalità "pure" per "Aspirazione" e
+    "Lavaggio", e reset giornaliero del flag "pulito oggi". Le stanze possono
+    essere indicate per ID (es. 2,3,4) o per Nome (es. Kitchen,Bathroom). Se
+    specifichi la camera mappa, i Nomi verranno mappati agli ID leggendo
+    state_attr(camera,'rooms').
 
   domain: automation
   source_url: https://raw.githubusercontent.com/Magnum9O/HA_BluePrints/main/Dreame/ScheduledCleaning.yaml
+
   input:
 
     # --- ENTITÀ PRINCIPALI ---
     vacuum_entity:
       name: Robot aspirapolvere
-      description: Entità del tuo Dreame (es. vacuum.ambrogio).
+      description: >
+        Entità del tuo Dreame (es. vacuum.ambrogio).
       selector:
         entity:
           domain: vacuum
 
     cleangenius_select:
       name: Select – CleanGenius
-      description: Select dell’integrazione Dreame per routine/deep/off (es. select.ambrogio_cleangenius_2).
+      description: >
+        Select dell’integrazione Dreame per routine/deep/off
+        (es. select.ambrogio_cleangenius_2).
       selector:
         entity:
           domain: select
 
     cleaning_mode_select:
       name: Select – Cleaning mode
-      description: Select per le modalità “pure” (sweeping/mopping/…).
+      description: >
+        Select per le modalità “pure” (sweeping / mopping).
       selector:
         entity:
           domain: select
 
     vacuum_status:
       name: Sensore stato robot
-      description: Sensore di stato del robot (idle/sleeping/charging/…).
+      description: >
+        Sensore di stato del robot (idle / sleeping / charging / ...).
       selector:
         entity:
           domain: sensor
@@ -43,21 +50,27 @@ blueprint:
     # --- OPZIONALI: PRESENZA & FLAG GIORNALIERO ---
     presence_counter:
       name: Contatore/boolean di presenza (opzionale)
-      description: Se indicato, la pulizia parte solo quando il valore combacia con "Valore presenza richiesto".
+      description: >
+        Se indicato, la pulizia parte solo quando il valore corrisponde a
+        “Valore presenza richiesto”.
       default:
       selector:
         entity: {}
 
     presence_required_value:
       name: Valore presenza richiesto
-      description: Valore atteso dell’entità di presenza per considerare la casa “libera” (es. 1).
-      default: "1"
+      description: >
+        Valore atteso dell’entità di presenza per considerare la casa libera
+        (es. 1 oppure on).
+      default: '1'
       selector:
         text: {}
 
     cleaned_today:
       name: Helper "pulito oggi"
-      description: input_boolean che verrà resettato alle 23:59 e impostato a ON dopo una pulizia riuscita.
+      description: >
+        input_boolean che verrà resettato alle 23:59 e impostato a ON dopo una
+        pulizia riuscita.
       selector:
         entity:
           domain: input_boolean
@@ -65,7 +78,9 @@ blueprint:
     # --- MAPPATURA NOMI->ID (OPZIONALE) ---
     map_camera:
       name: Camera mappa (opzionale)
-      description: Se fornita, i Nomi stanza verranno mappati agli ID da state_attr(camera,'rooms').
+      description: >
+        Se fornita, i Nomi stanza verranno mappati agli ID da
+        state_attr(camera,'rooms').
       default:
       selector:
         entity:
@@ -129,7 +144,8 @@ blueprint:
     # --- STANZE & PRESET PER OGNI FASCIA ---
     morning_rooms:
       name: Stanze mattina (ID o Nomi separati da virgola)
-      description: Esempi: "2,3,4" oppure "Kitchen,Bathroom". I nomi richiedono la camera mappa.
+      description: >
+        Esempi: 2,3,4 oppure Kitchen,Bathroom. I nomi richiedono la camera mappa.
       selector:
         text: {}
 
@@ -146,7 +162,8 @@ blueprint:
 
     evening_rooms:
       name: Stanze sera (ID o Nomi separati da virgola)
-      description: Esempi: "7,10" oppure "Living Room,Kitchen". I nomi richiedono la camera mappa.
+      description: >
+        Esempi: 7,10 oppure Living Room,Kitchen. I nomi richiedono la camera mappa.
       selector:
         text: {}
 
@@ -176,7 +193,9 @@ blueprint:
 
     idle_states_csv:
       name: Stati considerati “fermo”
-      description: Elenco separato da virgola confrontato con il sensore di stato (es. idle,sleeping,charging).
+      description: >
+        Elenco separato da virgola confrontato con il sensore di stato
+        (es. idle,sleeping,charging).
       default: idle,sleeping,charging
       selector:
         text: {}
@@ -210,15 +229,15 @@ variables:
   wait_before: !input wait_before_start
   idle_csv: !input idle_states_csv
 
-  # Utility: giorno corrente "mon".."sun"
   today_code: >
     {{ ['mon','tue','wed','thu','fri','sat','sun'][ now().weekday() ] }}
 
-  # Utility: parsing stanze (lista finale di interi) – ID diretti o mappati da Nome via camera->rooms
+  # rooms_map: mappa dall’attributo rooms della camera (se presente)
   rooms_map: >
     {% set r = state_attr(map_cam, 'rooms') if map_cam else none %}
     {{ r if r is mapping else dict() }}
 
+  # parse_rooms: converte CSV di ID o Nomi in lista di interi (ID)
   parse_rooms: >
     {% set txt = caller %}
     {% set parts = (txt or '') | string | replace('\n','') | split(',') %}
@@ -231,7 +250,6 @@ variables:
       {% if s|int|string == s %}
         {% set out = out + [ s|int ] %}
       {% else %}
-        {# Nome stanza -> room_id (case-insensitive) #}
         {% set rid = none %}
         {% for k,v in rooms_map.items() %}
           {% if (v.name|string)|lower == s|lower %}
@@ -256,9 +274,9 @@ variables:
     {{ (idle_csv or '') | lower | replace(' ','') | split(',') }}
 
 trigger:
-  # Reset giornaliero "pulito oggi" alle 23:59
+  # Reset giornaliero alle 23:59
   - platform: time
-    at: "23:59:00"
+    at: '23:59:00'
     id: reset_midnight
 
   # Mattina
@@ -317,7 +335,7 @@ action:
                       option: "{{ 'routine_cleaning' if m_preset == 'Pulizia' else 'deep_cleaning' }}"
                   - wait_template: >
                       {{ states(sel_cg) in ['routine_cleaning','deep_cleaning','off','unknown','unavailable','none'] }}
-                    timeout: "00:01:00"
+                    timeout: '00:01:00'
                   - condition: template
                     value_template: "{{ segments_morning | count > 0 }}"
                   - service: dreame_vacuum.vacuum_clean_segment
@@ -335,10 +353,10 @@ action:
                     target:
                       entity_id: "{{ sel_cg }}"
                     data:
-                      option: "off"
+                      option: 'off'
                   - wait_template: >
                       {{ states(sel_cg) in ['off','unknown','unavailable','none'] }}
-                    timeout: "00:01:00"
+                    timeout: '00:01:00'
                   - service: select.select_option
                     target:
                       entity_id: "{{ sel_mode }}"
@@ -379,7 +397,7 @@ action:
                 value_template: "{{ not e_only_if_not }}"
               - condition: state
                 entity_id: !input cleaned_today
-                state: "off"
+                state: 'off'
         sequence:
           - choose:
               # Pulizia / Pulizia profonda con CleanGenius
@@ -394,7 +412,7 @@ action:
                       option: "{{ 'routine_cleaning' if e_preset == 'Pulizia' else 'deep_cleaning' }}"
                   - wait_template: >
                       {{ states(sel_cg) in ['routine_cleaning','deep_cleaning','off','unknown','unavailable','none'] }}
-                    timeout: "00:01:00"
+                    timeout: '00:01:00'
                   - condition: template
                     value_template: "{{ segments_evening | count > 0 }}"
                   - service: dreame_vacuum.vacuum_clean_segment
@@ -412,10 +430,10 @@ action:
                     target:
                       entity_id: "{{ sel_cg }}"
                     data:
-                      option: "off"
+                      option: 'off'
                   - wait_template: >
                       {{ states(sel_cg) in ['off','unknown','unavailable','none'] }}
-                    timeout: "00:01:00"
+                    timeout: '00:01:00'
                   - service: select.select_option
                     target:
                       entity_id: "{{ sel_mode }}"
