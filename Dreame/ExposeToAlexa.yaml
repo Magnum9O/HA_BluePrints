@@ -1,8 +1,9 @@
 blueprint:
-  name: Espone script per Alexa
+  name: Espone script per Alexa (Dreame + Vacuum Map, per stanza)
   description: |
     Crea uno script eseguibile da Alexa per avviare la pulizia di una stanza del robot Dreame.
-    Integra CleanGenius per i preset "Pulizia" (standard) e "Pulizia profonda" (deep).
+    Usa CleanGenius per i preset "Pulizia" (standard) e "Pulizia profonda" (deep).
+    Nessun livello aspirazione/acqua/passate: si usano i default del robot.
 
     Requisiti:
     - Integrazione Dreame funzionante.
@@ -32,8 +33,8 @@ blueprint:
       selector:
         select:
           options:
-            - Aspirazione
-            - Lavaggio con moci/rullo
+            - Sola Aspirazione
+            - Solo Lavaggio
             - Pulizia (Clean Genius)
             - Pulizia profonda (Clean Genius)
           multiple: false
@@ -46,36 +47,6 @@ blueprint:
       selector:
         boolean: {}
 
-    suction_level:
-      name: Livello aspirazione (opzionale)
-      description: Se impostato, sovrascrive il livello (1-4).
-      selector:
-        number:
-          min: 1
-          max: 4
-          step: 1
-          mode: slider
-
-    water_volume:
-      name: Livello acqua (opzionale)
-      description: Se impostato, sovrascrive il livello (1-3).
-      selector:
-        number:
-          min: 1
-          max: 3
-          step: 1
-          mode: slider
-
-    cleaning_passes:
-      name: Passate (opzionale)
-      description: Numero di passate (1-3).
-      selector:
-        number:
-          min: 1
-          max: 3
-          step: 1
-          mode: slider
-
 mode: restart
 icon: mdi:robot-vacuum
 
@@ -85,30 +56,13 @@ sequence:
       _vac: !input vacuum_entity
       _preset: !input cleaning_preset
       _use_cg: !input use_clean_genius
-      _suction: !input suction_level
-      _water: !input water_volume
-      _passes: !input cleaning_passes
 
       room_label: "{{ states(_helper) | string }}"
-      room_id: >-
-        {% set s = room_label %}
-        {% if '(' in s and ')' in s %}
-          {{ s.split('(')[-1].split(')')[0] | int }}
-        {% else %}
-          {{ -1 }}
-        {% endif %}
-
+      room_id: "{{ iif('(' in room_label and ')' in room_label, room_label.split('(')[-1].split(')')[0] | int, -1) }}"
       preset_lc: "{{ (_preset or 'Pulizia') | lower }}"
 
-      cleaning_mode: >-
-        {% if _use_cg %}
-          {% if preset_lc == 'pulizia' %}2
-          {% elif preset_lc == 'pulizia profonda' %}3
-          {% else %}{{ none }}
-          {% endif %}
-        {% else %}
-          {{ none }}
-        {% endif %}
+      # CleanGenius: 2 standard (Pulizia), 3 deep (Pulizia profonda); altrimenti non impostare
+      cleaning_mode: "{{ 2 if (_use_cg and preset_lc == 'pulizia') else (3 if (_use_cg and preset_lc == 'pulizia profonda') else omit) }}"
 
   - condition: template
     value_template: "{{ room_id | int(-1) >= 0 }}"
@@ -119,7 +73,4 @@ sequence:
     data:
       segments:
         - "{{ room_id | int }}"
-      suction_level: "{{ _suction if _suction is number else none }}"
-      water_volume: "{{ _water if _water is number else none }}"
-      cleaning_times: "{{ _passes if _passes is number else none }}"
-      cleaning_mode: "{{ cleaning_mode if cleaning_mode is number else none }}"
+      cleaning_mode: "{{ cleaning_mode }}"
