@@ -2,7 +2,7 @@ blueprint:
   name: "Dreame: Aggiorna elenco stanze"
   description: |
     Questo blueprint crea uno script che legge l'attributo ``rooms`` della mappa
-    tasshack e aggiorna un helper `input_select` con l'elenco delle stanze.
+    ``tasshack`` e aggiorna un helper `input_select` con l'elenco delle stanze.
 
     Ogni voce dell'elenco viene formata concatenando il nome della stanza e il suo
     ``room_id`` fra parentesi, ad esempio ``Cucina (3)``.
