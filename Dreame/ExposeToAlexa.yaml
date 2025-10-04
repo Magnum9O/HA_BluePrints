@@ -1,5 +1,5 @@
 blueprint:
-  name: Espone script per Alexa (Dreame + Vacuum Map, per stanza) — CleanGenius
+  name: Espone script per Alexa
   description: |
     Crea uno script eseguibile da Alexa per avviare la pulizia di una stanza del robot Dreame.
     Integra CleanGenius per i preset "Pulizia" (standard) e "Pulizia profonda" (deep).
@@ -33,9 +33,9 @@ blueprint:
         select:
           options:
             - Aspirazione
-            - Lavaggio
-            - Pulizia
-            - Pulizia profonda
+            - Lavaggio con moci/rullo
+            - Pulizia (Clean Genius)
+            - Pulizia profonda (Clean Genius)
           multiple: false
           mode: dropdown
 
