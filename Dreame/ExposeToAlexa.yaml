@@ -1,34 +1,54 @@
 blueprint:
-  name: Espone gli script di pulizia a Alexa (Dreame + Vacuum Map)
+  name: Espone script per Alexa (Dreame + Vacuum Map, per stanza) — CleanGenius
   description: |
-    Crea uno script eseguibile da Alexa per avviare la pulizia di una stanza direttamente da Alexa.
+    Crea uno script eseguibile da Alexa per avviare la pulizia di una stanza del robot Dreame.
+    Integra CleanGenius per i preset "Pulizia" (standard) e "Pulizia profonda" (deep).
+
     Requisiti:
-    - Integrazione Dreame.
-    - Vacuum Map card (tasshack) per l’helper con opzioni tipo "Nome (ID)".
-    - Un input_select (già popolato dal primo blueprint) con le stanze in formato "Nome (ID)".
-    Uso con Alexa: dire "avvia <nome script>" oppure "apri <nome script>".
+    - Integrazione Dreame funzionante.
+    - Vacuum Map card (tasshack) che popola un input_select con opzioni tipo "Nome (ID)".
+    - Un input_select (già popolato dal blueprint 1) contenente le stanze in formato "Nome (ID)".
+
+    Alexa: dire "avvia <nome script>" oppure "apri <nome script>".
 
   domain: script
 
   input:
     vacuum_entity:
       name: Entità robot Dreame
-      description: Seleziona l'entità del robot aspirapolvere Dreame.
       selector:
         entity:
           domain: vacuum
 
     room_helper:
       name: Helper stanze (input_select)
-      description: >
-        Seleziona l'input_select già popolato con le stanze in formato "Nome (ID)".
+      description: Seleziona l'input_select già popolato con le stanze "Nome (ID)".
       selector:
         entity:
           domain: input_select
 
+    cleaning_preset:
+      name: Tipo di pulizia
+      selector:
+        select:
+          options:
+            - Aspirazione
+            - Lavaggio
+            - Pulizia
+            - Pulizia profonda
+          multiple: false
+          mode: dropdown
+
+    use_clean_genius:
+      name: Usa CleanGenius per i preset "Pulizia"
+      description: Se attivo, Pulizia usa cleaning_mode 2 e Pulizia profonda usa cleaning_mode 3.
+      default: true
+      selector:
+        boolean: {}
+
     suction_level:
       name: Livello aspirazione (opzionale)
-      description: Lascia vuoto per usare il valore predefinito del robot.
+      description: Se impostato, sovrascrive il livello (1-4).
       selector:
         number:
           min: 1
@@ -38,7 +58,7 @@ blueprint:
 
     water_volume:
       name: Livello acqua (opzionale)
-      description: Lascia vuoto per usare il valore predefinito del robot (solo modelli che lavano).
+      description: Se impostato, sovrascrive il livello (1-3).
       selector:
         number:
           min: 1
@@ -48,7 +68,7 @@ blueprint:
 
     cleaning_passes:
       name: Passate (opzionale)
-      description: Numero di passate su stanza. Lascia vuoto per default.
+      description: Numero di passate (1-3).
       selector:
         number:
           min: 1
@@ -63,13 +83,13 @@ sequence:
   - variables:
       _helper: !input room_helper
       _vac: !input vacuum_entity
+      _preset: !input cleaning_preset
+      _use_cg: !input use_clean_genius
       _suction: !input suction_level
       _water: !input water_volume
       _passes: !input cleaning_passes
 
-      # Testo selezionato nell'input_select, es. "Kitchen (3)"
       room_label: "{{ states(_helper) | string }}"
-      # Estrai ID (tra parentesi)
       room_id: >-
         {% set s = room_label %}
         {% if '(' in s and ')' in s %}
@@ -78,15 +98,61 @@ sequence:
           {{ -1 }}
         {% endif %}
 
-  # Verifica che l'ID sia valido
+      preset_lc: "{{ (_preset or 'Pulizia') | lower }}"
+
+      # Default "soft": usati solo se non metti override
+      preset_defaults:
+        aspirazione:
+          suction: 3
+          water: null
+          passes: null
+          cleaning_mode: null
+        lavaggio:
+          suction: null
+          water: 2
+          passes: null
+          cleaning_mode: null
+        pulizia:
+          suction: null        # lasciamo decidere a CleanGenius se abilitato
+          water: null
+          passes: null
+          cleaning_mode: 2     # CleanGenius standard
+        pulizia profonda:
+          suction: null
+          water: null
+          passes: 2
+          cleaning_mode: 3     # CleanGenius deep
+
+      # Calcola valori finali: se override presente, usa quello; altrimenti default del preset
+      final_suction: >-
+        {% set d = preset_defaults.get(preset_lc, preset_defaults['pulizia']) %}
+        {% if _suction is number %}{{ _suction | int }}
+        {% else %}{{ d.suction }}
+        {% endif %}
+      final_water: >-
+        {% set d = preset_defaults.get(preset_lc, preset_defaults['pulizia']) %}
+        {% if _water is number %}{{ _water | int }}
+        {% else %}{{ d.water }}
+        {% endif %}
+      final_passes: >-
+        {% set d = preset_defaults.get(preset_lc, preset_defaults['pulizia']) %}
+        {% if _passes is number %}{{ _passes | int }}
+        {% else %}{{ d.passes }}
+        {% endif %}
+      final_cleaning_mode: >-
+        {% set d = preset_defaults.get(preset_lc, preset_defaults['pulizia']) %}
+        {% if _use_cg %}{{ d.cleaning_mode }}
+        {% else %}{{ none }}
+        {% endif %}
+
   - condition: template
     value_template: "{{ room_id | int(-1) >= 0 }}"
 
-  # Applica opzionali se presenti
   - choose:
+      # ASPIRAZIONE: solo suction (e passate se presenti); niente CleanGenius
       - conditions:
           - condition: template
-            value_template: "{{ _suction is number and _water is number and _passes is number }}"
+            value_template: "{{ preset_lc == 'aspirazione' }}"
         sequence:
           - service: dreame_vacuum.vacuum_clean_segment
             target:
@@ -94,13 +160,13 @@ sequence:
             data:
               segments:
                 - "{{ room_id | int }}"
-              suction_level: "{{ _suction | int }}"
-              water_volume: "{{ _water | int }}"
-              cleaning_times: "{{ _passes | int }}"
+              {% if final_suction is number %}suction_level: "{{ final_suction | int }}"{% endif %}
+              {% if final_passes is number %}cleaning_times: "{{ final_passes | int }}"{% endif %}
 
+      # LAVAGGIO: solo water (e passate se presenti); niente CleanGenius
       - conditions:
           - condition: template
-            value_template: "{{ _suction is number and _passes is number }}"
+            value_template: "{{ preset_lc == 'lavaggio' }}"
         sequence:
           - service: dreame_vacuum.vacuum_clean_segment
             target:
@@ -108,12 +174,13 @@ sequence:
             data:
               segments:
                 - "{{ room_id | int }}"
-              suction_level: "{{ _suction | int }}"
-              cleaning_times: "{{ _passes | int }}"
+              {% if final_water is number %}water_volume: "{{ final_water | int }}"{% endif %}
+              {% if final_passes is number %}cleaning_times: "{{ final_passes | int }}"{% endif %}
 
+      # PULIZIA: CleanGenius standard (mode 2) se abilitato; altrimenti suction+water "soft"
       - conditions:
           - condition: template
-            value_template: "{{ _water is number and _passes is number }}"
+            value_template: "{{ preset_lc == 'pulizia' }}"
         sequence:
           - service: dreame_vacuum.vacuum_clean_segment
             target:
@@ -121,12 +188,15 @@ sequence:
             data:
               segments:
                 - "{{ room_id | int }}"
-              water_volume: "{{ _water | int }}"
-              cleaning_times: "{{ _passes | int }}"
+              {% if final_cleaning_mode is number %}cleaning_mode: "{{ final_cleaning_mode | int }}"{% endif %}
+              {% if final_suction is number %}suction_level: "{{ final_suction | int }}"{% endif %}
+              {% if final_water is number %}water_volume: "{{ final_water | int }}"{% endif %}
+              {% if final_passes is number %}cleaning_times: "{{ final_passes | int }}"{% endif %}
 
+      # PULIZIA PROFONDA: CleanGenius deep (mode 3) se abilitato; default 2 passate se non override
       - conditions:
           - condition: template
-            value_template: "{{ _passes is number }}"
+            value_template: "{{ preset_lc == 'pulizia profonda' }}"
         sequence:
           - service: dreame_vacuum.vacuum_clean_segment
             target:
@@ -134,32 +204,12 @@ sequence:
             data:
               segments:
                 - "{{ room_id | int }}"
-              cleaning_times: "{{ _passes | int }}"
+              {% if final_cleaning_mode is number %}cleaning_mode: "{{ final_cleaning_mode | int }}"{% endif %}
+              {% if final_suction is number %}suction_level: "{{ final_suction | int }}"{% endif %}
+              {% if final_water is number %}water_volume: "{{ final_water | int }}"{% endif %}
+              {% if final_passes is number %}cleaning_times: "{{ final_passes | int }}"{% endif %}
 
-      - conditions:
-          - condition: template
-            value_template: "{{ _suction is number }}"
-        sequence:
-          - service: dreame_vacuum.vacuum_clean_segment
-            target:
-              entity_id: "{{ _vac }}"
-            data:
-              segments:
-                - "{{ room_id | int }}"
-              suction_level: "{{ _suction | int }}"
-
-      - conditions:
-          - condition: template
-            value_template: "{{ _water is number }}"
-        sequence:
-          - service: dreame_vacuum.vacuum_clean_segment
-            target:
-              entity_id: "{{ _vac }}"
-            data:
-              segments:
-                - "{{ room_id | int }}"
-              water_volume: "{{ _water | int }}"
-
+    # Fallback (si comporta come Pulizia)
     default:
       - service: dreame_vacuum.vacuum_clean_segment
         target:
@@ -167,3 +217,7 @@ sequence:
         data:
           segments:
             - "{{ room_id | int }}"
+          {% if final_cleaning_mode is number %}cleaning_mode: "{{ final_cleaning_mode | int }}"{% endif %}
+          {% if final_suction is number %}suction_level: "{{ final_suction | int }}"{% endif %}
+          {% if final_water is number %}water_volume: "{{ final_water | int }}"{% endif %}
+          {% if final_passes is number %}cleaning_times: "{{ final_passes | int }}"{% endif %}
