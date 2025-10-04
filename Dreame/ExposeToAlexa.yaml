@@ -60,8 +60,6 @@ blueprint:
             - Pulizia profonda
       default: Pulizia
 
-
-alias: !input script_friendly_name
 icon: mdi:robot-vacuum
 
 mode: single
