@@ -1,137 +1,189 @@
 blueprint:
-  name: Creazione Script Alexa (fisso per stanza o dinamico da index)
-  description: >
-    Crea uno script Alexa per pulire una stanza Dreame.
-    - Se imposti **Segment ID fisso (override)**, lo script userà sempre quell'ID (consigliato per Alexa).
-    - Se lo lasci vuoto, leggerà l'ID dall'helper `input_select` popolato dal Blueprint Index Stanze (BP#1).
-    Se usi matter: Imposta subito un label agli script che crei in modo da esporli ad Alexa!
+  name: Espone gli script di pulizia a Alexa (Dreame + Vacuum Map)
+  description: |
+    Crea uno script eseguibile da Alexa per avviare la pulizia di una stanza del robot Dreame.
+    Requisiti:
+    - Integrazione Dreame funzionante.
+    - Vacuum Map card (tasshack) che popola l’helper con opzioni tipo "Nome (ID)".
+    - Un input_select (già popolato dal primo blueprint) con le stanze in formato "Nome (ID)".
+    Uso con Alexa: dire "avvia <nome script>" oppure "apri <nome script>".
 
   domain: script
 
   input:
-    select_entity:
-      name: Helper index stanze ("Nome (ID)")
-      description: L'input_select popolato dal BP#1 (voci come "Cucina (3)"). Usato solo se l'override è vuoto.
-      selector:
-        entity:
-          domain: input_select
-
     vacuum_entity:
-      name: Entità aspirapolvere (vacuum.*)
+      name: Entità robot Dreame
+      description: Seleziona l'entità del robot aspirapolvere Dreame.
       selector:
         entity:
           domain: vacuum
 
-    segment_id_override:
-      name: Segment ID fisso (override)
+    room_helper:
+      name: Helper stanze (input_select)
       description: >
-        Inserisci l'ID numerico della stanza (es. "3" per "Cucina (3)") che puoi ricavare dall'helper creato con il BP#1. 
-        Attenzione: lascianod questo valore vuoto, lo script avvierà sempre la pulizia della stanza indiciata dall'helper!
-        Per creare uno script indipendente dall'helper, questo campo va riempito con l'ID della stanza corrispondente
-      default:
+        Seleziona l'input_select già popolato con le stanze in formato "Nome (ID)".
       selector:
-        number:
-          min: 0
-          max: 9999
-          step: 1
-          mode: box
-
-    # Opzionali: applicati solo se supportati dal modello
-    cleaning_profile:
-      name: Tipo di pulizia (etichetta informativa)
-      default: aspirazione
-      selector:
-        select:
-          options:
-            - Sola Aspirazione
-            - Solo Lavaggio con moci/rullo
-            - Pulizia (Clean Genius)
-            - Pulizia profonda (Clean Genius)
+        entity:
+          domain: input_select
 
     suction_level:
       name: Livello aspirazione (opzionale)
-      description: 1..4 se supportato. Vuoto = non cambiare
-      default:
+      description: Lascia vuoto per usare il valore predefinito del robot.
+      default: !input default_suction_placeholder
       selector:
         number:
           min: 1
           max: 4
-          step: 1
           mode: slider
+          step: 1
+          unit_of_measurement: ""
 
     water_volume:
-      name: Quantità acqua (opzionale)
-      description: 1..3 se supportato. Vuoto = non cambiare
-      default:
+      name: Livello acqua (opzionale)
+      description: Lascia vuoto per usare il valore predefinito del robot (solo modelli che lavano).
+      default: !input default_water_placeholder
       selector:
         number:
           min: 1
           max: 3
-          step: 1
           mode: slider
+          step: 1
+          unit_of_measurement: ""
 
     cleaning_passes:
-      name: Numero passate (opzionale)
-      description: 1..3 se supportato. Vuoto = non cambiare
-      default:
+      name: Passate (opzionale)
+      description: Numero di passate su stanza. Lascia vuoto per default.
+      default: !input default_passes_placeholder
       selector:
         number:
           min: 1
           max: 3
-          step: 1
           mode: slider
+          step: 1
+          unit_of_measurement: ""
 
-mode: single
+# Placeholders vuoti per distinguere "non impostato" da 0
+default_suction_placeholder: null
+default_water_placeholder: null
+default_passes_placeholder: null
+
+mode: restart
+icon: mdi:robot-vacuum
 
 sequence:
   - variables:
-      select_ent: !input select_entity
-      vac: !input vacuum_entity
-      seg_override: !input segment_id_override
-      s_level: !input suction_level
-      w_vol: !input water_volume
-      passes: !input cleaning_passes
+      _helper: !input room_helper
+      _vac: !input vacuum_entity
+      _suction: !input suction_level
+      _water: !input water_volume
+      _passes: !input cleaning_passes
 
-  # Parametri opzionali: applica solo se forniti
-  - choose:
-      - conditions: "{{ s_level is number }}"
-        sequence:
-          - service: dreame_vacuum.vacuum_set_fan_speed
-            data:
-              entity_id: "{{ vac }}"
-              speed_level: "{{ s_level | int }}"
-      - conditions: "{{ w_vol is number }}"
-        sequence:
-          - service: dreame_vacuum.vacuum_set_water_volume
-            data:
-              entity_id: "{{ vac }}"
-              volume: "{{ w_vol | int }}"
-      - conditions: "{{ passes is number }}"
-        sequence:
-          - service: dreame_vacuum.vacuum_set_cleaning_passes
-            data:
-              entity_id: "{{ vac }}"
-              passes: "{{ passes | int }}"
-
-  # Determina il segment_id finale: prima l'override, altrimenti derivato dall'helper
-  - variables:
-      segment_id: >-
-        {% if seg_override is number %}
-          {{ seg_override | int }}
+      # Testo selezionato nell'input_select, es. "Kitchen (3)"
+      room_label: "{{ states(_helper) | string }}"
+      # Estrai ID (tra parentesi) e Nome (prima della parentesi)
+      room_id: >-
+        {% set s = room_label %}
+        {% if '(' in s and ')' in s %}
+          {{ s.split('(')[-1].split(')')[0] | int }}
         {% else %}
-          {% set opt = (states(select_ent) | default('')) | trim %}
-          {% if '(' in opt and ')' in opt %}
-            {{ opt.split('(')[-1].split(')')[0] | int }}
-          {% else %}
-            {{ opt | int(default=-1) }}
-          {% endif %}
+          {{ 0 }}
+        {% endif %}
+      room_name: >-
+        {% set s = room_label %}
+        {% if ' (' in s %}
+          {{ s.rsplit(' (', 1)[0] }}
+        {% else %}
+          {{ s }}
         {% endif %}
 
-  # Avvia pulizia solo se l'ID è valido
-  - condition: template
-    value_template: "{{ segment_id | int(-1) >= 0 }}"
+  - choose:
+      # Suction + water + passes tutti presenti
+      - conditions:
+          - condition: template
+            value_template: "{{ _suction is number }}"
+          - condition: template
+            value_template: "{{ _water is number }}"
+          - condition: template
+            value_template: "{{ _passes is number }}"
+        sequence:
+          - service: dreame_vacuum.vacuum_clean_segment
+            target:
+              entity_id: "{{ _vac }}"
+            data:
+              segment_ids: ["{{ room_id }}"]
+              suction_level: "{{ _suction | int }}"
+              water_volume: "{{ _water | int }}"
+              cleaning_times: "{{ _passes | int }}"
 
-  - service: dreame_vacuum.vacuum_clean_segment
-    data:
-      entity_id: "{{ vac }}"
-      segments: ["{{ segment_id | int }}"]
+      # Solo suction + passes
+      - conditions:
+          - condition: template
+            value_template: "{{ _suction is number }}"
+          - condition: template
+            value_template: "{{ _passes is number }}"
+        sequence:
+          - service: dreame_vacuum.vacuum_clean_segment
+            target:
+              entity_id: "{{ _vac }}"
+            data:
+              segment_ids: ["{{ room_id }}"]
+              suction_level: "{{ _suction | int }}"
+              cleaning_times: "{{ _passes | int }}"
+
+      # Solo water + passes
+      - conditions:
+          - condition: template
+            value_template: "{{ _water is number }}"
+          - condition: template
+            value_template: "{{ _passes is number }}"
+        sequence:
+          - service: dreame_vacuum.vacuum_clean_segment
+            target:
+              entity_id: "{{ _vac }}"
+            data:
+              segment_ids: ["{{ room_id }}"]
+              water_volume: "{{ _water | int }}"
+              cleaning_times: "{{ _passes | int }}"
+
+      # Solo passes
+      - conditions:
+          - condition: template
+            value_template: "{{ _passes is number }}"
+        sequence:
+          - service: dreame_vacuum.vacuum_clean_segment
+            target:
+              entity_id: "{{ _vac }}"
+            data:
+              segment_ids: ["{{ room_id }}"]
+              cleaning_times: "{{ _passes | int }}"
+
+      # Solo suction
+      - conditions:
+          - condition: template
+            value_template: "{{ _suction is number }}"
+        sequence:
+          - service: dreame_vacuum.vacuum_clean_segment
+            target:
+              entity_id: "{{ _vac }}"
+            data:
+              segment_ids: ["{{ room_id }}"]
+              suction_level: "{{ _suction | int }}"
+
+      # Solo water
+      - conditions:
+          - condition: template
+            value_template: "{{ _water is number }}"
+        sequence:
+          - service: dreame_vacuum.vacuum_clean_segment
+            target:
+              entity_id: "{{ _vac }}"
+            data:
+              segment_ids: ["{{ room_id }}"]
+              water_volume: "{{ _water | int }}"
+
+    default:
+      - service: dreame_vacuum.vacuum_clean_segment
+        target:
+          entity_id: "{{ _vac }}"
+        data:
+          segment_ids: ["{{ room_id }}"]
