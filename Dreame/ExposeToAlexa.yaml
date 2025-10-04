@@ -1,6 +1,6 @@
 blueprint:
   name: "Creazione script Dreame da esporre ad Alexa"
-  description: >
+  description: |
     Genera uno script per avviare la pulizia di **una stanza specifica** del robot Dreame,
     pronto per essere esposto ad Alexa. L'``ID`` stanza viene fissato al momento della creazione,
     così puoi clonare lo script per ogni stanza/preset.
