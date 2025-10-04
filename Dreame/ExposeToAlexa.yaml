@@ -100,124 +100,26 @@ sequence:
 
       preset_lc: "{{ (_preset or 'Pulizia') | lower }}"
 
-      # Default "soft": usati solo se non metti override
-      preset_defaults:
-        aspirazione:
-          suction: 3
-          water: null
-          passes: null
-          cleaning_mode: null
-        lavaggio:
-          suction: null
-          water: 2
-          passes: null
-          cleaning_mode: null
-        pulizia:
-          suction: null        # lasciamo decidere a CleanGenius se abilitato
-          water: null
-          passes: null
-          cleaning_mode: 2     # CleanGenius standard
-        pulizia profonda:
-          suction: null
-          water: null
-          passes: 2
-          cleaning_mode: 3     # CleanGenius deep
-
-      # Calcola valori finali: se override presente, usa quello; altrimenti default del preset
-      final_suction: >-
-        {% set d = preset_defaults.get(preset_lc, preset_defaults['pulizia']) %}
-        {% if _suction is number %}{{ _suction | int }}
-        {% else %}{{ d.suction }}
-        {% endif %}
-      final_water: >-
-        {% set d = preset_defaults.get(preset_lc, preset_defaults['pulizia']) %}
-        {% if _water is number %}{{ _water | int }}
-        {% else %}{{ d.water }}
-        {% endif %}
-      final_passes: >-
-        {% set d = preset_defaults.get(preset_lc, preset_defaults['pulizia']) %}
-        {% if _passes is number %}{{ _passes | int }}
-        {% else %}{{ d.passes }}
-        {% endif %}
-      final_cleaning_mode: >-
-        {% set d = preset_defaults.get(preset_lc, preset_defaults['pulizia']) %}
-        {% if _use_cg %}{{ d.cleaning_mode }}
-        {% else %}{{ none }}
+      cleaning_mode: >-
+        {% if _use_cg %}
+          {% if preset_lc == 'pulizia' %}2
+          {% elif preset_lc == 'pulizia profonda' %}3
+          {% else %}{{ none }}
+          {% endif %}
+        {% else %}
+          {{ none }}
         {% endif %}
 
   - condition: template
     value_template: "{{ room_id | int(-1) >= 0 }}"
 
-  - choose:
-      # ASPIRAZIONE: solo suction (e passate se presenti); niente CleanGenius
-      - conditions:
-          - condition: template
-            value_template: "{{ preset_lc == 'aspirazione' }}"
-        sequence:
-          - service: dreame_vacuum.vacuum_clean_segment
-            target:
-              entity_id: "{{ _vac }}"
-            data:
-              segments:
-                - "{{ room_id | int }}"
-              {% if final_suction is number %}suction_level: "{{ final_suction | int }}"{% endif %}
-              {% if final_passes is number %}cleaning_times: "{{ final_passes | int }}"{% endif %}
-
-      # LAVAGGIO: solo water (e passate se presenti); niente CleanGenius
-      - conditions:
-          - condition: template
-            value_template: "{{ preset_lc == 'lavaggio' }}"
-        sequence:
-          - service: dreame_vacuum.vacuum_clean_segment
-            target:
-              entity_id: "{{ _vac }}"
-            data:
-              segments:
-                - "{{ room_id | int }}"
-              {% if final_water is number %}water_volume: "{{ final_water | int }}"{% endif %}
-              {% if final_passes is number %}cleaning_times: "{{ final_passes | int }}"{% endif %}
-
-      # PULIZIA: CleanGenius standard (mode 2) se abilitato; altrimenti suction+water "soft"
-      - conditions:
-          - condition: template
-            value_template: "{{ preset_lc == 'pulizia' }}"
-        sequence:
-          - service: dreame_vacuum.vacuum_clean_segment
-            target:
-              entity_id: "{{ _vac }}"
-            data:
-              segments:
-                - "{{ room_id | int }}"
-              {% if final_cleaning_mode is number %}cleaning_mode: "{{ final_cleaning_mode | int }}"{% endif %}
-              {% if final_suction is number %}suction_level: "{{ final_suction | int }}"{% endif %}
-              {% if final_water is number %}water_volume: "{{ final_water | int }}"{% endif %}
-              {% if final_passes is number %}cleaning_times: "{{ final_passes | int }}"{% endif %}
-
-      # PULIZIA PROFONDA: CleanGenius deep (mode 3) se abilitato; default 2 passate se non override
-      - conditions:
-          - condition: template
-            value_template: "{{ preset_lc == 'pulizia profonda' }}"
-        sequence:
-          - service: dreame_vacuum.vacuum_clean_segment
-            target:
-              entity_id: "{{ _vac }}"
-            data:
-              segments:
-                - "{{ room_id | int }}"
-              {% if final_cleaning_mode is number %}cleaning_mode: "{{ final_cleaning_mode | int }}"{% endif %}
-              {% if final_suction is number %}suction_level: "{{ final_suction | int }}"{% endif %}
-              {% if final_water is number %}water_volume: "{{ final_water | int }}"{% endif %}
-              {% if final_passes is number %}cleaning_times: "{{ final_passes | int }}"{% endif %}
-
-    # Fallback (si comporta come Pulizia)
-    default:
-      - service: dreame_vacuum.vacuum_clean_segment
-        target:
-          entity_id: "{{ _vac }}"
-        data:
-          segments:
-            - "{{ room_id | int }}"
-          {% if final_cleaning_mode is number %}cleaning_mode: "{{ final_cleaning_mode | int }}"{% endif %}
-          {% if final_suction is number %}suction_level: "{{ final_suction | int }}"{% endif %}
-          {% if final_water is number %}water_volume: "{{ final_water | int }}"{% endif %}
-          {% if final_passes is number %}cleaning_times: "{{ final_passes | int }}"{% endif %}
+  - service: dreame_vacuum.vacuum_clean_segment
+    target:
+      entity_id: "{{ _vac }}"
+    data:
+      segments:
+        - "{{ room_id | int }}"
+      suction_level: "{{ _suction if _suction is number else none }}"
+      water_volume: "{{ _water if _water is number else none }}"
+      cleaning_times: "{{ _passes if _passes is number else none }}"
+      cleaning_mode: "{{ cleaning_mode if cleaning_mode is number else none }}"
