@@ -1,11 +1,15 @@
 blueprint:
-  name: Espone script Dreame per Alexa (stanza con ID fisso)
+  name: Espone script Dreame per Alexa
   description: >
     Genera uno script per avviare la pulizia di **una stanza specifica** del robot Dreame,
     pronto per essere esposto ad Alexa. L'ID stanza viene fissato al momento della creazione,
-    così puoi clonare lo script per ogni stanza/preset come nella tua configurazione.
+    così puoi clonare lo script per ogni stanza/preset.
+    Per aiutarti nella mpappatura stanza/ID, utilizza il BluePrint #1 (dreame_create_room),
+    e scorri l'helper per vedere gli ID delle stanze.
 
-    Comandi vocali suggeriti (Nabu Casa/Alexa):
+    Se usi matter, assegna un label esposto a matter allo script!
+
+    Comandi vocali per richiamare gli script da Alexa:
     - "avvia <nome script>"
     - "apri <nome script>"
 
@@ -21,15 +25,15 @@ blueprint:
           domain: vacuum
 
     cleangenius_select:
-      name: Select CleanGenius
-      description: Selettore modalità CleanGenius (es. select.ambrogio_cleangenius_2)
+      name: Seleziona l'entity corretta per CleanGenius
+      description: Selettore modalità CleanGenius (es. select.NomeRobot_cleangenius)
       selector:
         entity:
           domain: select
 
     cleaning_mode_select:
-      name: Select Cleaning Mode
-      description: Selettore cleaning mode “segment” (es. select.ambrogio_cleaning_mode_2)
+      name: Seleziona l'entity corretta per il Cleaning Mode
+      description: Selettore cleaning mode “segment” (es. select.NomeRobot_cleaning_mode)
       selector:
         entity:
           domain: select
@@ -56,11 +60,6 @@ blueprint:
             - Pulizia profonda
       default: Pulizia
 
-    script_friendly_name:
-      name: Nome script (per Alexa)
-      description: Nome parlante per i comandi vocali (es. “Pulizia – Cucina” o “Aspirazione – Bagno”).
-      selector:
-        text:
 
 alias: !input script_friendly_name
 icon: mdi:robot-vacuum
