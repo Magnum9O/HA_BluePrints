@@ -1,4 +1,4 @@
-blueprint: ExposeToAlexa
+blueprint: 
   name: Espone gli script di pulizia ad Alexa
   description: >
     Crea uno script Alexa per pulire una stanza Dreame.
