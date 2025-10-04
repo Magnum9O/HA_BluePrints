@@ -116,7 +116,7 @@ blueprint:
 
     morning_rooms:
       name: Stanze mattina (ID o nomi separati da virgola)
-      description: Esempi: "2,3,4" oppure "Kitchen,Bathroom"
+      description: Esempi "2,3,4" oppure "Kitchen,Bathroom"
       default: ""
 
     evening_enabled:
@@ -162,7 +162,7 @@ blueprint:
 
     evening_rooms:
       name: Stanze sera (ID o nomi separati da virgola)
-      description: Esempi: "2,3,4" oppure "Kitchen,Bathroom"
+      description: Esempi "2,3,4" oppure "Kitchen,Bathroom"
       default: ""
 
     # Modalità Avanzata (blocchi A–D)
