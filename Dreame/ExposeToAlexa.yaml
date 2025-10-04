@@ -2,10 +2,9 @@ blueprint:
   name: Dreame · Script Alexa (da index stanze) — minimal
   description: >
     Avvia la pulizia di una stanza del Dreame leggendo l'ID segmento
-    dall'helper `input_select` popolato dal Blueprint Index Stanze (BP#1).
+    dall'helper `input_select` popolato dal Blueprint Index Stanze.
     Uso: seleziona la stanza nell'helper (formato "Nome (ID)") e lancia lo script.
-    Alexa (Nabu Casa): invoca con "avvia <nome script>" o "apri <nome script>".
-
+    
   domain: script
 
   input:
