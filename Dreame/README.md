@@ -1,3 +1,20 @@
+[details="English version"]
+1st Blueprint (Room List helper):
+<a href="https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FMagnum9O%2FHA_BluePrints%2Fblob%2Fmain%2FDreame%2FENG%2F1_CreateRoomHelper.yaml" target="_blank" rel="noreferrer noopener"><img src="https://my.home-assistant.io/badges/blueprint_import.svg" alt="Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled." /></a>
+2nd Blueprint (Script Creation for Alexa Exposure)
+<a href="https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FMagnum9O%2FHA_BluePrints%2Fblob%2Fmain%2FDreame%2FENG%2F2_ExposeToAlexa.yaml" target="_blank" rel="noreferrer noopener"><img src="https://my.home-assistant.io/badges/blueprint_import.svg" alt="Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled." /></a>
+3rd Blueprint (Automate you vacuum)
+<a href="https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FMagnum9O%2FHA_BluePrints%2Fblob%2Fmain%2FDreame%2FENG%2F3_CleaningAutomation.yaml" target="_blank" rel="noreferrer noopener"><img src="https://my.home-assistant.io/badges/blueprint_import.svg" alt="Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled." /></a>
+[/details]
+[details="Italian version"]
+1 Blueprint (Room List helper):
+<a href="https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FMagnum9O%2FHA_BluePrints%2Fblob%2Fmain%2FDreame%2FITA%2F1_CreaHelperStanze.yaml" target="_blank" rel="noreferrer noopener"><img src="https://my.home-assistant.io/badges/blueprint_import.svg" alt="Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled." /></a>
+2 Blueprint (Espone ad Alexa gli script di pulizia)
+<a href="https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FMagnum9O%2FHA_BluePrints%2Fblob%2Fmain%2FDreame%2FITA%2F2_EsponiAdAlexa.yaml" target="_blank" rel="noreferrer noopener"><img src="https://my.home-assistant.io/badges/blueprint_import.svg" alt="Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled." /></a>
+3rd Blueprint (Automatizza il tuo Dreame)
+<a href="https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FMagnum9O%2FHA_BluePrints%2Fblob%2Fmain%2FDreame%2FITA%2F3_AutomazionePulizie.yaml" target="_blank" rel="noreferrer noopener"><img src="https://my.home-assistant.io/badges/blueprint_import.svg" alt="Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled." /></a>
+[/details]
+
 # EN Dreame – Alexa Voice Command Blueprints (per room) + Automation for Automatic Cleaning
 
 These blueprints allow you to use **Alexa** voice commands to start cleaning scripts for **specific rooms** with your **Dreame** robot vacuum.
