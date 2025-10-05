@@ -15,7 +15,7 @@ blueprint:
     If no rooms are found in the ``rooms`` attribute, a notification is generated.
     
   domain: script
-  source_url: https://raw.githubusercontent.com/Magnum9O/HA_BluePrints/main/blueprints/BP_Dreame_Automation/dreame_update_rooms_replace.yaml
+  source_url: https://raw.githubusercontent.com/Magnum9O/HA_BluePrints/main/Dreame/ENG/1_CreateRoomHelper.yaml
   input:
     map_camera:
       name: "Robot Map"
