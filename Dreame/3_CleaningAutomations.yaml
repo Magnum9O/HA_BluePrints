@@ -5,11 +5,6 @@ blueprint:
     fino a 4 schedulazioni su base settimanale (blocchi A–D). Supporta la selezione
     delle stanze per ID o nome (tramite la mappa), e un controllo presenza opzionale per
     avviare la pulizia solo quando non si è in casa.
-    Nota sulle modalità di pulizia:
-    Aspirazione (solo aspirazione)
-    Lavaggio (solo lavaggio)
-    Pulizia (CleanGenius – aspirazione+lavaggio)
-    Pulizia profonda (CleanGenius profonda)
 
   domain: automation
   source_url: https://github.com/Magnum9O/HA_BluePrints/blob/main/Dreame/3_CleaningAutomations.yaml
