@@ -1,0 +1,191 @@
+blueprint:
+  name: "Dreame Script Creation for Alexa Exposure"
+  description: |
+    Generates a script to start the cleaning of a **specific room** of your Dreame robot,
+    ready to be exposed to Alexa. The room ``ID`` is fixed at creation time,
+    allowing you to clone the script for each room or preset.
+    To help with the ``room/ID`` mapping, use Blueprint #1 (``dreame_create_room``),
+    and scroll through the helper to view the room ``IDs``.
+
+    ``NOTE: the **Cleaning** and **Deep Cleaning** modes activate CleanGenius and Deep CleanGenius,
+    which perform vacuuming and mopping simultaneously.``
+
+    Afterwards, you can expose the created script to Alexa via Nabu, Lambda, or Matter.
+    ``If using Matter, assign a Matter-exposed label to the script right away!``
+
+    Voice commands to trigger the scripts from Alexa:
+    - "start ``<script name>``"
+    - "open ``<script name>``"
+
+    ``Example:`` I create my first script that defines bathroom vacuuming.
+    I give it a meaningful name, such as "vacuum bathroom".
+    This way, Alexa only needs to hear: ``START`` vacuum bathroom,
+    and it will trigger the newly generated script.
+    If I also want to add another cleaning mode, like mopping only,
+    I just clone the created script, keep the same room ID (for the bathroom),
+    and change the mode from vacuum → mop.
+    I rename the cloned script to ``mop bathroom``.
+    Now I can tell Alexa: ``START`` mop bathroom, and the new script will execute.
+    
+  domain: script
+  source_url: https://github.com/Magnum9O/HA_BluePrints/blob/main/Dreame/ExposeToAlexa.yaml
+
+  input:
+    vacuum_entity:
+      name: Dreame Robot
+      description: Select your vacuum entity (e.g. vacuum.ambrogio)
+      selector:
+        entity:
+          domain: vacuum
+
+    cleangenius_select:
+      name: Select the CleanGenius Entity
+      description: CleanGenius mode selector (e.g. select.YourRobot_cleangenius)
+      selector:
+        entity:
+          domain: select
+
+    cleaning_mode_select:
+      name: Select the Cleaning Mode Entity
+      description: Cleaning mode “segment” selector (e.g. select.YourRobot_cleaning_mode)
+      selector:
+        entity:
+          domain: select
+
+    room_id:
+      name: Room ID (number)
+      description: >
+        Copy the ID in parentheses from your helper “Name (ID)”.
+        Example: "Kitchen (3)" → enter **3**.
+      selector:
+        number:
+          min: 0
+          mode: box
+      default: 0
+
+    cleaning_preset:
+      name: Cleaning Type
+      description: Choose the preset. “Cleaning/Deep Cleaning” use CleanGenius; “Vacuum/Mop” use Cleaning Mode with CleanGenius OFF.
+      selector:
+        select:
+          options:
+            - Vacuum
+            - Mop
+            - Cleaning
+            - Deep Cleaning
+      default: Cleaning
+
+icon: mdi:robot-vacuum
+
+mode: single
+
+sequence:
+  - variables:
+      _vac: !input vacuum_entity
+      _cg_sel: !input cleangenius_select
+      _cm_sel: !input cleaning_mode_select
+      _rid: !input room_id
+      _preset_raw: !input cleaning_preset
+      preset: "{{ (_preset_raw or 'Cleaning') | lower }}"
+
+  # Validate room ID
+  - condition: template
+    value_template: "{{ (_rid | int(default=-1)) >= 0 }}"
+
+  # Branch based on preset
+  - choose:
+      # DEEP CLEANING → CleanGenius deep_cleaning
+      - conditions:
+          - condition: template
+            value_template: "{{ preset == 'deep cleaning' }}"
+        sequence:
+          - service: select.select_option
+            target:
+              entity_id: "{{ _cg_sel }}"
+            data:
+              option: deep_cleaning
+
+          - wait_template: >-
+              {{ states(_cg_sel) in ['deep_cleaning','unknown','unavailable','none'] }}
+            timeout: "00:00:10"
+
+          - service: dreame_vacuum.vacuum_clean_segment
+            target:
+              entity_id: "{{ _vac }}"
+            data:
+              segments:
+                - "{{ _rid | int }}"
+
+      # CLEANING (standard) → CleanGenius left as-is (no change), then start
+      - conditions:
+          - condition: template
+            value_template: "{{ preset == 'cleaning' }}"
+        sequence:
+          - service: dreame_vacuum.vacuum_clean_segment
+            target:
+              entity_id: "{{ _vac }}"
+            data:
+              segments:
+                - "{{ _rid | int }}"
+
+      # VACUUM → CleanGenius OFF → cleaning_mode sweeping → start
+      - conditions:
+          - condition: template
+            value_template: "{{ preset == 'vacuum' }}"
+        sequence:
+          - service: select.select_option
+            target:
+              entity_id: "{{ _cg_sel }}"
+            data:
+              option: 'off'
+
+          - wait_template: >-
+              {{ states(_cg_sel) in ['off','unknown','unavailable','none'] }}
+            timeout: "00:00:10"
+
+          - service: select.select_option
+            target:
+              entity_id: "{{ _cm_sel }}"
+            data:
+              option: sweeping
+
+          - delay: "00:00:01"
+
+          - service: dreame_vacuum.vacuum_clean_segment
+            target:
+              entity_id: "{{ _vac }}"
+            data:
+              segments:
+                - "{{ _rid | int }}"
+
+      # MOP → CleanGenius OFF → cleaning_mode mopping → start
+      - conditions:
+          - condition: template
+            value_template: "{{ preset == 'mop' }}"
+        sequence:
+          - service: select.select_option
+            target:
+              entity_id: "{{ _cg_sel }}"
+            data:
+              option: 'off'
+
+          - wait_template: >-
+              {{ states(_cg_sel) in ['off','unknown','unavailable','none'] }}
+            timeout: "00:00:10"
+
+          - service: select.select_option
+            target:
+              entity_id: "{{ _cm_sel }}"
+            data:
+              option: mopping
+
+          - delay: "00:00:01"
+
+          - service: dreame_vacuum.vacuum_clean_segment
+            target:
+              entity_id: "{{ _vac }}"
+            data:
+              segments:
+                - "{{ _rid | int }}"
+
+    default: []
