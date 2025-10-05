@@ -7,11 +7,21 @@ blueprint:
     Per aiutarti nella mpappatura ``stanza/ID``, utilizza il BluePrint #1 (``dreame_create_room``),
     e scorri l'helper per vedere gli ``ID`` delle stanze.
 
-    ``Se usi matter, assegna un label esposto a matter allo script!``
+    Successivamente, puoi esporre lo script creato ad Alexa tramite Nabu, Lambda o Matter
+
+    ``Se usi matter, assegna subito un label esposto a matter allo script!``
 
     Comandi vocali per richiamare gli script da Alexa:
     - "avvia ``<nome script>``"
     - "apri ``<nome script>``"
+
+    ``Esempio:`` Creo il primo script in cui definisco l'aspirazione del bagno. Gli dò un nome sensato, come "aspirazione bagno".
+    In questo modo ad Alexa basterà dire: ``AVVIA`` aspirazione bagno, e verrà fatta una chiamata allo script appena generato.
+    Qualora voglia aggiungere anche un'altra modalità di pulizia, come ad esempio il solo lavaggio, basterà clonare lo script appena creato, tenere l'ID della stanza (in questo caso del bagno),
+    e cambiare la modalità da aspirazione -> lavaggio.
+    Rinominio lo script clonato, e lo chiamerò ``lavaggio bagno``.
+    Ora potrò dire ad Alexa: ``AVVIA`` lavaggio bagno, e si attiverà lo script appena creato.
+    
 
   domain: script
   source_url: https://github.com/Magnum9O/HA_BluePrints/blob/main/Dreame/ExposeToAlexa.yaml
