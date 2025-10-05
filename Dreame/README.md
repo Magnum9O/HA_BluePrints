@@ -1,4 +1,4 @@
-# 🇬🇧 Dreame – Alexa Voice Command Blueprints (per room) + Automation for Automatic Cleaning
+# EN Dreame – Alexa Voice Command Blueprints (per room) + Automation for Automatic Cleaning
 
 These blueprints allow you to use **Alexa** voice commands to start cleaning scripts for **specific rooms** with your **Dreame** robot vacuum.
 
