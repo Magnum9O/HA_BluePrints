@@ -37,48 +37,45 @@ blueprint:
 
     vacuum_entity:
       name: Robot Dreame
-      description: Seleziona il tuo aspirapolvere Dreame (es. `vacuum.ambrogio`).
+      description: Seleziona il tuo aspirapolvere Dreame.
       selector:
         entity:
           domain: vacuum
 
     map_camera:
       name: Mappa
-      description: >
-        Seleziona la camera che espone l’attributo `rooms` (es. `camera.TuoRobot_map`)
-        generata con la **Vacuum Map card**. Obbligatoria.
+      description: Seleziona la camera con attributo 'rooms' (es. camera.TuoRobot_map) generata con la Vacuum Map card. Obbligatoria.
       selector:
         entity:
           domain: camera
 
     cleaned_today_helper:
       name: Flag "Pulizia effettuata"
-      description: Booleano che si accende dopo la pulizia e viene resettato ogni giorno all’orario scelto.
+      description: Booleano che verrà acceso dopo la pulizia e resettato ogni giorno all'orario scelto.
       selector:
         entity:
           domain: input_boolean
 
     reset_time:
       name: Orario reset giornaliero
-      description: Orario in cui spegnere il flag “Pulizia effettuata”.
+      description: Orario in cui spegnere il flag "Pulizia effettuata".
       default: "23:59:00"
       selector:
         time: {}
 
     presence_helper:
       name: Helper presenza (opzionale)
-      description: >
-        Entità per il controllo presenza. Se impostata, l’automazione parte solo quando il suo
-        valore corrisponde a **Valore presenza richiesto**.
+      description: Entità per il controllo presenza; se impostata, l’automazione parte solo quando il suo valore corrisponde a “Valore presenza richiesto”.
       default: ""
       selector:
         entity: {}
 
     presence_required_value:
       name: Valore presenza richiesto (opzionale)
-      description: Esempio, `1`, `home`, `on`. Se vuoto, la presenza viene ignorata.
+      description: Esempi_ 1, home, on. Se vuoto la presenza è ignorata.
       default: ""
 
+    # --- Mattina (sempre disponibile) ---
     morning_enabled:
       name: Attiva schedulazione mattina
       default: false
@@ -124,9 +121,10 @@ blueprint:
 
     morning_rooms:
       name: Stanze mattina
-      description: Esempio, `"2,3,4"` oppure `"Kitchen,Bathroom"`. Se vuoto → **tutta la casa**.
+      description: Esempi_ "2,3,4" oppure "Kitchen,Bathroom". Se vuoto → tutta la casa.
       default: ""
 
+    # --- Sera (sempre disponibile) ---
     evening_enabled:
       name: Attiva schedulazione sera
       default: false
@@ -172,9 +170,10 @@ blueprint:
 
     evening_rooms:
       name: Stanze sera
-      description: Esempio, `"2,3,4"` oppure `"Kitchen,Bathroom"`. Se vuoto → **tutta la casa**.
+      description: Esempi_ "2,3,4" oppure "Kitchen,Bathroom". Se vuoto → tutta la casa.
       default: ""
 
+    # --- Blocchi avanzati A–D (sempre disponibili) ---
     blockA_enabled:
       name: Abilita blocco A
       default: false
@@ -219,7 +218,7 @@ blueprint:
 
     blockA_rooms:
       name: Stanze blocco A
-      description: Esempio, `"2,3,4"` oppure `"Kitchen,Bathroom"`. Se vuoto → **tutta la casa**.
+      description: Esempi_ "2,3,4" oppure "Kitchen,Bathroom". Se vuoto → tutta la casa.
       default: ""
 
     blockB_enabled:
@@ -230,7 +229,7 @@ blueprint:
 
     blockB_time:
       name: Orario blocco B
-      default: "12:00:00"
+      default: "10:30:00"
       selector:
         time: {}
 
@@ -266,7 +265,7 @@ blueprint:
 
     blockB_rooms:
       name: Stanze blocco B
-      description: Esempio, `"2,3,4"` oppure `"Kitchen,Bathroom"`. Se vuoto → **tutta la casa**.
+      description: Esempi_ "2,3,4" oppure "Kitchen,Bathroom". Se vuoto → tutta la casa.
       default: ""
 
     blockC_enabled:
@@ -277,7 +276,7 @@ blueprint:
 
     blockC_time:
       name: Orario blocco C
-      default: "16:00:00"
+      default: "15:00:00"
       selector:
         time: {}
 
@@ -313,7 +312,7 @@ blueprint:
 
     blockC_rooms:
       name: Stanze blocco C
-      description: Esempio, `"2,3,4"` oppure `"Kitchen,Bathroom"`. Se vuoto → **tutta la casa**.
+      description: Esempi_ "2,3,4" oppure "Kitchen,Bathroom". Se vuoto → tutta la casa.
       default: ""
 
     blockD_enabled:
@@ -324,7 +323,7 @@ blueprint:
 
     blockD_time:
       name: Orario blocco D
-      default: "20:00:00"
+      default: "18:30:00"
       selector:
         time: {}
 
@@ -360,31 +359,34 @@ blueprint:
 
     blockD_rooms:
       name: Stanze blocco D
-      description: Esempio, `"2,3,4"` oppure `"Kitchen,Bathroom"`. Se vuoto → **tutta la casa**.
+      description: Esempi_ "2,3,4" oppure "Kitchen,Bathroom". Se vuoto → tutta la casa.
       default: ""
 
-mode: single
+mode: restart
 max_exceeded: silent
 
 variables:
   vac: !input vacuum_entity
   map_ent: !input map_camera
+  flag_cleaned: !input cleaned_today_helper
   presence_ent: !input presence_helper
   pres_val: !input presence_required_value
-  flag_cleaned: !input cleaned_today_helper
 
+  # Mattina
   m_on: !input morning_enabled
   m_time: !input morning_time
   m_days: !input morning_days
   m_preset: !input morning_preset
   m_rooms: !input morning_rooms
 
+  # Sera
   e_on: !input evening_enabled
   e_time: !input evening_time
   e_days: !input evening_days
   e_preset: !input evening_preset
   e_rooms: !input evening_rooms
 
+  # Blocchi
   a_on: !input blockA_enabled
   a_time: !input blockA_time
   a_days: !input blockA_days
@@ -409,38 +411,39 @@ variables:
   d_preset: !input blockD_preset
   d_rooms: !input blockD_rooms
 
-  reset_at: !input reset_time
-
 trigger:
-  - id: reset
-    platform: time
-    at: "{{ reset_at }}"
+  - platform: time
+    at: !input reset_time
+    id: reset
 
-  - id: morning
-    platform: time
+  - platform: time
     at: "{{ m_time }}"
-  - id: evening
-    platform: time
-    at: "{{ e_time }}"
+    id: morning
 
-  - id: blockA
-    platform: time
+  - platform: time
+    at: "{{ e_time }}"
+    id: evening
+
+  - platform: time
     at: "{{ a_time }}"
-  - id: blockB
-    platform: time
+    id: blockA
+
+  - platform: time
     at: "{{ b_time }}"
-  - id: blockC
-    platform: time
+    id: blockB
+
+  - platform: time
     at: "{{ c_time }}"
-  - id: blockD
-    platform: time
+    id: blockC
+
+  - platform: time
     at: "{{ d_time }}"
+    id: blockD
 
 condition: []
 
 action:
   - choose:
-
       - conditions: "{{ trigger.id == 'reset' }}"
         sequence:
           - service: input_boolean.turn_off
@@ -449,7 +452,7 @@ action:
 
       - conditions: >
           {{ trigger.id == 'morning'
-             and simp_on and m_on
+             and m_on
              and (m_days | count == 0 or now().isoweekday() in
                   [1 if 'mon' in m_days else 0,
                    2 if 'tue' in m_days else 0,
@@ -469,46 +472,89 @@ action:
                   rooms_now: "{{ m_rooms }}"
               - sequence: &run_clean
                 - variables:
-                    seg_list: >-
-                      {% set rooms = state_attr(map_ent, 'rooms') %}
-                      {% set ns = namespace(map={}, segs=[]) %}
-                      {% if rooms %}
-                        {% for pair in rooms | dictsort %}
-                          {% set rid = pair[1]['room_id'] %}
-                          {% set name = pair[1]['name'] %}
-                          {% set ns.map = ns.map | combine({ (name): rid }) %}
-                          {% set ns.map = ns.map | combine({ (name | lower): rid }) %}
-                        {% endfor %}
-                      {% endif %}
-                      {% set txt = (rooms_now | string).strip() %}
+                    raw_rooms: "{{ rooms_now | string | trim }}"
+                    # Se raw_rooms è vuoto → tutta la casa (lista vuota interpretata come all segments negli script)
+                    seg_list: >
+                      {% set txt = raw_rooms %}
                       {% if txt == '' %}
                         []
                       {% else %}
-                        {% set tokens = txt.split(',') %}
-                        {% for t in tokens %}
-                          {% set k = t | trim %}
-                          {% set rid = ns.map[k] if k in ns.map
-                                        else (ns.map[k|lower] if k|lower in ns.map
-                                        else (k | int(0))) %}
-                          {% if rid is number and rid > 0 %}
-                            {% set ns.segs = ns.segs + [rid] %}
+                        {% set parts = txt.split(',') | map('trim') | list %}
+                        {% set rdict = state_attr(map_ent, 'rooms') or {} %}
+                        {% set out = [] %}
+                        {% for p in parts %}
+                          {% if p|int|string == p %}
+                            {% set out = out + [ p|int ] %}
+                          {% else %}
+                            {% set rid = (rdict|selectattr('1.name','equalto',p)|map(attribute='1.room_id')|list|first) %}
+                            {% if rid is not none %}
+                              {% set out = out + [ rid|int ] %}
+                            {% endif %}
                           {% endif %}
                         {% endfor %}
-                        {{ ns.segs }}
+                        {{ out }}
                       {% endif %}
-                - service: script.turn_on
-                  data:
-                    entity_id: script.pulisci_stanza
-                    variables:
-                      segment_id: "{{ seg_list if seg_list|count > 0 else [] }}"
-                      tipo_pulizia: "{{ preset_now }}"
+                - choose:
+                    - conditions: "{{ preset_now in ['sweeping','mopping','sweeping_and_mopping','mopping_after_sweeping'] }}"
+                      sequence:
+                        - service: select.select_option
+                          target:
+                            entity_id: select.{{ states(vac).split('.')[0] if false else 'ambrogio_cleangenius_2' }}
+                          data:
+                            option: "off"
+                        - wait_template: "{{ states('select.ambrogio_cleangenius_2') in ['off','unknown','unavailable','none'] }}"
+                          timeout: "00:00:08"
+                          continue_on_timeout: true
+                        - service: select.select_option
+                          target:
+                            entity_id: select.ambrogio_cleaning_mode_2
+                          data:
+                            option: "{{ preset_now }}"
+                        - wait_template: "{{ states('select.ambrogio_cleaning_mode_2') == preset_now }}"
+                          timeout: "00:00:08"
+                          continue_on_timeout: true
+                        - service: dreame_vacuum.vacuum_clean_segment
+                          target:
+                            entity_id: "{{ vac }}"
+                          data:
+                            segments: "{{ seg_list }}"
+                    - conditions: "{{ preset_now == 'genius' }}"
+                      sequence:
+                        - service: select.select_option
+                          target:
+                            entity_id: select.ambrogio_cleangenius_2
+                          data:
+                            option: "routine_cleaning"
+                        - wait_template: "{{ states('select.ambrogio_cleangenius_2') in ['routine_cleaning','unknown','unavailable','none'] }}"
+                          timeout: "00:00:08"
+                          continue_on_timeout: true
+                        - service: dreame_vacuum.vacuum_clean_segment
+                          target:
+                            entity_id: "{{ vac }}"
+                          data:
+                            segments: "{{ seg_list }}"
+                    - conditions: "{{ preset_now == 'genius_deep' }}"
+                      sequence:
+                        - service: select.select_option
+                          target:
+                            entity_id: select.ambrogio_cleangenius_2
+                          data:
+                            option: "deep_cleaning"
+                        - wait_template: "{{ states('select.ambrogio_cleangenius_2') in ['deep_cleaning','unknown','unavailable','none'] }}"
+                          timeout: "00:00:08"
+                          continue_on_timeout: true
+                        - service: dreame_vacuum.vacuum_clean_segment
+                          target:
+                            entity_id: "{{ vac }}"
+                          data:
+                            segments: "{{ seg_list }}"
                 - service: input_boolean.turn_on
                   target:
                     entity_id: "{{ flag_cleaned }}"
 
       - conditions: >
           {{ trigger.id == 'evening'
-             and simp_on and e_on
+             and e_on
              and (e_days | count == 0 or now().isoweekday() in
                   [1 if 'mon' in e_days else 0,
                    2 if 'tue' in e_days else 0,
@@ -523,27 +569,25 @@ action:
                   {{ presence_ent != '' and pres_val != '' and states(presence_ent) != pres_val }}
                 sequence: []
             default:
-              - variables:
-                  preset_now: "{{ e_preset }}"
-                  rooms_now: "{{ e_rooms }}"
+              - variables: { preset_now: "{{ e_preset }}", rooms_now: "{{ e_rooms }}" }
               - sequence: *run_clean
 
-      - conditions: "{{ trigger.id == 'blockA' and adv_on and a_on and (a_days | count == 0 or now().isoweekday() in [1 if 'mon' in a_days else 0,2 if 'tue' in a_days else 0,3 if 'wed' in a_days else 0,4 if 'thu' in a_days else 0,5 if 'fri' in a_days else 0,6 if 'sat' in a_days else 0,7 if 'sun' in a_days else 0]) }}"
+      - conditions: "{{ trigger.id == 'blockA' and a_on and (a_days | count == 0 or now().isoweekday() in [1 if 'mon' in a_days else 0,2 if 'tue' in a_days else 0,3 if 'wed' in a_days else 0,4 if 'thu' in a_days else 0,5 if 'fri' in a_days else 0,6 if 'sat' in a_days else 0,7 if 'sun' in a_days else 0]) }}"
         sequence:
           - variables: { preset_now: "{{ a_preset }}", rooms_now: "{{ a_rooms }}" }
           - sequence: *run_clean
 
-      - conditions: "{{ trigger.id == 'blockB' and adv_on and b_on and (b_days | count == 0 or now().isoweekday() in [1 if 'mon' in b_days else 0,2 if 'tue' in b_days else 0,3 if 'wed' in b_days else 0,4 if 'thu' in b_days else 0,5 if 'fri' in b_days else 0,6 if 'sat' in b_days else 0,7 if 'sun' in b_days else 0]) }}"
+      - conditions: "{{ trigger.id == 'blockB' and b_on and (b_days | count == 0 or now().isoweekday() in [1 if 'mon' in b_days else 0,2 if 'tue' in b_days else 0,3 if 'wed' in b_days else 0,4 if 'thu' in b_days else 0,5 if 'fri' in b_days else 0,6 if 'sat' in b_days else 0,7 if 'sun' in b_days else 0]) }}"
         sequence:
           - variables: { preset_now: "{{ b_preset }}", rooms_now: "{{ b_rooms }}" }
           - sequence: *run_clean
 
-      - conditions: "{{ trigger.id == 'blockC' and adv_on and c_on and (c_days | count == 0 or now().isoweekday() in [1 if 'mon' in c_days else 0,2 if 'tue' in c_days else 0,3 if 'wed' in c_days else 0,4 if 'thu' in c_days else 0,5 if 'fri' in c_days else 0,6 if 'sat' in c_days else 0,7 if 'sun' in c_days else 0]) }}"
+      - conditions: "{{ trigger.id == 'blockC' and c_on and (c_days | count == 0 or now().isoweekday() in [1 if 'mon' in c_days else 0,2 if 'tue' in c_days else 0,3 if 'wed' in c_days else 0,4 if 'thu' in c_days else 0,5 if 'fri' in c_days else 0,6 if 'sat' in c_days else 0,7 if 'sun' in c_days else 0]) }}"
         sequence:
           - variables: { preset_now: "{{ c_preset }}", rooms_now: "{{ c_rooms }}" }
           - sequence: *run_clean
 
-      - conditions: "{{ trigger.id == 'blockD' and adv_on and d_on and (d_days | count == 0 or now().isoweekday() in [1 if 'mon' in d_days else 0,2 if 'tue' in d_days else 0,3 if 'wed' in d_days else 0,4 if 'thu' in d_days else 0,5 if 'fri' in d_days else 0,6 if 'sat' in d_days else 0,7 if 'sun' in d_days else 0]) }}"
+      - conditions: "{{ trigger.id == 'blockD' and d_on and (d_days | count == 0 or now().isoweekday() in [1 if 'mon' in d_days else 0,2 if 'tue' in d_days else 0,3 if 'wed' in d_days else 0,4 if 'thu' in d_days else 0,5 if 'fri' in d_days else 0,6 if 'sat' in d_days else 0,7 if 'sun' in d_days else 0]) }}"
         sequence:
           - variables: { preset_now: "{{ d_preset }}", rooms_now: "{{ d_rooms }}" }
           - sequence: *run_clean
