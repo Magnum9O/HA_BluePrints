@@ -1,0 +1,71 @@
+blueprint:
+  name: "Dreame: Update Room List"
+  description: |
+    Requirement: ``Vacuum Map Card`` used to generate the static room configuration.
+  
+    This blueprint creates a script that reads the ``rooms`` attribute from the
+    ``Vacuum Map Card`` entity and updates an `input_select` helper with the list of rooms.
+
+    Each entry in the list is formatted by combining the room name and its ``room_id``
+    in parentheses — for example: ``Kitchen (3)``.
+
+    This helper will help you identify the correct room IDs when creating scripts
+    to expose to Alexa using the ``ExposeToAlexa`` blueprint.
+
+    If no rooms are found in the ``rooms`` attribute, a notification is generated.
+    
+  domain: script
+  source_url: https://raw.githubusercontent.com/Magnum9O/HA_BluePrints/main/blueprints/BP_Dreame_Automation/dreame_update_rooms_replace.yaml
+  input:
+    map_camera:
+      name: "Robot Map"
+      description: "Select the tassHack camera entity that contains the 'rooms' attribute."
+      selector:
+        entity:
+          domain: camera
+    select_entity:
+      name: "Input Select for Rooms"
+      description: "Create and select the ``input_select`` helper to be updated with the room names."
+      selector:
+        entity:
+          domain: input_select
+
+sequence:
+  # Local variables for map and input_select
+  - variables:
+      map_ent: !input map_camera
+      select_ent: !input select_entity
+      # Build a list of rooms formatted as "Name (ID)" from the 'rooms' attribute.
+      room_options: >-
+        {% set ns = namespace(opts=[]) %}
+        {% set rooms = state_attr(map_ent, 'rooms') %}
+        {% if rooms %}
+          {% for pair in rooms | dictsort %}
+            {% set key = pair[0] %}
+            {% set val = pair[1] %}
+            {% set name = (val['name'] if 'name' in val else key) %}
+            {% set rid = (val['room_id'] if 'room_id' in val else key) %}
+            {% set ns.opts = ns.opts + [name ~ ' (' ~ rid ~ ')'] %}
+          {% endfor %}
+        {% endif %}
+        {{ ns.opts }}
+  # Update the input_select with the list or send a notification if empty
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ room_options | length > 0 }}"
+        sequence:
+          - service: input_select.set_options
+            data:
+              entity_id: "{{ select_ent }}"
+              options: "{{ room_options }}"
+      # If no rooms are found, send a notification
+      - conditions: []
+        sequence:
+          - service: persistent_notification.create
+            data:
+              title: "Room Update"
+              message: >-
+                No rooms were found in the 'rooms' attribute of the map {{ map_ent }}.
+                Make sure the tassHack integration has created the map and that the robot
+                has generated a layout with defined rooms.
