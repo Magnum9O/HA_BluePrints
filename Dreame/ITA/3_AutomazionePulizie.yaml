@@ -1,15 +1,33 @@
 blueprint:
   name: Pulizia programmata Dreame (Semplice o Avanzata, con sensore presenza)
   description: >
-    Pianifica la pulizia con il tuo robot Dreame per mattina/sera (modalità semplice) o con
-    fino a 4 schedulazioni su base settimanale (modalità avanzata). Supporta la selezione
-    delle stanze per ID o nome (tramite la mappa), e un controllo presenza opzionale per
-    avviare la pulizia solo quando non si è in casa.
-    Nota sulle modalità di pulizia:
-    Aspirazione (solo aspirazione)
-    Lavaggio (solo lavaggio)
-    Pulizia (CleanGenius – aspirazione+lavaggio)
-    Pulizia profonda (CleanGenius profonda)
+    Questo blueprint ti consente di **automatizzare le pulizie del robot Dreame**
+    secondo una pianificazione giornaliera o settimanale, con la possibilità di
+    includere un controllo di presenza e un sistema di monitoraggio dello stato di pulizia.
+
+    **Modalità disponibili:**
+    - **Semplice:** imposta due orari di pulizia (mattina e sera).  
+    - **Avanzata:** fino a **4 orari di pulizia personalizzati** per giorno della settimana.
+
+    È possibile selezionare le stanze da pulire tramite **ID** o **nome** (se configurate nella mappa)
+    e scegliere se abilitare un **controllo presenza** per eseguire la pulizia solo quando
+    la casa è vuota (utile se usi un sensore o un contatore di presenza).
+
+    **Modalità di pulizia supportate:**
+    - *Aspirazione* → solo aspirazione  
+    - *Lavaggio* → solo lavaggio  
+    - *Pulizia* → modalità **CleanGenius** (aspirazione + lavaggio)  
+    - *Pulizia profonda* → **CleanGenius Deep** (pulizia più accurata)
+
+    **Gestione automatica dello stato di pulizia:**
+    Il blueprint utilizza un `input_boolean` (es. `input_boolean.cleaned_today`)
+    per **tenere traccia se la casa è già stata pulita nella giornata**:
+    - Viene **acceso** automaticamente dopo ogni pulizia completata.  
+    - Viene **resettato a mezzanotte** da un’automazione dedicata.
+    
+    Questo meccanismo ti aiuta nella programmazione delle pulizie giornaliere, permettendoti di evitare doppie pulizie nello stesso giorno
+    o di adattare il comportamento serale in base a ciò che è stato fatto al mattino
+    (es. “se hai già lavato la cucina stamattina, salta la sessione serale, o aspira soltanto la cucina”).
 
   domain: automation
   source_url: https://github.com/Magnum9O/HA_BluePrints/blob/main/Dreame/3_CleaningAutomations.yaml
