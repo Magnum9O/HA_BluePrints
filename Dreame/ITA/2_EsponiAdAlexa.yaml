@@ -10,7 +10,6 @@ blueprint:
     ``NOTA: le modalità **pulizia** e **pulizia profonda** attivano la modalità clean genius e clean genius profonda, che aspirano e lavano contemporanemente``
 
     Successivamente, puoi esporre lo script creato ad Alexa tramite Nabu, Lambda o Matter
-
     ``Se usi matter, assegna subito un label esposto a matter allo script!``
 
     Comandi vocali per richiamare gli script da Alexa:
