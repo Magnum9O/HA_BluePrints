@@ -1,16 +1,19 @@
 blueprint:
   name: "Dreame: Aggiorna elenco stanze"
   description: |
+    Requisito: ``Vacuum Map card`` con cui generare la configurazione statica delle stanze
+  
     Questo blueprint crea uno script che legge l'attributo ``rooms`` della mappa
-    ``tasshack`` e aggiorna un helper `input_select` con l'elenco delle stanze.
+    ``Vacuum Map card`` e aggiorna un helper `input_select` con l'elenco delle stanze.
 
     Ogni voce dell'elenco viene formata concatenando il nome della stanza e il suo
     ``room_id`` fra parentesi, ad esempio ``Cucina (3)``.
 
-    Questo helper ti aiuterà a trovare gli ID delle stazne per la creazione degli script
-    da esporre ad Alexa con il blueprint ``ExposeToAlexa``
+    Questo helper ti aiuterà a trovare gli ID delle stanze per la creazione degli script
+    da esporre ad Alexa con il blueprint ``EsponiAdAlexa``
 
     Se non vengono trovate stanze nell'attributo ``rooms``, viene generata una notifica.
+    
   domain: script
   source_url: https://raw.githubusercontent.com/Magnum9O/HA_BluePrints/main/blueprints/BP_Dreame_Automation/dreame_update_rooms_replace.yaml
   input:
