@@ -30,7 +30,7 @@ blueprint:
     (es. “se hai già lavato la cucina stamattina, salta la sessione serale, o aspira soltanto la cucina”).
 
   domain: automation
-  source_url: https://github.com/Magnum9O/HA_BluePrints/blob/main/Dreame/3_CleaningAutomations.yaml
+  source_url: https://raw.githubusercontent.com/Magnum9O/HA_BluePrints/main/Dreame/ITA/3_AutomazionePulizie.yaml
 
   input:
 
