@@ -158,12 +158,6 @@ blueprint:
       description: Esempi_ "2,3,4" oppure "Kitchen,Bathroom". Se vuoto → tutta la casa.
       default: ""
 
-    advanced_mode_enabled:
-      name: Mostra opzioni avanzate (blocchi A–D)
-      default: false
-      selector:
-        boolean: {}
-
     blockA_enabled:
       name: Abilita blocco A
       default: false
