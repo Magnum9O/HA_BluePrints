@@ -371,6 +371,11 @@ variables:
   flag_cleaned: !input cleaned_today_helper
   presence_ent: !input presence_helper
   pres_val: !input presence_required_value
+    # Derive select entity_ids from the vacuum name
+  robot_slug: "{{ vac.split('.')[1] }}"
+  cg_sel: "select.{{ robot_slug }}_cleangenius"
+  cm_sel: "select.{{ robot_slug }}_cleaning_mode"
+
 
   # Morning
   m_on: !input morning_enabled
@@ -502,15 +507,15 @@ action:
                             entity_id: select.{{ states(vac).split('.')[0] if false else 'ambrogio_cleangenius_2' }}
                           data:
                             option: "off"
-                        - wait_template: "{{ states('select.ambrogio_cleangenius_2') in ['off','unknown','unavailable','none'] }}"
+                        - wait_template: "{{ states(cg_sel) in ['off','unknown','unavailable','none'] }}"
                           timeout: "00:00:08"
                           continue_on_timeout: true
                         - service: select.select_option
                           target:
-                            entity_id: select.ambrogio_cleaning_mode_2
+                            entity_id: "{{ cm_sel }}"
                           data:
                             option: "{{ preset_now }}"
-                        - wait_template: "{{ states('select.ambrogio_cleaning_mode_2') == preset_now }}"
+                        - wait_template: "{{ states(cm_sel) == preset_now }}"
                           timeout: "00:00:08"
                           continue_on_timeout: true
                         - service: dreame_vacuum.vacuum_clean_segment
@@ -522,10 +527,10 @@ action:
                       sequence:
                         - service: select.select_option
                           target:
-                            entity_id: select.ambrogio_cleangenius_2
+                            entity_id: "{{ cg_sel }}"
                           data:
                             option: "routine_cleaning"
-                        - wait_template: "{{ states('select.ambrogio_cleangenius_2') in ['routine_cleaning','unknown','unavailable','none'] }}"
+                        - wait_template: "{{ states(cg_sel) in ['routine_cleaning','unknown','unavailable','none'] }}"
                           timeout: "00:00:08"
                           continue_on_timeout: true
                         - service: dreame_vacuum.vacuum_clean_segment
@@ -537,10 +542,10 @@ action:
                       sequence:
                         - service: select.select_option
                           target:
-                            entity_id: select.ambrogio_cleangenius_2
+                            entity_id: "{{ cg_sel }}"
                           data:
                             option: "deep_cleaning"
-                        - wait_template: "{{ states('select.ambrogio_cleangenius_2') in ['deep_cleaning','unknown','unavailable','none'] }}"
+                        - wait_template: "{{ states(cg_sel) in ['deep_cleaning','unknown','unavailable','none'] }}"
                           timeout: "00:00:08"
                           continue_on_timeout: true
                         - service: dreame_vacuum.vacuum_clean_segment
