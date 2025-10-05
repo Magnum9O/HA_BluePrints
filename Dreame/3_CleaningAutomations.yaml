@@ -90,12 +90,12 @@ blueprint:
       selector:
         select:
           options:
-            - sweeping
-            - mopping
-            - sweeping_and_mopping
-            - mopping_after_sweeping
-            - genius
-            - genius_deep
+            sweeping: "Solo aspirazione"
+            mopping: "Solo lavaggio"
+            sweeping_and_mopping: "Aspirazione e lavaggio"
+            mopping_after_sweeping: "Lavaggio dopo aspirazione"
+            genius: "CleanGenius"
+            genius_deep: "CleanGenius Profondo"
 
     morning_rooms:
       name: Stanze mattina
@@ -130,12 +130,12 @@ blueprint:
       selector:
         select:
           options:
-            - sweeping
-            - mopping
-            - sweeping_and_mopping
-            - mopping_after_sweeping
-            - genius
-            - genius_deep
+            sweeping: "Solo aspirazione"
+            mopping: "Solo lavaggio"
+            sweeping_and_mopping: "Aspirazione e lavaggio"
+            mopping_after_sweeping: "Lavaggio dopo aspirazione"
+            genius: "CleanGenius"
+            genius_deep: "CleanGenius Profondo"
 
     evening_rooms:
       name: Stanze sera
@@ -175,12 +175,12 @@ blueprint:
       selector:
         select:
           options:
-            - sweeping
-            - mopping
-            - sweeping_and_mopping
-            - mopping_after_sweeping
-            - genius
-            - genius_deep
+            sweeping: "Solo aspirazione"
+            mopping: "Solo lavaggio"
+            sweeping_and_mopping: "Aspirazione e lavaggio"
+            mopping_after_sweeping: "Lavaggio dopo aspirazione"
+            genius: "CleanGenius"
+            genius_deep: "CleanGenius Profondo"
 
     blockA_rooms:
       name: Stanze blocco A
@@ -214,12 +214,12 @@ blueprint:
       selector:
         select:
           options:
-            - sweeping
-            - mopping
-            - sweeping_and_mopping
-            - mopping_after_sweeping
-            - genius
-            - genius_deep
+            sweeping: "Solo aspirazione"
+            mopping: "Solo lavaggio"
+            sweeping_and_mopping: "Aspirazione e lavaggio"
+            mopping_after_sweeping: "Lavaggio dopo aspirazione"
+            genius: "CleanGenius"
+            genius_deep: "CleanGenius Profondo"
 
     blockB_rooms:
       name: Stanze blocco B
@@ -253,12 +253,12 @@ blueprint:
       selector:
         select:
           options:
-            - sweeping
-            - mopping
-            - sweeping_and_mopping
-            - mopping_after_sweeping
-            - genius
-            - genius_deep
+            sweeping: "Solo aspirazione"
+            mopping: "Solo lavaggio"
+            sweeping_and_mopping: "Aspirazione e lavaggio"
+            mopping_after_sweeping: "Lavaggio dopo aspirazione"
+            genius: "CleanGenius"
+            genius_deep: "CleanGenius Profondo"
 
     blockC_rooms:
       name: Stanze blocco C
@@ -292,12 +292,12 @@ blueprint:
       selector:
         select:
           options:
-            - sweeping
-            - mopping
-            - sweeping_and_mopping
-            - mopping_after_sweeping
-            - genius
-            - genius_deep
+            sweeping: "Solo aspirazione"
+            mopping: "Solo lavaggio"
+            sweeping_and_mopping: "Aspirazione e lavaggio"
+            mopping_after_sweeping: "Lavaggio dopo aspirazione"
+            genius: "CleanGenius"
+            genius_deep: "CleanGenius Profondo"
 
     blockD_rooms:
       name: Stanze blocco D
