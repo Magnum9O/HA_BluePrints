@@ -7,6 +7,8 @@ blueprint:
     Per aiutarti nella mpappatura ``stanza/ID``, utilizza il BluePrint #1 (``dreame_create_room``),
     e scorri l'helper per vedere gli ``ID`` delle stanze.
 
+    ``NOTA: le modalità **pulizia** e **pulizia profonda** attivano la modalità clean genius e clean genius profonda, che aspirano e lavano contemporanemente``
+
     Successivamente, puoi esporre lo script creato ad Alexa tramite Nabu, Lambda o Matter
 
     ``Se usi matter, assegna subito un label esposto a matter allo script!``
