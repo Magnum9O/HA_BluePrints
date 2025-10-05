@@ -79,12 +79,6 @@ blueprint:
       description: Esempio, `1`, `home`, `on`. Se vuoto, la presenza viene ignorata.
       default: ""
 
-    simple_mode_enabled:
-      name: Abilita modalità semplice (mattina/sera)
-      default: true
-      selector:
-        boolean: {}
-
     morning_enabled:
       name: Attiva schedulazione mattina
       default: false
@@ -379,8 +373,6 @@ variables:
   pres_val: !input presence_required_value
   flag_cleaned: !input cleaned_today_helper
 
-  simp_on: !input simple_mode_enabled
-
   m_on: !input morning_enabled
   m_time: !input morning_time
   m_days: !input morning_days
@@ -392,8 +384,6 @@ variables:
   e_days: !input evening_days
   e_preset: !input evening_preset
   e_rooms: !input evening_rooms
-
-  adv_on: !input advanced_mode_enabled
 
   a_on: !input blockA_enabled
   a_time: !input blockA_time
