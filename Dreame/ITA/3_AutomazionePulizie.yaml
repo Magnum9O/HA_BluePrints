@@ -3,31 +3,32 @@ blueprint:
   description: >
     Questo blueprint ti consente di **automatizzare le pulizie del robot Dreame**
     secondo una pianificazione giornaliera o settimanale, con la possibilità di
-    includere un controllo di presenza e un sistema di monitoraggio dello stato di pulizia.
+    includere un **controllo presenza** e un **monitoraggio dello stato di pulizia**.
 
     **Modalità disponibili:**
-    - **Semplice:** imposta due orari di pulizia (mattina e sera).  
+    - **Semplice:** imposta due orari di pulizia (mattina e sera).
     - **Avanzata:** fino a **4 orari di pulizia personalizzati** per giorno della settimana.
 
-    È possibile selezionare le stanze da pulire tramite **ID** o **nome** (se configurate nella mappa)
+    Puoi selezionare le stanze da pulire tramite **ID** o **nome** (se configurate nella mappa)
     e scegliere se abilitare un **controllo presenza** per eseguire la pulizia solo quando
     la casa è vuota (utile se usi un sensore o un contatore di presenza).
 
     **Modalità di pulizia supportate:**
-    - *Aspirazione* → solo aspirazione  
-    - *Lavaggio* → solo lavaggio  
-    - *Pulizia* → modalità **CleanGenius** (aspirazione + lavaggio)  
+    - *Aspirazione* → solo aspirazione
+    - *Lavaggio* → solo lavaggio
+    - *Pulizia* → **CleanGenius** (aspirazione + lavaggio)
     - *Pulizia profonda* → **CleanGenius Deep** (pulizia più accurata)
 
     **Gestione automatica dello stato di pulizia:**
     Il blueprint utilizza un `input_boolean` (es. `input_boolean.cleaned_today`)
-    per **tenere traccia se la casa è già stata pulita nella giornata**:
-    - Viene **acceso** automaticamente dopo ogni pulizia completata.  
+    per **tenere traccia** se la casa è già stata pulita nella giornata:
+    - Viene **acceso** automaticamente dopo ogni pulizia completata.
     - Viene **resettato a mezzanotte** da un’automazione dedicata.
     
-    Questo meccanismo ti aiuta nella programmazione delle pulizie giornaliere, permettendoti di evitare doppie pulizie nello stesso giorno
-    o di adattare il comportamento serale in base a ciò che è stato fatto al mattino
-    (es. “se hai già lavato la cucina stamattina, salta la sessione serale, o aspira soltanto la cucina”).
+    Questo meccanismo ti aiuta nella programmazione giornaliera: evita doppie pulizie
+    nello stesso giorno e consente di **adattare la sessione serale** in base a quella
+    mattutina (es. “se hai già lavato la cucina stamattina, salta la sera o esegui
+    solo l’aspirazione in cucina”).
 
   domain: automation
   source_url: https://raw.githubusercontent.com/Magnum9O/HA_BluePrints/main/Dreame/ITA/3_AutomazionePulizie.yaml
@@ -36,42 +37,46 @@ blueprint:
 
     vacuum_entity:
       name: Robot Dreame
-      description: Seleziona il tuo aspirapolvere Dreame.
+      description: Seleziona il tuo aspirapolvere Dreame (es. `vacuum.ambrogio`).
       selector:
         entity:
           domain: vacuum
 
     map_camera:
       name: Mappa
-      description: Seleziona la camera con attributo 'rooms' (es. camera.TuoRobot_map) generata con la Vacuum Map card. Obbligatoria.
+      description: >
+        Seleziona la camera che espone l’attributo `rooms` (es. `camera.TuoRobot_map`)
+        generata con la **Vacuum Map card**. Obbligatoria.
       selector:
         entity:
           domain: camera
 
     cleaned_today_helper:
       name: Flag "Pulizia effettuata"
-      description: Booleano che verrà acceso dopo la pulizia e resettato ogni giorno all'orario scelto.
+      description: Booleano che si accende dopo la pulizia e viene resettato ogni giorno all’orario scelto.
       selector:
         entity:
           domain: input_boolean
 
     reset_time:
       name: Orario reset giornaliero
-      description: Orario in cui spegnere il flag "Pulizia effettuata".
+      description: Orario in cui spegnere il flag “Pulizia effettuata”.
       default: "23:59:00"
       selector:
         time: {}
 
     presence_helper:
       name: Helper presenza (opzionale)
-      description: Entità per il controllo presenza; se impostata, l’automazione parte solo quando il suo valore corrisponde a “Valore presenza richiesto”.
+      description: >
+        Entità per il controllo presenza. Se impostata, l’automazione parte solo quando il suo
+        valore corrisponde a **Valore presenza richiesto**.
       default: ""
       selector:
         entity: {}
 
     presence_required_value:
       name: Valore presenza richiesto (opzionale)
-      description: Esempi_ 1, home, on. Se vuoto la presenza è ignorata.
+      description: Esempi: `1`, `home`, `on`. Se vuoto, la presenza viene ignorata.
       default: ""
 
     simple_mode_enabled:
@@ -125,7 +130,7 @@ blueprint:
 
     morning_rooms:
       name: Stanze mattina
-      description: Esempi_ "2,3,4" oppure "Kitchen,Bathroom". Se vuoto → tutta la casa.
+      description: Esempi: `"2,3,4"` oppure `"Kitchen,Bathroom"`. Se vuoto → **tutta la casa**.
       default: ""
 
     evening_enabled:
@@ -173,7 +178,7 @@ blueprint:
 
     evening_rooms:
       name: Stanze sera
-      description: Esempi_ "2,3,4" oppure "Kitchen,Bathroom". Se vuoto → tutta la casa.
+      description: Esempi: `"2,3,4"` oppure `"Kitchen,Bathroom"`. Se vuoto → **tutta la casa**.
       default: ""
 
     blockA_enabled:
@@ -220,7 +225,7 @@ blueprint:
 
     blockA_rooms:
       name: Stanze blocco A
-      description: Esempi_ "2,3,4" oppure "Kitchen,Bathroom". Se vuoto → tutta la casa.
+      description: Esempi: `"2,3,4"` oppure `"Kitchen,Bathroom"`. Se vuoto → **tutta la casa**.
       default: ""
 
     blockB_enabled:
@@ -267,7 +272,7 @@ blueprint:
 
     blockB_rooms:
       name: Stanze blocco B
-      description: Esempi_ "2,3,4" oppure "Kitchen,Bathroom". Se vuoto → tutta la casa.
+      description: Esempi: `"2,3,4"` oppure `"Kitchen,Bathroom"`. Se vuoto → **tutta la casa**.
       default: ""
 
     blockC_enabled:
@@ -314,7 +319,7 @@ blueprint:
 
     blockC_rooms:
       name: Stanze blocco C
-      description: Esempi_ "2,3,4" oppure "Kitchen,Bathroom". Se vuoto → tutta la casa.
+      description: Esempi: `"2,3,4"` oppure `"Kitchen,Bathroom"`. Se vuoto → **tutta la casa**.
       default: ""
 
     blockD_enabled:
@@ -361,7 +366,7 @@ blueprint:
 
     blockD_rooms:
       name: Stanze blocco D
-      description: Esempi_ "2,3,4" oppure "Kitchen,Bathroom". Se vuoto → tutta la casa.
+      description: Esempi: `"2,3,4"` oppure `"Kitchen,Bathroom"`. Se vuoto → **tutta la casa**.
       default: ""
 
 mode: single
