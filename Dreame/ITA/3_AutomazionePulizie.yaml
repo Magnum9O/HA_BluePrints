@@ -76,7 +76,7 @@ blueprint:
 
     presence_required_value:
       name: Valore presenza richiesto (opzionale)
-      description: Esempi: `1`, `home`, `on`. Se vuoto, la presenza viene ignorata.
+      description: Esempio, `1`, `home`, `on`. Se vuoto, la presenza viene ignorata.
       default: ""
 
     simple_mode_enabled:
@@ -130,7 +130,7 @@ blueprint:
 
     morning_rooms:
       name: Stanze mattina
-      description: Esempi: `"2,3,4"` oppure `"Kitchen,Bathroom"`. Se vuoto → **tutta la casa**.
+      description: Esempio, `"2,3,4"` oppure `"Kitchen,Bathroom"`. Se vuoto → **tutta la casa**.
       default: ""
 
     evening_enabled:
@@ -178,7 +178,7 @@ blueprint:
 
     evening_rooms:
       name: Stanze sera
-      description: Esempi: `"2,3,4"` oppure `"Kitchen,Bathroom"`. Se vuoto → **tutta la casa**.
+      description: Esempio, `"2,3,4"` oppure `"Kitchen,Bathroom"`. Se vuoto → **tutta la casa**.
       default: ""
 
     blockA_enabled:
@@ -225,7 +225,7 @@ blueprint:
 
     blockA_rooms:
       name: Stanze blocco A
-      description: Esempi: `"2,3,4"` oppure `"Kitchen,Bathroom"`. Se vuoto → **tutta la casa**.
+      description: Esempio, `"2,3,4"` oppure `"Kitchen,Bathroom"`. Se vuoto → **tutta la casa**.
       default: ""
 
     blockB_enabled:
@@ -272,7 +272,7 @@ blueprint:
 
     blockB_rooms:
       name: Stanze blocco B
-      description: Esempi: `"2,3,4"` oppure `"Kitchen,Bathroom"`. Se vuoto → **tutta la casa**.
+      description: Esempio, `"2,3,4"` oppure `"Kitchen,Bathroom"`. Se vuoto → **tutta la casa**.
       default: ""
 
     blockC_enabled:
@@ -319,7 +319,7 @@ blueprint:
 
     blockC_rooms:
       name: Stanze blocco C
-      description: Esempi: `"2,3,4"` oppure `"Kitchen,Bathroom"`. Se vuoto → **tutta la casa**.
+      description: Esempio, `"2,3,4"` oppure `"Kitchen,Bathroom"`. Se vuoto → **tutta la casa**.
       default: ""
 
     blockD_enabled:
@@ -366,7 +366,7 @@ blueprint:
 
     blockD_rooms:
       name: Stanze blocco D
-      description: Esempi: `"2,3,4"` oppure `"Kitchen,Bathroom"`. Se vuoto → **tutta la casa**.
+      description: Esempio, `"2,3,4"` oppure `"Kitchen,Bathroom"`. Se vuoto → **tutta la casa**.
       default: ""
 
 mode: single
