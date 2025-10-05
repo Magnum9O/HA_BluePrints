@@ -15,7 +15,7 @@ blueprint:
     Se non vengono trovate stanze nell'attributo ``rooms``, viene generata una notifica.
     
   domain: script
-  source_url: https://raw.githubusercontent.com/Magnum9O/HA_BluePrints/main/blueprints/BP_Dreame_Automation/dreame_update_rooms_replace.yaml
+  source_url: https://raw.githubusercontent.com/Magnum9O/HA_BluePrints/main/Dreame/ITA/1_CreaHelperStanze.yaml
   input:
     map_camera:
       name: "Mappa del robot"
