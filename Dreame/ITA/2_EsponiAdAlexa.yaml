@@ -25,7 +25,7 @@ blueprint:
     
 
   domain: script
-  source_url: https://github.com/Magnum9O/HA_BluePrints/blob/main/Dreame/ExposeToAlexa.yaml
+  source_url: https://raw.githubusercontent.com/Magnum9O/HA_BluePrints/main/Dreame/ITA/2_EsponiAdAlexa.yaml
 
   input:
     vacuum_entity:
