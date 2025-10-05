@@ -1,10 +1,15 @@
 blueprint:
-  name: Pulizia programmata Dreame (Semplice o Avanzata, con CleanGenius e Presenza)
+  name: Pulizia programmata Dreame (Semplice o Avanzata, con CleanGenius e Sensore di Presenza)
   description: >
-    Pianifica pulizie Dreame per mattina/sera (modalità semplice) o con
-    fino a 4 blocchi indipendenti (modalità avanzata). Supporta selezione
-    stanze per ID o nome (se fornisci la mappa), CleanGenius opzionale,
-    controllo presenza opzionale e reset del flag "pulito oggi".
+    Pianifica la pulizia con il tuo robot Dreame per mattina/sera (modalità semplice) o con
+    fino a 4 schedulazioni su base settimanale (modalità avanzata). Supporta la selezione
+    delle stanze per ID o nome (se fornisci la mappa), possibilità di utilizzare CleanGenius,
+    e controllo presenza opzionale per avviare la pulizia quando non si è in casa.
+    Nota sulle modalità di pulizia:
+    Aspirazione (parte solo l'aspirazione)
+    Lavaggio (Parte solo il lavaggio con moci/rullo)
+    Pulizia (modalità Clean Genius - Aspirazione e pulizia)
+    Pulizia profonda (modalità Clean Genius Profonda - Aspirazione e pulizia)
 
   domain: automation
   source_url: https://github.com/Magnum9O/HA_BluePrints/blob/main/Dreame/ScheduledCleaningAdvanced.yaml
@@ -20,31 +25,31 @@ blueprint:
           domain: vacuum
 
     map_camera:
-      name: Mappa (opzionale, per usare nomi stanza)
-      description: Camera con attributo 'rooms' (es. camera.ambrogio_map_2). Serve SOLO se in 'rooms' metti i nomi stanza e non gli ID.
+      name: Mappa
+      description: Selziona la entity Camera con attributo 'rooms' (es. camera.TuoRobot_map) generata con la card Vacuum Map card.
       default: ""
       selector:
         entity:
           domain: camera
 
     cleangenius_select:
-      name: Select CleanGenius (opzionale)
-      description: Select dell'integrazione Dreame (es. select.ambrogio_cleangenius_2). Se vuoto, il blueprint non imposta CleanGenius.
+      name: Select CleanGenius
+      description: Select dell'entity CleanGenius del tuo robot Dreame (es. select.TuoRobot_cleangenius). Se vuoto, il blueprint non imposta CleanGenius.
       default: ""
       selector:
         entity:
           domain: select
 
     cleaned_today_helper:
-      name: Flag "pulito oggi"
-      description: Un input_boolean che verrà attivato dopo una pulizia e resettato ogni giorno all'orario scelto.
+      name: Flag "Pulizia effettuata"
+      description: Un contatore che verrà attivato dopo una pulizia e resettato ogni giorno all'orario scelto (serve per decidere se evitare una pulizia se è già stata effettuata, ad esempio, al mattino).
       selector:
         entity:
           domain: input_boolean
 
     reset_time:
       name: Orario reset giornaliero
-      description: Orario in cui spegnere il flag "pulito oggi".
+      description: Orario in cui spegnere il flag "Pulizia effettuata". - Se non si hanno esigenze particolari, lasciarlo impostato al valore di default.
       default: "23:59:00"
       selector:
         time: {}
@@ -53,7 +58,7 @@ blueprint:
     presence_helper:
       name: Helper presenza (opzionale)
       description: >
-        Entità da confrontare (counter, input_boolean, input_select, ecc.).
+        Entità per il controllo di presenza: utile se si vogliono impostare pulizie solo quando non si è a casa.
         Se vuoto, la presenza è ignorata.
       default: ""
       selector:
@@ -62,13 +67,13 @@ blueprint:
     presence_required_value:
       name: Valore presenza richiesto (opzionale)
       description: >
-        Esempi: 1, home, on. Se vuoto e "Helper presenza" è valorizzato,
-        la condizione presenza viene saltata.
+        Ad esempio se il valore presenza è uguale a 1, significa che in casa c'è qualcuno. Se vuoto o 0, significa che in casa non 
+        c'è nessuno, e parte la pulizia.
       default: ""
 
     # Modalità Semplice
     simple_mode_enabled:
-      name: Abilita modalità semplice (Mattina/Sera)
+      name: Abilita modalità semplice (Solo una schedulazione Mattina/Sera)
       default: true
       selector:
         boolean: {}
@@ -80,13 +85,13 @@ blueprint:
         boolean: {}
 
     morning_time:
-      name: Orario mattina
+      name: Orario pulizia mattina
       default: "08:30:00"
       selector:
         time: {}
 
     morning_days:
-      name: Giorni mattina
+      name: Giorni pulizia mattutina
       description: Giorni della settimana per la pulizia del mattino.
       default: []
       selector:
@@ -115,8 +120,8 @@ blueprint:
             - Pulizia profonda
 
     morning_rooms:
-      name: Stanze mattina (ID o nomi separati da virgola)
-      description: Esempi "2,3,4" oppure "Kitchen,Bathroom"
+      name: Stanze da pulire al mattino (ID o nomi separati da virgola)
+      description: Esempi "2,3,4" oppure "Kitchen,Bathroom" - puoi vedere questi valori dall'helper creato con il BP 1
       default: ""
 
     evening_enabled:
@@ -126,14 +131,14 @@ blueprint:
         boolean: {}
 
     evening_time:
-      name: Orario sera
+      name: Orario pulizia serale
       default: "20:00:00"
       selector:
         time: {}
 
     evening_days:
-      name: Giorni sera
-      description: Giorni della settimana per la pulizia della sera.
+      name: Giorni pulizia serale
+      description: Giorni della settimana per la pulizia serale.
       default: []
       selector:
         select:
@@ -161,7 +166,7 @@ blueprint:
             - Pulizia profonda
 
     evening_rooms:
-      name: Stanze sera (ID o nomi separati da virgola)
+      name: Stanze da pulire alla sera (ID o nomi separati da virgola)
       description: Esempi "2,3,4" oppure "Kitchen,Bathroom"
       default: ""
 
