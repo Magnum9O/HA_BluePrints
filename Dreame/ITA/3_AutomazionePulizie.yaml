@@ -512,7 +512,7 @@ action:
                           continue_on_timeout: true
                         - service: select.select_option
                           target:
-                            entity_id: select.ambrogio_cleaning_mode_2
+                            entity_id: "{{ cm_sel }}"
                           data:
                             option: "{{ preset_now }}"
                         - wait_template: "{{ states(cm_sel) == preset_now }}"
@@ -527,7 +527,7 @@ action:
                       sequence:
                         - service: select.select_option
                           target:
-                            entity_id: select.ambrogio_cleangenius_2
+                            entity_id: "{{ cg_sel }}"
                           data:
                             option: "routine_cleaning"
                         - wait_template: "{{ states(cg_sel) in ['routine_cleaning','unknown','unavailable','none'] }}"
@@ -542,7 +542,7 @@ action:
                       sequence:
                         - service: select.select_option
                           target:
-                            entity_id: select.ambrogio_cleangenius_2
+                            entity_id: "{{ cg_sel }}"
                           data:
                             option: "deep_cleaning"
                         - wait_template: "{{ states(cg_sel) in ['deep_cleaning','unknown','unavailable','none'] }}"
