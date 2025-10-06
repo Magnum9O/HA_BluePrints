@@ -11,8 +11,8 @@ blueprint:
     - 🏠 **Configurazione Flessibile**: Ogni slot indipendente
     
     📋 **COME FUNZIONA:**
-    - Ogni slot può essere abilitato/disabilitato separatamente
-    - Le pulizie serali si adattano in base alla situazione
+    - Ogni slot può essere abilitato/disabilitato separatamente (mattina/sera)
+    - Le pulizie serali si adattano automaticamente in base alla situazione
     - Sistema ottimizzato per evitare sprechi energetici
 
   domain: automation
@@ -136,10 +136,33 @@ blueprint:
           domain: input_boolean
 
     # ═══════════════════════════════════════════════════════════════
-    # 🎯 SLOT PRINCIPALE - PULIZIE PRINCIPALI
+    # 🎯 PULIZIE AUTOMATICHE
     # ═══════════════════════════════════════════════════════════════
 
-    # ────────────────────── MATTINA ──────────────────────
+    # ────────────────────── SLOT PRINCIPALE ──────────────────────
+    main_weekdays:
+      name: 📅 SLOT PRINCIPALE - Giorni Attivi
+      description: |
+        **Giorni della settimana in cui lo slot principale è attivo**
+        
+        💡 **Questo vale per ENTRAMBI mattina e sera dello slot principale**
+        📋 **Esempi:**
+        - Giorni lavorativi: Lunedì-Venerdì
+        - Solo weekend: Sabato, Domenica  
+        - Alternato: Lunedì, Mercoledì, Venerdì
+      selector:
+        select:
+          multiple: true
+          mode: dropdown
+          options:
+            - lunedì
+            - martedì
+            - mercoledì
+            - giovedì
+            - venerdì
+            - sabato
+            - domenica
+
     main_morning_on:
       name: 🌅 SLOT PRINCIPALE - Mattina - Abilita
       description: |
@@ -157,25 +180,20 @@ blueprint:
       selector:
         time: {}
 
-    main_morning_weekdays:
-      name: 📅 SLOT PRINCIPALE - Mattina - Giorni
-      description: Giorni della settimana in cui eseguire la pulizia mattutina del programma principale
-      selector:
-        select:
-          multiple: true
-          mode: dropdown
-          options:
-            - lunedì
-            - martedì
-            - mercoledì
-            - giovedì
-            - venerdì
-            - sabato
-            - domenica
-
     main_morning_preset:
       name: 🎯 SLOT PRINCIPALE - Mattina - Modalità
-      description: Modalità di pulizia da utilizzare per il programma mattutino principale
+      description: |
+        **Modalità di pulizia per il programma mattutino**
+        
+        🎯 **MODALITÀ DISPONIBILI:**
+        - **aspira**: Solo aspirazione (veloce)
+        - **lava**: Solo lavaggio (con panno)  
+        - **aspira_lava**: Aspira + lava (completo)
+        - **cleangenius_deep**: AI cleaning profondo
+        - **spot_cleaning**: Pulizia mirata
+        - **custom**: Modalità personalizzata
+        
+        💡 **Suggerimento mattina:** `aspira` (veloce per non disturbare)
       default: "aspira"
       selector:
         select:
@@ -194,7 +212,6 @@ blueprint:
       selector:
         text: {}
 
-    # ────────────────────── SERA ──────────────────────
     main_evening_on:
       name: 🌙 SLOT PRINCIPALE - Sera - Abilita
       description: Attiva la pulizia serale del programma principale (con logica adattiva configurabile)
@@ -207,22 +224,6 @@ blueprint:
       default: "23:00:00"
       selector:
         time: {}
-
-    main_evening_weekdays:
-      name: 📅 SLOT PRINCIPALE - Sera - Giorni
-      description: Giorni della settimana in cui eseguire la pulizia serale del programma principale
-      selector:
-        select:
-          multiple: true
-          mode: dropdown
-          options:
-            - lunedì
-            - martedì
-            - mercoledì
-            - giovedì
-            - venerdì
-            - sabato
-            - domenica
 
     main_evening_conditional:
       name: 🧠 SLOT PRINCIPALE - Sera - Logica Adattiva
@@ -285,14 +286,22 @@ blueprint:
       selector:
         text: {}
 
-    # ═══════════════════════════════════════════════════════════════
-    # 📋 PRIMA SCHEDULAZIONE AGGIUNTIVA
-    # ═══════════════════════════════════════════════════════════════
-    schedule1_on:
-      name: 📋 Abilita Prima Schedulazione
-      description: Attiva la prima schedulazione aggiuntiva con tutte le sue impostazioni (mattina e sera)
+    # ────────────────────── PRIMA SCHEDULAZIONE ──────────────────────
+    schedule1_weekdays:
+      name: 📅 PRIMA SCHEDULAZIONE - Giorni Attivi
+      description: Giorni della settimana in cui la prima schedulazione è attiva (vale per mattina e sera)
       selector:
-        boolean: {}
+        select:
+          multiple: true
+          mode: dropdown
+          options:
+            - lunedì
+            - martedì
+            - mercoledì
+            - giovedì
+            - venerdì
+            - sabato
+            - domenica
 
     schedule1_morning_on:
       name: 🌅 PRIMA SCHEDULAZIONE - Mattina - Abilita
@@ -306,22 +315,6 @@ blueprint:
       default: "05:00:00"
       selector:
         time: {}
-
-    schedule1_morning_weekdays:
-      name: 📅 PRIMA SCHEDULAZIONE - Mattina - Giorni
-      description: Giorni della settimana per la pulizia mattutina della prima schedulazione aggiuntiva
-      selector:
-        select:
-          multiple: true
-          mode: dropdown
-          options:
-            - lunedì
-            - martedì
-            - mercoledì
-            - giovedì
-            - venerdì
-            - sabato
-            - domenica
 
     schedule1_morning_preset:
       name: 🎯 PRIMA SCHEDULAZIONE - Mattina - Modalità
@@ -356,22 +349,6 @@ blueprint:
       default: "23:00:00"
       selector:
         time: {}
-
-    schedule1_evening_weekdays:
-      name: 📅 PRIMA SCHEDULAZIONE - Sera - Giorni
-      description: Giorni della settimana per la pulizia serale della prima schedulazione aggiuntiva
-      selector:
-        select:
-          multiple: true
-          mode: dropdown
-          options:
-            - lunedì
-            - martedì
-            - mercoledì
-            - giovedì
-            - venerdì
-            - sabato
-            - domenica
 
     schedule1_evening_conditional:
       name: 🧠 PRIMA SCHEDULAZIONE - Sera - Logica Adattiva
@@ -434,31 +411,10 @@ blueprint:
       selector:
         text: {}
 
-    # ═══════════════════════════════════════════════════════════════
-    # 📋 SECONDA SCHEDULAZIONE AGGIUNTIVA
-    # ═══════════════════════════════════════════════════════════════
-    schedule2_on:
-      name: 📋 Abilita Seconda Schedulazione
-      description: Attiva la seconda schedulazione aggiuntiva con tutte le sue impostazioni (mattina e sera)
-      selector:
-        boolean: {}
-
-    schedule2_morning_on:
-      name: 🌅 SECONDA SCHEDULAZIONE - Mattina - Abilita
-      description: Attiva la pulizia mattutina della seconda schedulazione aggiuntiva
-      selector:
-        boolean: {}
-
-    schedule2_morning_time:
-      name: ⏰ SECONDA SCHEDULAZIONE - Mattina - Orario
-      description: Orario per la pulizia mattutina della seconda schedulazione aggiuntiva
-      default: "05:00:00"
-      selector:
-        time: {}
-
-    schedule2_morning_weekdays:
-      name: 📅 SECONDA SCHEDULAZIONE - Mattina - Giorni
-      description: Giorni della settimana per la pulizia mattutina della seconda schedulazione aggiuntiva
+    # ────────────────────── SECONDA SCHEDULAZIONE ──────────────────────
+    schedule2_weekdays:
+      name: 📅 SECONDA SCHEDULAZIONE - Giorni Attivi
+      description: Giorni della settimana in cui la seconda schedulazione è attiva (vale per mattina e sera)
       default: ["domenica"]
       selector:
         select:
@@ -472,6 +428,19 @@ blueprint:
             - venerdì
             - sabato
             - domenica
+
+    schedule2_morning_on:
+      name: 🌅 SECONDA SCHEDULAZIONE - Mattina - Abilita
+      description: Attiva la pulizia mattutina della seconda schedulazione aggiuntiva
+      selector:
+        boolean: {}
+
+    schedule2_morning_time:
+      name: ⏰ SECONDA SCHEDULAZIONE - Mattina - Orario
+      description: Orario per la pulizia mattutina della seconda schedulazione aggiuntiva
+      default: "05:00:00"
+      selector:
+        time: {}
 
     schedule2_morning_preset:
       name: 🎯 SECONDA SCHEDULAZIONE - Mattina - Modalità
@@ -506,22 +475,6 @@ blueprint:
       default: "23:00:00"
       selector:
         time: {}
-
-    schedule2_evening_weekdays:
-      name: 📅 SECONDA SCHEDULAZIONE - Sera - Giorni
-      description: Giorni della settimana per la pulizia serale della seconda schedulazione aggiuntiva
-      selector:
-        select:
-          multiple: true
-          mode: dropdown
-          options:
-            - lunedì
-            - martedì
-            - mercoledì
-            - giovedì
-            - venerdì
-            - sabato
-            - domenica
 
     schedule2_evening_conditional:
       name: 🧠 SECONDA SCHEDULAZIONE - Sera - Logica Adattiva
@@ -584,31 +537,10 @@ blueprint:
       selector:
         text: {}
 
-    # ═══════════════════════════════════════════════════════════════
-    # 📋 TERZA SCHEDULAZIONE AGGIUNTIVA
-    # ═══════════════════════════════════════════════════════════════
-    schedule3_on:
-      name: 📋 Abilita Terza Schedulazione
-      description: Attiva la terza schedulazione aggiuntiva con tutte le sue impostazioni (mattina e sera)
-      selector:
-        boolean: {}
-
-    schedule3_morning_on:
-      name: 🌅 TERZA SCHEDULAZIONE - Mattina - Abilita
-      description: Attiva la pulizia mattutina della terza schedulazione aggiuntiva
-      selector:
-        boolean: {}
-
-    schedule3_morning_time:
-      name: ⏰ TERZA SCHEDULAZIONE - Mattina - Orario
-      description: Orario per la pulizia mattutina della terza schedulazione aggiuntiva
-      default: "05:00:00"
-      selector:
-        time: {}
-
-    schedule3_morning_weekdays:
-      name: 📅 TERZA SCHEDULAZIONE - Mattina - Giorni
-      description: Giorni della settimana per la pulizia mattutina della terza schedulazione aggiuntiva
+    # ────────────────────── TERZA SCHEDULAZIONE ──────────────────────
+    schedule3_weekdays:
+      name: 📅 TERZA SCHEDULAZIONE - Giorni Attivi
+      description: Giorni della settimana in cui la terza schedulazione è attiva (vale per mattina e sera)
       default: ["sabato"]
       selector:
         select:
@@ -622,6 +554,19 @@ blueprint:
             - venerdì
             - sabato
             - domenica
+
+    schedule3_morning_on:
+      name: 🌅 TERZA SCHEDULAZIONE - Mattina - Abilita
+      description: Attiva la pulizia mattutina della terza schedulazione aggiuntiva
+      selector:
+        boolean: {}
+
+    schedule3_morning_time:
+      name: ⏰ TERZA SCHEDULAZIONE - Mattina - Orario
+      description: Orario per la pulizia mattutina della terza schedulazione aggiuntiva
+      default: "05:00:00"
+      selector:
+        time: {}
 
     schedule3_morning_preset:
       name: 🎯 TERZA SCHEDULAZIONE - Mattina - Modalità
@@ -656,23 +601,6 @@ blueprint:
       default: "23:00:00"
       selector:
         time: {}
-
-    schedule3_evening_weekdays:
-      name: 📅 TERZA SCHEDULAZIONE - Sera - Giorni
-      description: Giorni della settimana per la pulizia serale della terza schedulazione aggiuntiva
-      default: ["sabato"]
-      selector:
-        select:
-          multiple: true
-          mode: dropdown
-          options:
-            - lunedì
-            - martedì
-            - mercoledì
-            - giovedì
-            - venerdì
-            - sabato
-            - domenica
 
     schedule3_evening_conditional:
       name: 🧠 TERZA SCHEDULAZIONE - Sera - Logica Adattiva
@@ -735,31 +663,10 @@ blueprint:
       selector:
         text: {}
 
-    # ═══════════════════════════════════════════════════════════════
-    # 📋 QUARTA SCHEDULAZIONE AGGIUNTIVA
-    # ═══════════════════════════════════════════════════════════════
-    schedule4_on:
-      name: 📋 Abilita Quarta Schedulazione
-      description: Attiva la quarta schedulazione aggiuntiva con tutte le sue impostazioni (mattina e sera)
-      selector:
-        boolean: {}
-
-    schedule4_morning_on:
-      name: 🌅 QUARTA SCHEDULAZIONE - Mattina - Abilita
-      description: Attiva la pulizia mattutina della quarta schedulazione aggiuntiva
-      selector:
-        boolean: {}
-
-    schedule4_morning_time:
-      name: ⏰ QUARTA SCHEDULAZIONE - Mattina - Orario
-      description: Orario per la pulizia mattutina della quarta schedulazione aggiuntiva
-      default: "05:00:00"
-      selector:
-        time: {}
-
-    schedule4_morning_weekdays:
-      name: 📅 QUARTA SCHEDULAZIONE - Mattina - Giorni
-      description: Giorni della settimana per la pulizia mattutina della quarta schedulazione aggiuntiva
+    # ────────────────────── QUARTA SCHEDULAZIONE ──────────────────────
+    schedule4_weekdays:
+      name: 📅 QUARTA SCHEDULAZIONE - Giorni Attivi
+      description: Giorni della settimana in cui la quarta schedulazione è attiva (vale per mattina e sera)
       default: ["domenica"]
       selector:
         select:
@@ -773,6 +680,19 @@ blueprint:
             - venerdì
             - sabato
             - domenica
+
+    schedule4_morning_on:
+      name: 🌅 QUARTA SCHEDULAZIONE - Mattina - Abilita
+      description: Attiva la pulizia mattutina della quarta schedulazione aggiuntiva
+      selector:
+        boolean: {}
+
+    schedule4_morning_time:
+      name: ⏰ QUARTA SCHEDULAZIONE - Mattina - Orario
+      description: Orario per la pulizia mattutina della quarta schedulazione aggiuntiva
+      default: "05:00:00"
+      selector:
+        time: {}
 
     schedule4_morning_preset:
       name: 🎯 QUARTA SCHEDULAZIONE - Mattina - Modalità
@@ -807,23 +727,6 @@ blueprint:
       default: "23:00:00"
       selector:
         time: {}
-
-    schedule4_evening_weekdays:
-      name: 📅 QUARTA SCHEDULAZIONE - Sera - Giorni
-      description: Giorni della settimana per la pulizia serale della quarta schedulazione aggiuntiva
-      default: ["domenica"]
-      selector:
-        select:
-          multiple: true
-          mode: dropdown
-          options:
-            - lunedì
-            - martedì
-            - mercoledì
-            - giovedì
-            - venerdì
-            - sabato
-            - domenica
 
     schedule4_evening_conditional:
       name: 🧠 QUARTA SCHEDULAZIONE - Sera - Logica Adattiva
@@ -966,7 +869,7 @@ condition:
         value_template: >
           {{ states(presence_ent) == pres_val }}
       
-      # CONTROLLO GIORNO APPROPRIATO PER IL TRIGGER
+      # CONTROLLO GIORNO APPROPRIATO PER IL TRIGGER (AGGIORNATO!)
       - condition: template
         value_template: >
           {%- set current_day = now().strftime('%A') | lower -%}
@@ -977,25 +880,25 @@ condition:
           {%- set today_ita = day_mapping[current_day] -%}
           
           {%- if trigger.id == 'main_morning' -%}
-            {{ main_morning_on and today_ita in main_morning_weekdays }}
+            {{ main_morning_on and today_ita in main_weekdays }}
           {%- elif trigger.id == 'main_evening' -%}
-            {{ main_evening_on and today_ita in main_evening_weekdays }}
+            {{ main_evening_on and today_ita in main_weekdays }}
           {%- elif trigger.id == 'schedule1_morning' -%}
-            {{ schedule1_on and schedule1_morning_on and today_ita in schedule1_morning_weekdays }}
+            {{ schedule1_morning_on and today_ita in schedule1_weekdays }}
           {%- elif trigger.id == 'schedule1_evening' -%}
-            {{ schedule1_on and schedule1_evening_on and today_ita in schedule1_evening_weekdays }}
+            {{ schedule1_evening_on and today_ita in schedule1_weekdays }}
           {%- elif trigger.id == 'schedule2_morning' -%}
-            {{ schedule2_on and schedule2_morning_on and today_ita in schedule2_morning_weekdays }}
+            {{ schedule2_morning_on and today_ita in schedule2_weekdays }}
           {%- elif trigger.id == 'schedule2_evening' -%}
-            {{ schedule2_on and schedule2_evening_on and today_ita in schedule2_evening_weekdays }}
+            {{ schedule2_evening_on and today_ita in schedule2_weekdays }}
           {%- elif trigger.id == 'schedule3_morning' -%}
-            {{ schedule3_on and schedule3_morning_on and today_ita in schedule3_morning_weekdays }}
+            {{ schedule3_morning_on and today_ita in schedule3_weekdays }}
           {%- elif trigger.id == 'schedule3_evening' -%}
-            {{ schedule3_on and schedule3_evening_on and today_ita in schedule3_evening_weekdays }}
+            {{ schedule3_evening_on and today_ita in schedule3_weekdays }}
           {%- elif trigger.id == 'schedule4_morning' -%}
-            {{ schedule4_on and schedule4_morning_on and today_ita in schedule4_morning_weekdays }}
+            {{ schedule4_morning_on and today_ita in schedule4_weekdays }}
           {%- elif trigger.id == 'schedule4_evening' -%}
-            {{ schedule4_on and schedule4_evening_on and today_ita in schedule4_evening_weekdays }}
+            {{ schedule4_evening_on and today_ita in schedule4_weekdays }}
           {%- else -%}
             false
           {%- endif -%}
@@ -1261,227 +1164,4 @@ action:
 
               - conditions:
                   - condition: template
-                    value_template: "{{ conditional_mode == 'adapt_if_cleaned' and already_cleaned }}"
-                sequence:
-                  - service: dreame_vacuum.vacuum_clean_segment
-                    target:
-                      entity_id: "{{ vacuum_ent }}"
-                    data:
-                      segments: >
-                        {% if schedule2_evening_fallback_rooms %}
-                          {{ schedule2_evening_fallback_rooms.split(',') | map('int') | list }}
-                        {% else %}
-                          []
-                        {% endif %}
-                      cleaning_mode: "{{ schedule2_evening_fallback_preset }}"
-
-            default:
-              - service: dreame_vacuum.vacuum_clean_segment
-                target:
-                  entity_id: "{{ vacuum_ent }}"
-                data:
-                  segments: >
-                    {% if schedule2_evening_rooms %}
-                      {{ schedule2_evening_rooms.split(',') | map('int') | list }}
-                    {% else %}
-                      []
-                    {% endif %}
-                  cleaning_mode: "{{ schedule2_evening_preset }}"
-
-              - service: input_boolean.turn_on
-                target:
-                  entity_id: "{{ flag_ent }}"
-
-      # ═══════════════════ TERZA SCHEDULAZIONE MATTINA ═══════════════════
-      - conditions:
-          - condition: template
-            value_template: "{{ trigger.id == 'schedule3_morning' }}"
-        sequence:
-          - if:
-              - condition: template
-                value_template: "{{ debug_enabled }}"
-            then:
-              - service: persistent_notification.create
-                data:
-                  title: "🌅 Dreame - Terza Schedulazione Mattina"
-                  message: >
-                    Avvio terza schedulazione mattutina:
-                    - Modalità: {{ schedule3_morning_preset }}
-                    - Stanze: {{ schedule3_morning_rooms if schedule3_morning_rooms else 'Tutta casa' }}
-          
-          - service: dreame_vacuum.vacuum_clean_segment
-            target:
-              entity_id: "{{ vacuum_ent }}"
-            data:
-              segments: >
-                {% if schedule3_morning_rooms %}
-                  {{ schedule3_morning_rooms.split(',') | map('int') | list }}
-                {% else %}
-                  []
-                {% endif %}
-              cleaning_mode: "{{ schedule3_morning_preset }}"
-
-          - service: input_boolean.turn_on
-            target:
-              entity_id: "{{ flag_ent }}"
-
-      # ═══════════════════ TERZA SCHEDULAZIONE SERA ═══════════════════
-      - conditions:
-          - condition: template
-            value_template: "{{ trigger.id == 'schedule3_evening' }}"
-        sequence:
-          - variables:
-              already_cleaned: "{{ states(flag_ent) == 'on' }}"
-              conditional_mode: "{{ schedule3_evening_conditional }}"
-              
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: "{{ conditional_mode == 'skip_if_cleaned' and already_cleaned }}"
-                sequence:
-                  - if:
-                      - condition: template
-                        value_template: "{{ debug_enabled }}"
-                    then:
-                      - service: persistent_notification.create
-                        data:
-                          title: "⏭️ Dreame - Terza Schedulazione Saltata"
-                          message: "Terza schedulazione serale saltata: già pulito oggi"
-
-              - conditions:
-                  - condition: template
-                    value_template: "{{ conditional_mode == 'adapt_if_cleaned' and already_cleaned }}"
-                sequence:
-                  - service: dreame_vacuum.vacuum_clean_segment
-                    target:
-                      entity_id: "{{ vacuum_ent }}"
-                    data:
-                      segments: >
-                        {% if schedule3_evening_fallback_rooms %}
-                          {{ schedule3_evening_fallback_rooms.split(',') | map('int') | list }}
-                        {% else %}
-                          []
-                        {% endif %}
-                      cleaning_mode: "{{ schedule3_evening_fallback_preset }}"
-
-            default:
-              - service: dreame_vacuum.vacuum_clean_segment
-                target:
-                  entity_id: "{{ vacuum_ent }}"
-                data:
-                  segments: >
-                    {% if schedule3_evening_rooms %}
-                      {{ schedule3_evening_rooms.split(',') | map('int') | list }}
-                    {% else %}
-                      []
-                    {% endif %}
-                  cleaning_mode: "{{ schedule3_evening_preset }}"
-
-              - service: input_boolean.turn_on
-                target:
-                  entity_id: "{{ flag_ent }}"
-
-      # ═══════════════════ QUARTA SCHEDULAZIONE MATTINA ═══════════════════
-      - conditions:
-          - condition: template
-            value_template: "{{ trigger.id == 'schedule4_morning' }}"
-        sequence:
-          - if:
-              - condition: template
-                value_template: "{{ debug_enabled }}"
-            then:
-              - service: persistent_notification.create
-                data:
-                  title: "🌅 Dreame - Quarta Schedulazione Mattina"
-                  message: >
-                    Avvio quarta schedulazione mattutina:
-                    - Modalità: {{ schedule4_morning_preset }}
-                    - Stanze: {{ schedule4_morning_rooms if schedule4_morning_rooms else 'Tutta casa' }}
-          
-          - service: dreame_vacuum.vacuum_clean_segment
-            target:
-              entity_id: "{{ vacuum_ent }}"
-            data:
-              segments: >
-                {% if schedule4_morning_rooms %}
-                  {{ schedule4_morning_rooms.split(',') | map('int') | list }}
-                {% else %}
-                  []
-                {% endif %}
-              cleaning_mode: "{{ schedule4_morning_preset }}"
-
-          - service: input_boolean.turn_on
-            target:
-              entity_id: "{{ flag_ent }}"
-
-      # ═══════════════════ QUARTA SCHEDULAZIONE SERA ═══════════════════
-      - conditions:
-          - condition: template
-            value_template: "{{ trigger.id == 'schedule4_evening' }}"
-        sequence:
-          - variables:
-              already_cleaned: "{{ states(flag_ent) == 'on' }}"
-              conditional_mode: "{{ schedule4_evening_conditional }}"
-              
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: "{{ conditional_mode == 'skip_if_cleaned' and already_cleaned }}"
-                sequence:
-                  - if:
-                      - condition: template
-                        value_template: "{{ debug_enabled }}"
-                    then:
-                      - service: persistent_notification.create
-                        data:
-                          title: "⏭️ Dreame - Quarta Schedulazione Saltata"
-                          message: "Quarta schedulazione serale saltata: già pulito oggi"
-
-              - conditions:
-                  - condition: template
-                    value_template: "{{ conditional_mode == 'adapt_if_cleaned' and already_cleaned }}"
-                sequence:
-                  - service: dreame_vacuum.vacuum_clean_segment
-                    target:
-                      entity_id: "{{ vacuum_ent }}"
-                    data:
-                      segments: >
-                        {% if schedule4_evening_fallback_rooms %}
-                          {{ schedule4_evening_fallback_rooms.split(',') | map('int') | list }}
-                        {% else %}
-                          []
-                        {% endif %}
-                      cleaning_mode: "{{ schedule4_evening_fallback_preset }}"
-
-            default:
-              - service: dreame_vacuum.vacuum_clean_segment
-                target:
-                  entity_id: "{{ vacuum_ent }}"
-                data:
-                  segments: >
-                    {% if schedule4_evening_rooms %}
-                      {{ schedule4_evening_rooms.split(',') | map('int') | list }}
-                    {% else %}
-                      []
-                    {% endif %}
-                  cleaning_mode: "{{ schedule4_evening_preset }}"
-
-              - service: input_boolean.turn_on
-                target:
-                  entity_id: "{{ flag_ent }}"
-
-    # FALLBACK PER ERRORI
-    default:
-      - if:
-          - condition: template
-            value_template: "{{ debug_enabled }}"
-        then:
-          - service: persistent_notification.create
-            data:
-              title: "❌ Dreame - Errore"
-              message: >
-                Trigger non riconosciuto: {{ trigger.id }}
-                Controlla la configurazione del blueprint.
-
-mode: queued
-max: 10
+                    value
