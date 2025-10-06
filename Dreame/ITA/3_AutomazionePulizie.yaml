@@ -1,5 +1,5 @@
 blueprint:
-  name: "[DEV] Dreame Vacuum - Automazione Pulizie Avanzata"
+  name: "Dreame Vacuum - Automazione Pulizie Avanzata"
   description: |
     🤖 **Automazione avanzata per robot Dreame con logiche intelligenti**
     
@@ -10,9 +10,7 @@ blueprint:
     - 📋 **Pianificazione avanzata**: Template Jinja2 personalizzabili
     - 🔔 **Notifiche intelligenti**: Annunci Alexa opzionali
     - 🐛 **Modalità debug**: Log dettagliati per troubleshooting
-    
-    📚 **Compatibile con la versione base** - estende le funzionalità esistenti
-    
+      
     🎯 **6 slot temporali configurabili**: Mattina + Sera + 4 Schedulazioni aggiuntive
   
   domain: automation
