@@ -40,7 +40,9 @@ blueprint:
           
     valid_robot_states:
       name: ✅ Stati Robot Validi
-      description: Stati in cui il robot può iniziare una pulizia
+      description: |
+        Stati in cui il robot può iniziare una pulizia
+        ⚠️ **Lascia vuoto per utilizzare i valori di default**
       default: ["idle", "sleeping", "charging", "docked"]
       selector:
         select:
