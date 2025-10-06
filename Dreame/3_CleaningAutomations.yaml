@@ -24,10 +24,15 @@ blueprint:
           domain: vacuum
           
     robot_status_sensor:
-      name: 📊 Sensore Stato Robot
+      name: 📊 Sensore Stato Robot (Opzionale)
       description: |
-        Sensore status dettagliato del robot (es. sensor.ambrogio_status_2)
-        Lascia vuoto per disabilitare il controllo stato
+        Seleziona il sensore di stato del robot per verifiche avanzate prima di iniziare.
+        
+        🔍 **Come trovarlo:**
+        - Generalmente si chiama: `sensor.NOME_ROBOT_status` oppure `sensor.NOME_ROBOT_state`
+        - Esempio: se il robot è `vacuum.ambrogio`, cerca `sensor.ambrogio_status`
+        
+        ⚠️ **Lascia vuoto per disabilitare** il controllo stato (pulizia partirà sempre)
       default: ""
       selector:
         entity:
@@ -51,20 +56,48 @@ blueprint:
     # === CONTROLLO PRESENZA ===
     presence_entity:
       name: 🏠 Entità Presenza (Opzionale)
-      description: Entità per verificare presenza in casa
+      description: |
+        Seleziona un'entità che indica se sei in casa o fuori casa.
+        
+        💡 **Esempi comuni:**
+        - `person.il_tuo_nome` (entità Persona di HA)
+        - `binary_sensor.occupancy` (sensore presenza PIR)
+        - `input_boolean.away_mode` (interruttore manuale) 
+        - `counter.people_home` (contatore persone in casa)
+        
+        ⚠️ **Lascia vuoto per disabilitare** il controllo presenza (pulizia partirà sempre)
       default: ""
       selector:
         entity: {}
         
     presence_value:
       name: 🚪 Valore "Fuori Casa"
-      description: Valore che indica "fuori casa" (es. "away", "0", "not_home")
-      default: "away"
+      description: |
+        Il valore che l'entità presenza deve avere per indicare "fuori casa".
+        
+        📝 **Esempi in base al tipo di entità:**
+        - Entità `person.*` → `"not_home"` o `"away"`
+        - `binary_sensor.*` → `"off"` (quando non rileva presenza)
+        - `input_boolean.*` → `"on"` (se acceso = via da casa)
+        - `counter.*` → `"0"` (nessuno in casa)
+        
+        ❓ **Come scoprirlo:** Vai in Strumenti Sviluppatore → Stati, trova la tua entità e guarda il valore quando sei fuori casa
+      default: "not_home"
       
     # === FLAG PULIZIA GIORNALIERO ===
     flag_cleaned_today:
-      name: 🏃 Flag "Pulito Oggi"
-      description: Input boolean che traccia se è già stata fatta pulizia oggi
+      name: 🏃 Flag "Pulito Oggi" 
+      description: |
+        Input boolean che traccia se è già stata fatta pulizia oggi.
+        
+        🆕 **Se non ce l'hai:**
+        1. Clicca il menu a tendina
+        2. Clicca **"+ Crea nuova entità"**
+        3. Seleziona **"Input Boolean"**
+        4. Nome: "Pulito Oggi" (o simile)
+        5. ID: `cleaned_today` (o simile)
+        
+        ℹ️ **Funzione:** Si accende dopo ogni pulizia, si spegne automaticamente a mezzanotte
       selector:
         entity:
           domain: input_boolean
@@ -72,12 +105,29 @@ blueprint:
     # === NOTIFICHE E DEBUG ===
     notification_targets:
       name: 🔔 Dispositivi Notifica (Opzionale)
-      description: Media player Alexa per annunci (separati da virgola se multipli)
+      description: |
+        Media player Alexa per ricevere annunci vocali automatici.
+        
+        📱 **Come configurare:**
+        - Per un dispositivo: `media_player.echo_dot_soggiorno`
+        - Per più dispositivi: `media_player.echo_dot_soggiorno,media_player.alexina_cucina`
+        
+        🔍 **Come trovare i nomi:** Vai in Strumenti Sviluppatore → Stati, cerca `media_player.`
+        
+        ⚠️ **Lascia vuoto per disabilitare** le notifiche vocali
       default: ""
       
     debug_mode:
-      name: 🐛 Modalità Debug  
-      description: Abilita log dettagliati per troubleshooting
+      name: 🐛 Modalità Debug
+      description: |
+        Abilita log dettagliati nel registro di Home Assistant per troubleshooting.
+        
+        📋 **Quando abilitare:**
+        - Prima configurazione per verificare che tutto funzioni
+        - Quando qualcosa non va come dovrebbe
+        - Per vedere nel dettaglio cosa sta succedendo
+        
+        📝 **Dove vedere i log:** Impostazioni → Sistema → Log
       default: false
       selector:
         boolean: {}
@@ -110,10 +160,11 @@ blueprint:
       description: |
         Template Jinja2 personalizzato per controlli avanzati.
         Lascia vuoto per usare solo i giorni della settimana.
-        Esempi:
-        - now().isoweekday() == 1 (solo Lunedì)
-        - now().isoweekday() in [1,3,5] (Lun/Mer/Ven)
-        - now().day % 2 == 0 (giorni pari del mese)
+        
+        📝 **Esempi:**
+        - `now().isoweekday() == 1` (solo Lunedì)
+        - `now().isoweekday() in [1,3,5]` (Lun/Mer/Ven)
+        - `now().day % 2 == 0` (giorni pari del mese)
       default: ""
       
     morning_preset:
@@ -125,7 +176,7 @@ blueprint:
           
     morning_rooms:
       name: 🏠 MATTINA - Stanze
-      description: "ID numerici (2,3,4) o nomi stanze separati da virgola"
+      description: "ID numerici (2,3,4) o nomi stanze separati da virgola. Lascia vuoto per tutta la casa"
       default: ""
       
     # === MATTINA - PULIZIE SEQUENZIALI ===
@@ -141,7 +192,7 @@ blueprint:
       default: "cleangenius"
       selector:
         select:
-          options: ["aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          options: ["", "aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
           
     morning_step2_rooms:
       name: 🏠 MATTINA - Step 2 - Stanze
@@ -149,10 +200,10 @@ blueprint:
       
     morning_step3_preset:
       name: 🎯 MATTINA - Step 3 - Modalità
-      default: "aspira"
+      default: ""
       selector:
         select:
-          options: ["aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          options: ["", "aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
           
     morning_step3_rooms:
       name: 🏠 MATTINA - Step 3 - Stanze
@@ -200,10 +251,10 @@ blueprint:
       name: 🧠 SERA - Logica Adattiva
       description: |
         Come comportarsi in base alla pulizia mattutina:
-        - always = Esegui sempre (come prima)
-        - skip_if_cleaned = Salta se già pulito oggi
-        - fallback_if_not_cleaned = Esegui solo se NON pulito oggi  
-        - adapt_if_cleaned = Cambia modalità se già pulito oggi
+        - **always** = Esegui sempre (come prima)
+        - **skip_if_cleaned** = Salta se già pulito oggi
+        - **fallback_if_not_cleaned** = Esegui solo se NON pulito oggi  
+        - **adapt_if_cleaned** = Cambia modalità se già pulito oggi
       default: "always"
       selector:
         select:
@@ -251,10 +302,10 @@ blueprint:
         
     evening_step2_preset:
       name: 🎯 SERA - Step 2 - Modalità
-      default: "cleangenius"
+      default: ""
       selector:
         select:
-          options: ["aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          options: ["", "aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
           
     evening_step2_rooms:
       name: 🏠 SERA - Step 2 - Stanze
@@ -262,10 +313,10 @@ blueprint:
       
     evening_step3_preset:
       name: 🎯 SERA - Step 3 - Modalità
-      default: "aspira"
+      default: ""
       selector:
         select:
-          options: ["aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          options: ["", "aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
           
     evening_step3_rooms:
       name: 🏠 SERA - Step 3 - Stanze
@@ -352,10 +403,10 @@ blueprint:
         
     block1_step2_preset:
       name: 🎯 BLOCCO 1 - Step 2 - Modalità
-      default: "cleangenius"
+      default: ""
       selector:
         select:
-          options: ["aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          options: ["", "aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
           
     block1_step2_rooms:
       name: 🏠 BLOCCO 1 - Step 2 - Stanze
@@ -363,10 +414,10 @@ blueprint:
       
     block1_step3_preset:
       name: 🎯 BLOCCO 1 - Step 3 - Modalità
-      default: "aspira"  
+      default: ""
       selector:
         select:
-          options: ["aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          options: ["", "aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
           
     block1_step3_rooms:
       name: 🏠 BLOCCO 1 - Step 3 - Stanze
@@ -453,10 +504,10 @@ blueprint:
         
     block2_step2_preset:
       name: 🎯 BLOCCO 2 - Step 2 - Modalità
-      default: "cleangenius"
+      default: ""
       selector:
         select:
-          options: ["aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          options: ["", "aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
           
     block2_step2_rooms:
       name: 🏠 BLOCCO 2 - Step 2 - Stanze
@@ -464,10 +515,10 @@ blueprint:
       
     block2_step3_preset:
       name: 🎯 BLOCCO 2 - Step 3 - Modalità
-      default: "aspira"  
+      default: ""
       selector:
         select:
-          options: ["aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          options: ["", "aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
           
     block2_step3_rooms:
       name: 🏠 BLOCCO 2 - Step 3 - Stanze
@@ -554,10 +605,10 @@ blueprint:
         
     block3_step2_preset:
       name: 🎯 BLOCCO 3 - Step 2 - Modalità
-      default: "cleangenius"
+      default: ""
       selector:
         select:
-          options: ["aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          options: ["", "aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
           
     block3_step2_rooms:
       name: 🏠 BLOCCO 3 - Step 2 - Stanze
@@ -565,10 +616,10 @@ blueprint:
       
     block3_step3_preset:
       name: 🎯 BLOCCO 3 - Step 3 - Modalità
-      default: "aspira"  
+      default: ""
       selector:
         select:
-          options: ["aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          options: ["", "aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
           
     block3_step3_rooms:
       name: 🏠 BLOCCO 3 - Step 3 - Stanze
@@ -655,10 +706,10 @@ blueprint:
         
     block4_step2_preset:
       name: 🎯 BLOCCO 4 - Step 2 - Modalità
-      default: "cleangenius"
+      default: ""
       selector:
         select:
-          options: ["aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          options: ["", "aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
           
     block4_step2_rooms:
       name: 🏠 BLOCCO 4 - Step 2 - Stanze
@@ -666,10 +717,10 @@ blueprint:
       
     block4_step3_preset:
       name: 🎯 BLOCCO 4 - Step 3 - Modalità
-      default: "aspira"  
+      default: ""
       selector:
         select:
-          options: ["aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          options: ["", "aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
           
     block4_step3_rooms:
       name: 🏠 BLOCCO 4 - Step 3 - Stanze
@@ -889,8 +940,6 @@ action:
                       entity_id: "{{ flag_cleaned }}"
 
       # ===== BLOCCHI 1, 2, 3, 4 =====
-      # [Logica simile per ogni blocco con relative variabili]
-      
       - conditions:
           - condition: template
             value_template: "{{ trigger.id == 'block1' }}"
