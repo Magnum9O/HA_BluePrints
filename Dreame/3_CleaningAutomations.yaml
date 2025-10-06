@@ -1087,16 +1087,9 @@ action:
                   
                   - wait_for_trigger:
                       - platform: state
-                        entity_id: >
-                          {% if robot_status != '' %}
-                            {{ robot_status }}
-                          {% else %}
-                            {{ vacuum_ent }}
-                          {% endif %}
-                        to: ["idle", "sleeping", "charging", "docked"]
-                        for: "00:00:10"
-                    timeout: "{{ (slot_max_wait * 60) | int }}"
-                    
+                        entity_id: "{{ vacuum_ent }}"
+                        to: ["idle", "sleeping", "charging", "docked"]    
+                        
                   - if:
                       - condition: template
                         value_template: "{{ wait.completed }}"
@@ -1125,16 +1118,9 @@ action:
                         then:
                           - wait_for_trigger:
                               - platform: state
-                                entity_id: >
-                                  {% if robot_status != '' %}
-                                    {{ robot_status }}
-                                  {% else %}
-                                    {{ vacuum_ent }}
-                                  {% endif %}
+                                entity_id: "{{ vacuum_ent }}"
                                 to: ["idle", "sleeping", "charging", "docked"]
-                                for: "00:00:10"
-                            timeout: "{{ (slot_max_wait * 60) | int }}"
-                            
+                                
                           - if:
                               - condition: template
                                 value_template: "{{ wait.completed }}"
