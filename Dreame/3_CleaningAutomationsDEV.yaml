@@ -1085,10 +1085,9 @@ action:
                           message: "[DREAME BLUEPRINT] ⏳ Attesa completamento Step 1..."
                           level: info
                   
-                  - wait_for_trigger:
-                      - platform: state
-                        entity_id: "{{ vacuum_ent }}"
-                        to: ["idle", "sleeping", "charging", "docked"]    
+                  - wait_template: >
+                      {{ states(vacuum_ent) in ['idle', 'sleeping', 'charging', 'docked'] }}
+                    timeout: "{{ (slot_max_wait * 60) | int }}"
                         
                   - if:
                       - condition: template
@@ -1116,10 +1115,10 @@ action:
                           - condition: template
                             value_template: "{{ slot_step3_preset != '' }}"
                         then:
-                          - wait_for_trigger:
-                              - platform: state
+                          - wait_template: >
+                              {{ states(vacuum_ent) in ['idle', 'sleeping', 'charging', 'docked'] }}
                                 entity_id: "{{ vacuum_ent }}"
-                                to: ["idle", "sleeping", "charging", "docked"]
+                            timeout: "{{ (slot_max_wait * 60) | int }}"
                                 
                           - if:
                               - condition: template
