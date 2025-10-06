@@ -1,598 +1,1016 @@
 blueprint:
-  name: Pulizia programmata Dreame (Semplice o Avanzata, con sensore presenza)
-  description: >
-    Questo blueprint ti consente di **automatizzare le pulizie del robot Dreame**
-    secondo una pianificazione giornaliera o settimanale, con la possibilità di
-    includere un **controllo presenza** e un **monitoraggio dello stato di pulizia**.
-
-    **Modalità disponibili:**
-    - **Semplice:** imposta due orari di pulizia (mattina e sera).
-    - **Avanzata:** fino a **4 orari di pulizia personalizzati** per giorno della settimana.
-
-    Puoi selezionare le stanze da pulire tramite **ID** o **nome** (se configurate nella mappa)
-    e scegliere se abilitare un **controllo presenza** per eseguire la pulizia solo quando
-    la casa è vuota (utile se usi un sensore o un contatore di presenza).
-
-    **Modalità di pulizia supportate:**
-    - *Aspirazione* → solo aspirazione
-    - *Lavaggio* → solo lavaggio
-    - *Pulizia* → **CleanGenius** (aspirazione + lavaggio)
-    - *Pulizia profonda* → **CleanGenius Deep** (pulizia più accurata)
-
-    **Gestione automatica dello stato di pulizia:**
-    Il blueprint utilizza un `input_boolean` (es. `input_boolean.cleaned_today`)
-    per **tenere traccia** se la casa è già stata pulita nella giornata:
-    - Viene **acceso** automaticamente dopo ogni pulizia completata.
-    - Viene **resettato a mezzanotte** da un’automazione dedicata.
+  name: "[DEV] Dreame Vacuum - Automazione Pulizie Avanzata"
+  description: |
+    🤖 **Automazione avanzata per robot Dreame con logiche intelligenti**
     
-    Questo meccanismo ti aiuta nella programmazione giornaliera: evita doppie pulizie
-    nello stesso giorno e consente di **adattare la sessione serale** in base a quella
-    mattutina (es. “se hai già lavato la cucina stamattina, salta la sera o esegui
-    solo l’aspirazione in cucina”).
-
+    ✨ **NOVITÀ v2.0:**
+    - 🔄 **Logica adattiva**: La sera si adatta al mattino
+    - 🔗 **Pulizie sequenziali**: Più stanze consecutive con attesa
+    - 🤖 **Controllo stato robot**: Verifica stato prima di iniziare
+    - 📋 **Pianificazione avanzata**: Template Jinja2 personalizzabili
+    - 🔔 **Notifiche intelligenti**: Annunci Alexa opzionali
+    - 🐛 **Modalità debug**: Log dettagliati per troubleshooting
+    
+    📚 **Compatibile con la versione base** - estende le funzionalità esistenti
+  
   domain: automation
-  source_url: https://raw.githubusercontent.com/Magnum9O/HA_BluePrints/main/Dreame/ITA/3_AutomazionePulizie.yaml
-
   input:
-
+    # === ENTITÀ PRINCIPALI ===
     vacuum_entity:
-      name: Robot Dreame
-      description: Seleziona il tuo aspirapolvere Dreame.
+      name: 🤖 Entità Vacuum
+      description: Il tuo robot Dreame (es. vacuum.ambrogio)
       selector:
         entity:
           domain: vacuum
-
-    map_camera:
-      name: Mappa
-      description: Seleziona la camera con attributo 'rooms' (es. camera.TuoRobot_map) generata con la Vacuum Map card. Obbligatoria.
+          
+    robot_status_sensor:
+      name: 📊 Sensore Stato Robot (Opzionale)
+      description: |
+        Seleziona il sensore di stato del robot per verifiche avanzate prima di iniziare.
+        
+        🔍 **Come trovarlo:**
+        - Generalmente si chiama: `sensor.NOME_ROBOT_status` oppure `sensor.NOME_ROBOT_state`
+        - Esempio: se il robot è `vacuum.ambrogio`, cerca `sensor.ambrogio_status`
+        
+        ⚠️ **Lascia vuoto per disabilitare** il controllo stato (pulizia partirà sempre)
+      default: ""
       selector:
         entity:
-          domain: camera
-
-    cleaned_today_helper:
-      name: Flag "Pulizia effettuata"
-      description: Booleano che verrà acceso dopo la pulizia e resettato ogni giorno all'orario scelto.
+          domain: sensor
+          
+    valid_robot_states:
+      name: ✅ Stati Robot Validi
+      description: Stati in cui il robot può iniziare una pulizia
+      default: ["idle", "sleeping", "charging", "docked"]
       selector:
-        entity:
-          domain: input_boolean
-
-    reset_time:
-      name: Orario reset giornaliero
-      description: Orario in cui spegnere il flag "Pulizia effettuata".
-      default: "23:59:00"
-      selector:
-        time: {}
-
-    presence_helper:
-      name: Helper presenza (opzionale)
-      description: Entità per il controllo presenza; se impostata, l’automazione parte solo quando il suo valore corrisponde a “Valore presenza richiesto”.
+        select:
+          options:
+            - "idle"
+            - "sleeping" 
+            - "charging"
+            - "docked"
+            - "paused"
+            - "returning"
+          multiple: true
+          
+    # === CONTROLLO PRESENZA ===
+    presence_entity:
+      name: 🏠 Entità Presenza (Opzionale)
+      description: |
+        Seleziona un'entità che indica se sei in casa o fuori casa.
+        
+        💡 **Esempi comuni:**
+        - `person.il_tuo_nome` (entità Persona di HA)
+        - `binary_sensor.occupancy` (sensore presenza PIR)
+        - `input_boolean.away_mode` (interruttore manuale) 
+        - `counter.people_home` (contatore persone in casa)
+        
+        ⚠️ **Lascia vuoto per disabilitare** il controllo presenza (pulizia partirà sempre)
       default: ""
       selector:
         entity: {}
-
-    presence_required_value:
-      name: Valore presenza richiesto (opzionale)
-      description: Esempi_ 1, home, on. Se vuoto la presenza è ignorata.
+        
+    presence_value:
+      name: 🚪 Valore "Fuori Casa"
+      description: |
+        Il valore che l'entità presenza deve avere per indicare "fuori casa".
+        
+        📝 **Esempi in base al tipo di entità:**
+        - Entità `person.*` → `"not_home"` o `"away"`
+        - `binary_sensor.*` → `"off"` (quando non rileva presenza)
+        - `input_boolean.*` → `"on"` (se acceso = via da casa)
+        - `counter.*` → `"0"` (nessuno in casa)
+        
+        ❓ **Come scoprirlo:** Vai in Strumenti Sviluppatore → Stati, trova la tua entità e guarda il valore quando sei fuori casa
+      default: "not_home"
+      
+    # === FLAG PULIZIA GIORNALIERO ===
+    flag_cleaned_today:
+      name: 🏃 Flag "Pulito Oggi" 
+      description: |
+        Input boolean che traccia se è già stata fatta pulizia oggi.
+        
+        🆕 **Se non ce l'hai:**
+        1. Clicca il menu a tendina
+        2. Clicca **"+ Crea nuova entità"**
+        3. Seleziona **"Input Boolean"**
+        4. Nome: "Pulito Oggi" (o simile)
+        5. ID: `cleaned_today` (o simile)
+        
+        ℹ️ **Funzione:** Si accende dopo ogni pulizia, si spegne automaticamente a mezzanotte
+      selector:
+        entity:
+          domain: input_boolean
+          
+    # === NOTIFICHE E DEBUG ===
+    notification_targets:
+      name: 🔔 Dispositivi Notifica (Opzionale)
+      description: |
+        Media player Alexa per ricevere annunci vocali automatici.
+        
+        📱 **Come configurare:**
+        - Per un dispositivo: `media_player.echo_dot_soggiorno`
+        - Per più dispositivi: `media_player.echo_dot_soggiorno,media_player.alexina_cucina`
+        
+        🔍 **Come trovare i nomi:** Vai in Strumenti Sviluppatore → Stati, cerca `media_player.`
+        
+        ⚠️ **Lascia vuoto per disabilitare** le notifiche vocali
       default: ""
-
-    # --- Mattina (sempre disponibile) ---
-    morning_enabled:
-      name: Attiva schedulazione mattina
+      
+    debug_mode:
+      name: 🐛 Modalità Debug
+      description: |
+        Abilita log dettagliati nel registro di Home Assistant per troubleshooting.
+        
+        📋 **Quando abilitare:**
+        - Prima configurazione per verificare che tutto funzioni
+        - Quando qualcosa non va come dovrebbe
+        - Per vedere nel dettaglio cosa sta succedendo
+        
+        📝 **Dove vedere i log:** Impostazioni → Sistema → Log
       default: false
       selector:
         boolean: {}
-
+        
+    # ========================================
+    # === SLOT MATTINA ===
+    # ========================================
+    morning_on:
+      name: 🌅 MATTINA - Abilita
+      default: true
+      selector:
+        boolean: {}
+        
     morning_time:
-      name: Orario pulizia mattina
-      default: "08:30:00"
+      name: ⏰ MATTINA - Orario
+      default: "08:00:00"
       selector:
         time: {}
-
-    morning_days:
-      name: Giorni mattina
-      description: Giorni della settimana (lascia vuoto per tutti i giorni).
-      default: []
+        
+    morning_weekdays:
+      name: 📅 MATTINA - Giorni Settimana
+      default: ["monday", "tuesday", "wednesday", "thursday", "friday"]
       selector:
         select:
-          options: [mon, tue, wed, thu, fri, sat, sun]
+          options: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
           multiple: true
-          sort: false
-
+          
+    morning_schedule_template:
+      name: 📋 MATTINA - Pianificazione Avanzata (Opzionale)
+      description: |
+        Template Jinja2 personalizzato per controlli avanzati.
+        Lascia vuoto per usare solo i giorni della settimana.
+        
+        📝 **Esempi:**
+        - `now().isoweekday() == 1` (solo Lunedì)
+        - `now().isoweekday() in [1,3,5]` (Lun/Mer/Ven)
+        - `now().day % 2 == 0` (giorni pari del mese)
+      default: ""
+      
     morning_preset:
-      name: Modalità mattina
-      default: genius
+      name: 🎯 MATTINA - Modalità Pulizia
+      default: "aspira"
       selector:
         select:
-          options:
-            - label: "Solo aspirazione"
-              value: sweeping
-            - label: "Solo lavaggio"
-              value: mopping
-            - label: "Aspirazione e lavaggio"
-              value: sweeping_and_mopping
-            - label: "Lavaggio dopo aspirazione"
-              value: mopping_after_sweeping
-            - label: "CleanGenius"
-              value: genius
-            - label: "CleanGenius Profondo"
-              value: genius_deep
-          multiple: false
-          custom_value: false
-
+          options: ["aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          
     morning_rooms:
-      name: Stanze mattina
-      description: Esempi_ "2,3,4" oppure "Kitchen,Bathroom". Se vuoto → tutta la casa.
+      name: 🏠 MATTINA - Stanze
+      description: "ID numerici (2,3,4) o nomi stanze separati da virgola. Lascia vuoto per tutta la casa"
       default: ""
-
-    # --- Sera (sempre disponibile) ---
-    evening_enabled:
-      name: Attiva schedulazione sera
+      
+    # === MATTINA - PULIZIE SEQUENZIALI ===
+    morning_sequential:
+      name: 🔗 MATTINA - Pulizia Sequenziale
+      description: Abilita più pulizie consecutive con attesa tra una e l'altra
       default: false
       selector:
         boolean: {}
-
+        
+    morning_step2_preset:
+      name: 🎯 MATTINA - Step 2 - Modalità
+      default: "cleangenius"
+      selector:
+        select:
+          options: ["", "aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          
+    morning_step2_rooms:
+      name: 🏠 MATTINA - Step 2 - Stanze
+      default: ""
+      
+    morning_step3_preset:
+      name: 🎯 MATTINA - Step 3 - Modalità
+      default: ""
+      selector:
+        select:
+          options: ["", "aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          
+    morning_step3_rooms:
+      name: 🏠 MATTINA - Step 3 - Stanze
+      default: ""
+      
+    morning_max_wait:
+      name: ⏱️ MATTINA - Timeout Attesa (minuti)
+      description: Tempo massimo di attesa completamento tra step
+      default: 60
+      selector:
+        number:
+          min: 10
+          max: 180
+          unit_of_measurement: "min"
+          
+    # ========================================
+    # === SLOT SERA ===
+    # ========================================
+    evening_on:
+      name: 🌙 SERA - Abilita
+      default: true
+      selector:
+        boolean: {}
+        
     evening_time:
-      name: Orario pulizia sera
+      name: ⏰ SERA - Orario
       default: "18:00:00"
       selector:
         time: {}
-
-    evening_days:
-      name: Giorni sera
-      description: Giorni della settimana (lascia vuoto per tutti i giorni).
-      default: []
+        
+    evening_weekdays:
+      name: 📅 SERA - Giorni Settimana
+      default: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
       selector:
         select:
-          options: [mon, tue, wed, thu, fri, sat, sun]
+          options: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
           multiple: true
-          sort: false
-
+          
+    evening_schedule_template:
+      name: 📋 SERA - Pianificazione Avanzata (Opzionale)
+      default: ""
+      
+    # === SERA - LOGICA ADATTIVA ===
+    evening_conditional:
+      name: 🧠 SERA - Logica Adattiva
+      description: |
+        Come comportarsi in base alla pulizia mattutina:
+        - **always** = Esegui sempre (come prima)
+        - **skip_if_cleaned** = Salta se già pulito oggi
+        - **fallback_if_not_cleaned** = Esegui solo se NON pulito oggi  
+        - **adapt_if_cleaned** = Cambia modalità se già pulito oggi
+      default: "always"
+      selector:
+        select:
+          options:
+            - label: "Esegui sempre"
+              value: "always"
+            - label: "Salta se già pulito oggi"
+              value: "skip_if_cleaned"
+            - label: "Esegui solo se NON pulito oggi"
+              value: "fallback_if_not_cleaned"
+            - label: "Adatta modalità se già pulito"
+              value: "adapt_if_cleaned"
+              
     evening_preset:
-      name: Modalità sera
-      default: genius
+      name: 🎯 SERA - Modalità Pulizia
+      default: "cleangenius"
       selector:
         select:
-          options:
-            - label: "Solo aspirazione"
-              value: sweeping
-            - label: "Solo lavaggio"
-              value: mopping
-            - label: "Aspirazione e lavaggio"
-              value: sweeping_and_mopping
-            - label: "Lavaggio dopo aspirazione"
-              value: mopping_after_sweeping
-            - label: "CleanGenius"
-              value: genius
-            - label: "CleanGenius Profondo"
-              value: genius_deep
-          multiple: false
-          custom_value: false
-
+          options: ["aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          
     evening_rooms:
-      name: Stanze sera
-      description: Esempi_ "2,3,4" oppure "Kitchen,Bathroom". Se vuoto → tutta la casa.
+      name: 🏠 SERA - Stanze
       default: ""
-
-    # --- Blocchi avanzati A–D (sempre disponibili) ---
-    blockA_enabled:
-      name: Abilita blocco A
+      
+    # === SERA - MODALITÀ ALTERNATIVA ===
+    evening_fallback_preset:
+      name: 🔄 SERA - Modalità Alternativa
+      description: "Modalità da usare con logica 'adapt_if_cleaned'"
+      default: "aspira"
+      selector:
+        select:
+          options: ["aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          
+    evening_fallback_rooms:
+      name: 🔄 SERA - Stanze Alternative  
+      description: "Stanze da usare con logica 'adapt_if_cleaned'"
+      default: ""
+      
+    # === SERA - SEQUENZIALI ===
+    evening_sequential:
+      name: 🔗 SERA - Pulizia Sequenziale
       default: false
       selector:
         boolean: {}
-
-    blockA_time:
-      name: Orario blocco A
-      default: "09:00:00"
-      selector:
-        time: {}
-
-    blockA_days:
-      name: Giorni blocco A
-      default: []
-      selector:
-        select:
-          options: [mon, tue, wed, thu, fri, sat, sun]
-          multiple: true
-          sort: false
-
-    blockA_preset:
-      name: Modalità blocco A
-      default: sweeping
-      selector:
-        select:
-          options:
-            - label: "Solo aspirazione"
-              value: sweeping
-            - label: "Solo lavaggio"
-              value: mopping
-            - label: "Aspirazione e lavaggio"
-              value: sweeping_and_mopping
-            - label: "Lavaggio dopo aspirazione"
-              value: mopping_after_sweeping
-            - label: "CleanGenius"
-              value: genius
-            - label: "CleanGenius Profondo"
-              value: genius_deep
-          multiple: false
-          custom_value: false
-
-    blockA_rooms:
-      name: Stanze blocco A
-      description: Esempi_ "2,3,4" oppure "Kitchen,Bathroom". Se vuoto → tutta la casa.
+        
+    evening_step2_preset:
+      name: 🎯 SERA - Step 2 - Modalità
       default: ""
-
-    blockB_enabled:
-      name: Abilita blocco B
+      selector:
+        select:
+          options: ["", "aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          
+    evening_step2_rooms:
+      name: 🏠 SERA - Step 2 - Stanze
+      default: ""
+      
+    evening_step3_preset:
+      name: 🎯 SERA - Step 3 - Modalità
+      default: ""
+      selector:
+        select:
+          options: ["", "aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          
+    evening_step3_rooms:
+      name: 🏠 SERA - Step 3 - Stanze
+      default: ""
+      
+    evening_max_wait:
+      name: ⏱️ SERA - Timeout Attesa (minuti)
+      default: 60
+      selector:
+        number:
+          min: 10
+          max: 180
+          unit_of_measurement: "min"
+          
+    # ========================================
+    # === BLOCCO 1 ===
+    # ======================================== 
+    block1_on:
+      name: 🎯 BLOCCO 1 - Abilita
       default: false
       selector:
         boolean: {}
-
-    blockB_time:
-      name: Orario blocco B
-      default: "10:30:00"
+        
+    block1_time:
+      name: ⏰ BLOCCO 1 - Orario
+      default: "12:00:00"
       selector:
         time: {}
-
-    blockB_days:
-      name: Giorni blocco B
-      default: []
+        
+    block1_weekdays:
+      name: 📅 BLOCCO 1 - Giorni Settimana
+      default: ["saturday", "sunday"]
       selector:
         select:
-          options: [mon, tue, wed, thu, fri, sat, sun]
+          options: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
           multiple: true
-          sort: false
-
-    blockB_preset:
-      name: Modalità blocco B
-      default: mopping
+          
+    block1_schedule_template:
+      name: 📋 BLOCCO 1 - Pianificazione Avanzata (Opzionale)
+      default: ""
+      
+    block1_conditional:
+      name: 🧠 BLOCCO 1 - Logica Adattiva
+      default: "always"
       selector:
         select:
           options:
-            - label: "Solo aspirazione"
-              value: sweeping
-            - label: "Solo lavaggio"
-              value: mopping
-            - label: "Aspirazione e lavaggio"
-              value: sweeping_and_mopping
-            - label: "Lavaggio dopo aspirazione"
-              value: mopping_after_sweeping
-            - label: "CleanGenius"
-              value: genius
-            - label: "CleanGenius Profondo"
-              value: genius_deep
-          multiple: false
-          custom_value: false
-
-    blockB_rooms:
-      name: Stanze blocco B
-      description: Esempi_ "2,3,4" oppure "Kitchen,Bathroom". Se vuoto → tutta la casa.
+            - label: "Esegui sempre"
+              value: "always"
+            - label: "Salta se già pulito oggi"
+              value: "skip_if_cleaned"
+            - label: "Esegui solo se NON pulito oggi"
+              value: "fallback_if_not_cleaned"
+            - label: "Adatta modalità se già pulito"
+              value: "adapt_if_cleaned"
+              
+    block1_preset:
+      name: 🎯 BLOCCO 1 - Modalità Pulizia
+      default: "pulisci"
+      selector:
+        select:
+          options: ["aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          
+    block1_rooms:
+      name: 🏠 BLOCCO 1 - Stanze
       default: ""
-
-    blockC_enabled:
-      name: Abilita blocco C
+      
+    block1_fallback_preset:
+      name: 🔄 BLOCCO 1 - Modalità Alternativa
+      default: "aspira"
+      selector:
+        select:
+          options: ["aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          
+    block1_fallback_rooms:
+      name: 🔄 BLOCCO 1 - Stanze Alternative
+      default: ""
+      
+    block1_sequential:
+      name: 🔗 BLOCCO 1 - Pulizia Sequenziale
       default: false
       selector:
         boolean: {}
-
-    blockC_time:
-      name: Orario blocco C
-      default: "15:00:00"
-      selector:
-        time: {}
-
-    blockC_days:
-      name: Giorni blocco C
-      default: []
-      selector:
-        select:
-          options: [mon, tue, wed, thu, fri, sat, sun]
-          multiple: true
-          sort: false
-
-    blockC_preset:
-      name: Modalità blocco C
-      default: genius
-      selector:
-        select:
-          options:
-            - label: "Solo aspirazione"
-              value: sweeping
-            - label: "Solo lavaggio"
-              value: mopping
-            - label: "Aspirazione e lavaggio"
-              value: sweeping_and_mopping
-            - label: "Lavaggio dopo aspirazione"
-              value: mopping_after_sweeping
-            - label: "CleanGenius"
-              value: genius
-            - label: "CleanGenius Profondo"
-              value: genius_deep
-          multiple: false
-          custom_value: false
-
-    blockC_rooms:
-      name: Stanze blocco C
-      description: Esempi_ "2,3,4" oppure "Kitchen,Bathroom". Se vuoto → tutta la casa.
+        
+    block1_step2_preset:
+      name: 🎯 BLOCCO 1 - Step 2 - Modalità
       default: ""
+      selector:
+        select:
+          options: ["", "aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          
+    block1_step2_rooms:
+      name: 🏠 BLOCCO 1 - Step 2 - Stanze
+      default: ""
+      
+    block1_step3_preset:
+      name: 🎯 BLOCCO 1 - Step 3 - Modalità
+      default: ""
+      selector:
+        select:
+          options: ["", "aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          
+    block1_step3_rooms:
+      name: 🏠 BLOCCO 1 - Step 3 - Stanze
+      default: ""
+      
+    block1_max_wait:
+      name: ⏱️ BLOCCO 1 - Timeout Attesa (minuti)
+      default: 60
+      selector:
+        number:
+          min: 10
+          max: 180
+          unit_of_measurement: "min"
 
-    blockD_enabled:
-      name: Abilita blocco D
+    # ========================================
+    # === BLOCCO 2 === 
+    # ========================================
+    block2_on:
+      name: 🎯 BLOCCO 2 - Abilita
       default: false
       selector:
         boolean: {}
-
-    blockD_time:
-      name: Orario blocco D
-      default: "18:30:00"
+        
+    block2_time:
+      name: ⏰ BLOCCO 2 - Orario
+      default: "14:00:00"
       selector:
         time: {}
-
-    blockD_days:
-      name: Giorni blocco D
-      default: []
+        
+    block2_weekdays:
+      name: 📅 BLOCCO 2 - Giorni Settimana
+      default: ["saturday", "sunday"]
       selector:
         select:
-          options: [mon, tue, wed, thu, fri, sat, sun]
+          options: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
           multiple: true
-          sort: false
-
-    blockD_preset:
-      name: Modalità blocco D
-      default: genius_deep
+          
+    block2_schedule_template:
+      name: 📋 BLOCCO 2 - Pianificazione Avanzata (Opzionale)
+      default: ""
+      
+    block2_conditional:
+      name: 🧠 BLOCCO 2 - Logica Adattiva
+      default: "always"
       selector:
         select:
           options:
-            - label: "Solo aspirazione"
-              value: sweeping
-            - label: "Solo lavaggio"
-              value: mopping
-            - label: "Aspirazione e lavaggio"
-              value: sweeping_and_mopping
-            - label: "Lavaggio dopo aspirazione"
-              value: mopping_after_sweeping
-            - label: "CleanGenius"
-              value: genius
-            - label: "CleanGenius Profondo"
-              value: genius_deep
-          multiple: false
-          custom_value: false
-
-    blockD_rooms:
-      name: Stanze blocco D
-      description: Esempi_ "2,3,4" oppure "Kitchen,Bathroom". Se vuoto → tutta la casa.
+            - label: "Esegui sempre"
+              value: "always"
+            - label: "Salta se già pulito oggi"
+              value: "skip_if_cleaned"
+            - label: "Esegui solo se NON pulito oggi"
+              value: "fallback_if_not_cleaned"
+            - label: "Adatta modalità se già pulito"
+              value: "adapt_if_cleaned"
+              
+    block2_preset:
+      name: 🎯 BLOCCO 2 - Modalità Pulizia
+      default: "pulisci"
+      selector:
+        select:
+          options: ["aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          
+    block2_rooms:
+      name: 🏠 BLOCCO 2 - Stanze
       default: ""
+      
+    block2_fallback_preset:
+      name: 🔄 BLOCCO 2 - Modalità Alternativa
+      default: "aspira"
+      selector:
+        select:
+          options: ["aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          
+    block2_fallback_rooms:
+      name: 🔄 BLOCCO 2 - Stanze Alternative
+      default: ""
+      
+    block2_sequential:
+      name: 🔗 BLOCCO 2 - Pulizia Sequenziale
+      default: false
+      selector:
+        boolean: {}
+        
+    block2_step2_preset:
+      name: 🎯 BLOCCO 2 - Step 2 - Modalità
+      default: ""
+      selector:
+        select:
+          options: ["", "aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          
+    block2_step2_rooms:
+      name: 🏠 BLOCCO 2 - Step 2 - Stanze
+      default: ""
+      
+    block2_step3_preset:
+      name: 🎯 BLOCCO 2 - Step 3 - Modalità
+      default: ""
+      selector:
+        select:
+          options: ["", "aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          
+    block2_step3_rooms:
+      name: 🏠 BLOCCO 2 - Step 3 - Stanze
+      default: ""
+      
+    block2_max_wait:
+      name: ⏱️ BLOCCO 2 - Timeout Attesa (minuti)
+      default: 60
+      selector:
+        number:
+          min: 10
+          max: 180
+          unit_of_measurement: "min"
 
-mode: restart
-max_exceeded: silent
+    # ========================================
+    # === BLOCCO 3 === 
+    # ========================================
+    block3_on:
+      name: 🎯 BLOCCO 3 - Abilita
+      default: false
+      selector:
+        boolean: {}
+        
+    block3_time:
+      name: ⏰ BLOCCO 3 - Orario
+      default: "16:00:00"
+      selector:
+        time: {}
+        
+    block3_weekdays:
+      name: 📅 BLOCCO 3 - Giorni Settimana
+      default: ["saturday", "sunday"]
+      selector:
+        select:
+          options: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+          multiple: true
+          
+    block3_schedule_template:
+      name: 📋 BLOCCO 3 - Pianificazione Avanzata (Opzionale)
+      default: ""
+      
+    block3_conditional:
+      name: 🧠 BLOCCO 3 - Logica Adattiva
+      default: "always"
+      selector:
+        select:
+          options:
+            - label: "Esegui sempre"
+              value: "always"
+            - label: "Salta se già pulito oggi"
+              value: "skip_if_cleaned"
+            - label: "Esegui solo se NON pulito oggi"
+              value: "fallback_if_not_cleaned"
+            - label: "Adatta modalità se già pulito"
+              value: "adapt_if_cleaned"
+              
+    block3_preset:
+      name: 🎯 BLOCCO 3 - Modalità Pulizia
+      default: "pulisci"
+      selector:
+        select:
+          options: ["aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          
+    block3_rooms:
+      name: 🏠 BLOCCO 3 - Stanze
+      default: ""
+      
+    block3_fallback_preset:
+      name: 🔄 BLOCCO 3 - Modalità Alternativa
+      default: "aspira"
+      selector:
+        select:
+          options: ["aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          
+    block3_fallback_rooms:
+      name: 🔄 BLOCCO 3 - Stanze Alternative
+      default: ""
+      
+    block3_sequential:
+      name: 🔗 BLOCCO 3 - Pulizia Sequenziale
+      default: false
+      selector:
+        boolean: {}
+        
+    block3_step2_preset:
+      name: 🎯 BLOCCO 3 - Step 2 - Modalità
+      default: ""
+      selector:
+        select:
+          options: ["", "aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          
+    block3_step2_rooms:
+      name: 🏠 BLOCCO 3 - Step 2 - Stanze
+      default: ""
+      
+    block3_step3_preset:
+      name: 🎯 BLOCCO 3 - Step 3 - Modalità
+      default: ""
+      selector:
+        select:
+          options: ["", "aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          
+    block3_step3_rooms:
+      name: 🏠 BLOCCO 3 - Step 3 - Stanze
+      default: ""
+      
+    block3_max_wait:
+      name: ⏱️ BLOCCO 3 - Timeout Attesa (minuti)
+      default: 60
+      selector:
+        number:
+          min: 10
+          max: 180
+          unit_of_measurement: "min"
 
-variables:
-  vac: !input vacuum_entity
-  map_ent: !input map_camera
-  flag_cleaned: !input cleaned_today_helper
-  presence_ent: !input presence_helper
-  pres_val: !input presence_required_value
-    # Deriva gli entity_id dei select dal nome del vacuum 
-  robot_slug: "{{ vac.split('.')[1] }}"
-  cg_sel: "select.{{ robot_slug }}_cleangenius"
-  cm_sel: "select.{{ robot_slug }}_cleaning_mode"
+    # ========================================
+    # === BLOCCO 4 === 
+    # ========================================
+    block4_on:
+      name: 🎯 BLOCCO 4 - Abilita
+      default: false
+      selector:
+        boolean: {}
+        
+    block4_time:
+      name: ⏰ BLOCCO 4 - Orario
+      default: "20:00:00"
+      selector:
+        time: {}
+        
+    block4_weekdays:
+      name: 📅 BLOCCO 4 - Giorni Settimana
+      default: ["saturday", "sunday"]
+      selector:
+        select:
+          options: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+          multiple: true
+          
+    block4_schedule_template:
+      name: 📋 BLOCCO 4 - Pianificazione Avanzata (Opzionale)
+      default: ""
+      
+    block4_conditional:
+      name: 🧠 BLOCCO 4 - Logica Adattiva
+      default: "always"
+      selector:
+        select:
+          options:
+            - label: "Esegui sempre"
+              value: "always"
+            - label: "Salta se già pulito oggi"
+              value: "skip_if_cleaned"
+            - label: "Esegui solo se NON pulito oggi"
+              value: "fallback_if_not_cleaned"
+            - label: "Adatta modalità se già pulito"
+              value: "adapt_if_cleaned"
+              
+    block4_preset:
+      name: 🎯 BLOCCO 4 - Modalità Pulizia
+      default: "pulisci"
+      selector:
+        select:
+          options: ["aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          
+    block4_rooms:
+      name: 🏠 BLOCCO 4 - Stanze
+      default: ""
+      
+    block4_fallback_preset:
+      name: 🔄 BLOCCO 4 - Modalità Alternativa
+      default: "aspira"
+      selector:
+        select:
+          options: ["aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          
+    block4_fallback_rooms:
+      name: 🔄 BLOCCO 4 - Stanze Alternative
+      default: ""
+      
+    block4_sequential:
+      name: 🔗 BLOCCO 4 - Pulizia Sequenziale
+      default: false
+      selector:
+        boolean: {}
+        
+    block4_step2_preset:
+      name: 🎯 BLOCCO 4 - Step 2 - Modalità
+      default: ""
+      selector:
+        select:
+          options: ["", "aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          
+    block4_step2_rooms:
+      name: 🏠 BLOCCO 4 - Step 2 - Stanze
+      default: ""
+      
+    block4_step3_preset:
+      name: 🎯 BLOCCO 4 - Step 3 - Modalità
+      default: ""
+      selector:
+        select:
+          options: ["", "aspira", "lava", "pulisci", "cleangenius", "cleangenius_deep"]
+          
+    block4_step3_rooms:
+      name: 🏠 BLOCCO 4 - Step 3 - Stanze
+      default: ""
+      
+    block4_max_wait:
+      name: ⏱️ BLOCCO 4 - Timeout Attesa (minuti)
+      default: 60
+      selector:
+        number:
+          min: 10
+          max: 180
+          unit_of_measurement: "min"
 
-
-  # Mattina
-  m_on: !input morning_enabled
-  m_time: !input morning_time
-  m_days: !input morning_days
-  m_preset: !input morning_preset
-  m_rooms: !input morning_rooms
-
-  # Sera
-  e_on: !input evening_enabled
-  e_time: !input evening_time
-  e_days: !input evening_days
-  e_preset: !input evening_preset
-  e_rooms: !input evening_rooms
-
-  # Blocchi
-  a_on: !input blockA_enabled
-  a_time: !input blockA_time
-  a_days: !input blockA_days
-  a_preset: !input blockA_preset
-  a_rooms: !input blockA_rooms
-
-  b_on: !input blockB_enabled
-  b_time: !input blockB_time
-  b_days: !input blockB_days
-  b_preset: !input blockB_preset
-  b_rooms: !input blockB_rooms
-
-  c_on: !input blockC_enabled
-  c_time: !input blockC_time
-  c_days: !input blockC_days
-  c_preset: !input blockC_preset
-  c_rooms: !input blockC_rooms
-
-  d_on: !input blockD_enabled
-  d_time: !input blockD_time
-  d_days: !input blockD_days
-  d_preset: !input blockD_preset
-  d_rooms: !input blockD_rooms
-
+# =========================================
+# === TRIGGERS E AZIONI ===
+# =========================================
 trigger:
   - platform: time
-    at: !input reset_time
-    id: reset
-
-  - platform: time
-    at: "{{ m_time }}"
+    at: !input morning_time
     id: morning
-
-  - platform: time
-    at: "{{ e_time }}"
+  - platform: time  
+    at: !input evening_time
     id: evening
-
   - platform: time
-    at: "{{ a_time }}"
-    id: blockA
-
+    at: !input block1_time
+    id: block1
   - platform: time
-    at: "{{ b_time }}"
-    id: blockB
-
+    at: !input block2_time
+    id: block2
   - platform: time
-    at: "{{ c_time }}"
-    id: blockC
-
+    at: !input block3_time
+    id: block3
   - platform: time
-    at: "{{ d_time }}"
-    id: blockD
+    at: !input block4_time
+    id: block4
+  # Reset flag giornaliero
+  - platform: time
+    at: "23:59:00"
+    id: reset_flag
 
-condition: []
+variables:
+  # Entità principali
+  vacuum_ent: !input vacuum_entity
+  robot_status: !input robot_status_sensor
+  valid_states: !input valid_robot_states
+  presence_ent: !input presence_entity
+  pres_val: !input presence_value
+  flag_cleaned: !input flag_cleaned_today
+  notification_targets: !input notification_targets
+  debug_enabled: !input debug_mode
 
 action:
+  # === RESET FLAG GIORNALIERO ===
+  - if:
+      - condition: template
+        value_template: "{{ trigger.id == 'reset_flag' }}"
+    then:
+      - if:
+          - condition: template
+            value_template: "{{ debug_enabled }}"
+        then:
+          - service: system_log.write
+            data:
+              message: "[DREAME BLUEPRINT] 🌙 Reset flag pulizia giornaliero"
+              level: info
+      - service: input_boolean.turn_off
+        target:
+          entity_id: "{{ flag_cleaned }}"
+      - stop: "Reset flag completato"
+
+  # === LOGICA PRINCIPALE ===
   - choose:
-      - conditions: "{{ trigger.id == 'reset' }}"
+      # ===== MATTINA =====
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.id == 'morning' }}"
+          - condition: template
+            value_template: "{{ morning_on }}"
+          - condition: template
+            value_template: |
+              {% set current_weekday = now().strftime('%A').lower() %}
+              {{ current_weekday in morning_weekdays }}
+          - condition: template
+            value_template: |
+              {% if morning_schedule_template != '' %}
+                {{ morning_schedule_template | bool }}
+              {% else %}
+                true
+              {% endif %}
+          - condition: template
+            value_template: |
+              {% if robot_status != '' %}
+                {{ states(robot_status) in valid_states }}
+              {% else %}
+                true
+              {% endif %}
+          - condition: template
+            value_template: |
+              {% if presence_ent != '' %}
+                {{ states(presence_ent) == pres_val }}
+              {% else %}
+                true
+              {% endif %}
         sequence:
-          - service: input_boolean.turn_off
+          - if:
+              - condition: template
+                value_template: "{{ debug_enabled }}"
+            then:
+              - service: system_log.write
+                data:
+                  message: "[DREAME BLUEPRINT] 🌅 Avvio pulizia MATTINA"
+                  level: info
+          - service: input_boolean.turn_on
             target:
               entity_id: "{{ flag_cleaned }}"
 
-      - conditions: >
-          {{ trigger.id == 'morning'
-             and m_on
-             and (m_days | count == 0 or now().isoweekday() in
-                  [1 if 'mon' in m_days else 0,
-                   2 if 'tue' in m_days else 0,
-                   3 if 'wed' in m_days else 0,
-                   4 if 'thu' in m_days else 0,
-                   5 if 'fri' in m_days else 0,
-                   6 if 'sat' in m_days else 0,
-                   7 if 'sun' in m_days else 0]) }}
+      # ===== SERA =====  
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.id == 'evening' }}"
+          - condition: template
+            value_template: "{{ evening_on }}"
+          - condition: template
+            value_template: |
+              {% set current_weekday = now().strftime('%A').lower() %}
+              {{ current_weekday in evening_weekdays }}
+          - condition: template
+            value_template: |
+              {% if evening_schedule_template != '' %}
+                {{ evening_schedule_template | bool }}
+              {% else %}
+                true
+              {% endif %}
+          - condition: template
+            value_template: |
+              {% if robot_status != '' %}
+                {{ states(robot_status) in valid_states }}
+              {% else %}
+                true
+              {% endif %}
+          - condition: template
+            value_template: |
+              {% if presence_ent != '' %}
+                {{ states(presence_ent) == pres_val }}
+              {% else %}
+                true
+              {% endif %}
         sequence:
+          # === LOGICA ADATTIVA ===
           - choose:
-              - conditions: >
-                  {{ presence_ent != '' and pres_val != '' and states(presence_ent) != pres_val }}
-                sequence: []
-            default:
-              - variables:
-                  preset_now: "{{ m_preset }}"
-                  rooms_now: "{{ m_rooms }}"
-              - sequence: &run_clean
-                - variables:
-                    raw_rooms: "{{ rooms_now | string | trim }}"
-                    # Se raw_rooms è vuoto → tutta la casa (lista vuota interpretata come all segments negli script)
-                    seg_list: >
-                      {% set txt = raw_rooms %}
-                      {% if txt == '' %}
-                        []
-                      {% else %}
-                        {% set parts = txt.split(',') | map('trim') | list %}
-                        {% set rdict = state_attr(map_ent, 'rooms') or {} %}
-                        {% set out = [] %}
-                        {% for p in parts %}
-                          {% if p|int|string == p %}
-                            {% set out = out + [ p|int ] %}
-                          {% else %}
-                            {% set rid = (rdict|selectattr('1.name','equalto',p)|map(attribute='1.room_id')|list|first) %}
-                            {% if rid is not none %}
-                              {% set out = out + [ rid|int ] %}
-                            {% endif %}
-                          {% endif %}
-                        {% endfor %}
-                        {{ out }}
-                      {% endif %}
-                - choose:
-                    - conditions: "{{ preset_now in ['sweeping','mopping','sweeping_and_mopping','mopping_after_sweeping'] }}"
-                      sequence:
-                        - service: select.select_option
-                          target:
-                            entity_id: select.{{ states(vac).split('.')[0] if false else 'ambrogio_cleangenius_2' }}
-                          data:
-                            option: "off"
-                        - wait_template: "{{ states(cg_sel) in ['off','unknown','unavailable','none'] }}"
-                          timeout: "00:00:08"
-                          continue_on_timeout: true
-                        - service: select.select_option
-                          target:
-                            entity_id: "{{ cm_sel }}"
-                          data:
-                            option: "{{ preset_now }}"
-                        - wait_template: "{{ states(cm_sel) == preset_now }}"
-                          timeout: "00:00:08"
-                          continue_on_timeout: true
-                        - service: dreame_vacuum.vacuum_clean_segment
-                          target:
-                            entity_id: "{{ vac }}"
-                          data:
-                            segments: "{{ seg_list }}"
-                    - conditions: "{{ preset_now == 'genius' }}"
-                      sequence:
-                        - service: select.select_option
-                          target:
-                            entity_id: "{{ cg_sel }}"
-                          data:
-                            option: "routine_cleaning"
-                        - wait_template: "{{ states(cg_sel) in ['routine_cleaning','unknown','unavailable','none'] }}"
-                          timeout: "00:00:08"
-                          continue_on_timeout: true
-                        - service: dreame_vacuum.vacuum_clean_segment
-                          target:
-                            entity_id: "{{ vac }}"
-                          data:
-                            segments: "{{ seg_list }}"
-                    - conditions: "{{ preset_now == 'genius_deep' }}"
-                      sequence:
-                        - service: select.select_option
-                          target:
-                            entity_id: "{{ cg_sel }}"
-                          data:
-                            option: "deep_cleaning"
-                        - wait_template: "{{ states(cg_sel) in ['deep_cleaning','unknown','unavailable','none'] }}"
-                          timeout: "00:00:08"
-                          continue_on_timeout: true
-                        - service: dreame_vacuum.vacuum_clean_segment
-                          target:
-                            entity_id: "{{ vac }}"
-                          data:
-                            segments: "{{ seg_list }}"
-                - service: input_boolean.turn_on
-                  target:
-                    entity_id: "{{ flag_cleaned }}"
+              # Skip se già pulito
+              - conditions:
+                  - condition: template
+                    value_template: "{{ evening_conditional == 'skip_if_cleaned' }}"
+                  - condition: template
+                    value_template: "{{ is_state(flag_cleaned, 'on') }}"
+                sequence:
+                  - if:
+                      - condition: template
+                        value_template: "{{ debug_enabled }}"
+                    then:
+                      - service: system_log.write
+                        data:
+                          message: "[DREAME BLUEPRINT] ⏭️ Pulizia SERA saltata - già pulito oggi"
+                          level: info
+                  - stop: "Pulizia già effettuata oggi"
+              
+              # Esegui solo se non pulito
+              - conditions:
+                  - condition: template
+                    value_template: "{{ evening_conditional == 'fallback_if_not_cleaned' }}"
+                  - condition: template
+                    value_template: "{{ is_state(flag_cleaned, 'off') }}"
+                sequence:
+                  - if:
+                      - condition: template
+                        value_template: "{{ debug_enabled }}"
+                    then:
+                      - service: system_log.write
+                        data:
+                          message: "[DREAME BLUEPRINT] 🌙 Pulizia SERA (Recupero) - non pulito oggi"
+                          level: info
+                  - service: input_boolean.turn_on
+                    target:
+                      entity_id: "{{ flag_cleaned }}"
+              
+              # Adatta modalità se già pulito
+              - conditions:
+                  - condition: template
+                    value_template: "{{ evening_conditional == 'adapt_if_cleaned' }}"
+                  - condition: template
+                    value_template: "{{ is_state(flag_cleaned, 'on') }}"
+                sequence:
+                  - if:
+                      - condition: template
+                        value_template: "{{ debug_enabled }}"
+                    then:
+                      - service: system_log.write
+                        data:
+                          message: "[DREAME BLUEPRINT] 🌙 Pulizia SERA (Modalità Leggera) - già pulito, uso modalità alternativa"
+                          level: info
+              
+              # Esegui sempre (default)
+              - conditions: []
+                sequence:
+                  - if:
+                      - condition: template
+                        value_template: "{{ debug_enabled }}"
+                    then:
+                      - service: system_log.write
+                        data:
+                          message: "[DREAME BLUEPRINT] 🌙 Pulizia SERA normale"
+                          level: info
+                  - service: input_boolean.turn_on
+                    target:
+                      entity_id: "{{ flag_cleaned }}"
 
-      - conditions: >
-          {{ trigger.id == 'evening'
-             and e_on
-             and (e_days | count == 0 or now().isoweekday() in
-                  [1 if 'mon' in e_days else 0,
-                   2 if 'tue' in e_days else 0,
-                   3 if 'wed' in e_days else 0,
-                   4 if 'thu' in e_days else 0,
-                   5 if 'fri' in e_days else 0,
-                   6 if 'sat' in e_days else 0,
-                   7 if 'sun' in e_days else 0]) }}
+      # ===== BLOCCHI 1, 2, 3, 4 =====
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.id == 'block1' }}"
+          - condition: template
+            value_template: "{{ block1_on }}"
         sequence:
-          - choose:
-              - conditions: >
-                  {{ presence_ent != '' and pres_val != '' and states(presence_ent) != pres_val }}
-                sequence: []
-            default:
-              - variables: { preset_now: "{{ e_preset }}", rooms_now: "{{ e_rooms }}" }
-              - sequence: *run_clean
+          - if:
+              - condition: template
+                value_template: "{{ debug_enabled }}"
+            then:
+              - service: system_log.write
+                data:
+                  message: "[DREAME BLUEPRINT] 🎯 Avvio BLOCCO 1"
+                  level: info
+          - service: input_boolean.turn_on
+            target:
+              entity_id: "{{ flag_cleaned }}"
 
-      - conditions: "{{ trigger.id == 'blockA' and a_on and (a_days | count == 0 or now().isoweekday() in [1 if 'mon' in a_days else 0,2 if 'tue' in a_days else 0,3 if 'wed' in a_days else 0,4 if 'thu' in a_days else 0,5 if 'fri' in a_days else 0,6 if 'sat' in a_days else 0,7 if 'sun' in a_days else 0]) }}"
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.id == 'block2' }}"
+          - condition: template
+            value_template: "{{ block2_on }}"
         sequence:
-          - variables: { preset_now: "{{ a_preset }}", rooms_now: "{{ a_rooms }}" }
-          - sequence: *run_clean
+          - if:
+              - condition: template
+                value_template: "{{ debug_enabled }}"
+            then:
+              - service: system_log.write
+                data:
+                  message: "[DREAME BLUEPRINT] 🎯 Avvio BLOCCO 2"
+                  level: info
+          - service: input_boolean.turn_on
+            target:
+              entity_id: "{{ flag_cleaned }}"
 
-      - conditions: "{{ trigger.id == 'blockB' and b_on and (b_days | count == 0 or now().isoweekday() in [1 if 'mon' in b_days else 0,2 if 'tue' in b_days else 0,3 if 'wed' in b_days else 0,4 if 'thu' in b_days else 0,5 if 'fri' in b_days else 0,6 if 'sat' in b_days else 0,7 if 'sun' in b_days else 0]) }}"
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.id == 'block3' }}"
+          - condition: template
+            value_template: "{{ block3_on }}"
         sequence:
-          - variables: { preset_now: "{{ b_preset }}", rooms_now: "{{ b_rooms }}" }
-          - sequence: *run_clean
+          - if:
+              - condition: template
+                value_template: "{{ debug_enabled }}"
+            then:
+              - service: system_log.write
+                data:
+                  message: "[DREAME BLUEPRINT] 🎯 Avvio BLOCCO 3"
+                  level: info
+          - service: input_boolean.turn_on
+            target:
+              entity_id: "{{ flag_cleaned }}"
 
-      - conditions: "{{ trigger.id == 'blockC' and c_on and (c_days | count == 0 or now().isoweekday() in [1 if 'mon' in c_days else 0,2 if 'tue' in c_days else 0,3 if 'wed' in c_days else 0,4 if 'thu' in c_days else 0,5 if 'fri' in c_days else 0,6 if 'sat' in c_days else 0,7 if 'sun' in c_days else 0]) }}"
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.id == 'block4' }}"
+          - condition: template
+            value_template: "{{ block4_on }}"
         sequence:
-          - variables: { preset_now: "{{ c_preset }}", rooms_now: "{{ c_rooms }}" }
-          - sequence: *run_clean
+          - if:
+              - condition: template
+                value_template: "{{ debug_enabled }}"
+            then:
+              - service: system_log.write
+                data:
+                  message: "[DREAME BLUEPRINT] 🎯 Avvio BLOCCO 4"
+                  level: info
+          - service: input_boolean.turn_on
+            target:
+              entity_id: "{{ flag_cleaned }}"
 
-      - conditions: "{{ trigger.id == 'blockD' and d_on and (d_days | count == 0 or now().isoweekday() in [1 if 'mon' in d_days else 0,2 if 'tue' in d_days else 0,3 if 'wed' in d_days else 0,4 if 'thu' in d_days else 0,5 if 'fri' in d_days else 0,6 if 'sat' in d_days else 0,7 if 'sun' in d_days else 0]) }}"
-        sequence:
-          - variables: { preset_now: "{{ d_preset }}", rooms_now: "{{ d_rooms }}" }
-          - sequence: *run_clean
+mode: single
+max_exceeded: silent
