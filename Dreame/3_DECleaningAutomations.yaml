@@ -5,7 +5,7 @@ blueprint:
     
     ✨ **CARATTERISTICHE:**
     - 🎯 **Slot Principale**: Mattina standard + Sera con logica adattiva
-    - 📅 **4 Schedulazioni Aggiuntive**: Tutte con logica adattiva intelligente  
+    - 📅 **4 Schedulazioni Aggiuntive**: Tutte con logica adattiva intelligente 
     - 🧠 **Controlli Automatici**: Verifica stato robot e presenza
     - 🔄 **Logica Adattiva Avanzata**: Evita pulizie ridondanti
     - 🏠 **Configurazione Flessibile**: Ogni slot indipendente
@@ -14,7 +14,6 @@ blueprint:
     - Ogni slot può essere abilitato/disabilitato separatamente (mattina/sera)
     - Le pulizie serali si adattano automaticamente in base alla situazione
     - Sistema ottimizzato per evitare sprechi energetici
-
   domain: automation
   input:
     # ═══════════════════════════════════════════════════════════════
@@ -29,7 +28,7 @@ blueprint:
         
         ✅ **Esempi comuni:**
         - `vacuum.dreame_l10s_ultra`
-        - `vacuum.ambrogio`  
+        - `vacuum.ambrogio` 
         - `vacuum.dreame_robot_vacuum`
         
         ⚠️ **Importante:** Deve essere l'entità principale (domain: vacuum), NON i sensori!
@@ -84,7 +83,7 @@ blueprint:
         entity: {}
 
     presence_value:
-      name: 🏠 Valore "Casa Vuota"  
+      name: 🏠 Valore "Casa Vuota" 
       description: |
         **Il valore che indica che la casa è vuota**
         
@@ -97,7 +96,6 @@ blueprint:
         **Se hai scelto un DEVICE_TRACKER:** `not_home`
         
         💡 **Consiglio:** Guarda negli "Stati sviluppatori" il valore effettivo del tuo sensore quando sei fuori casa
-      default: "0"
       selector:
         text: {}
 
@@ -148,12 +146,11 @@ blueprint:
         💡 **Questo vale per ENTRAMBI mattina e sera dello slot principale**
         📋 **Esempi:**
         - Giorni lavorativi: Lunedì-Venerdì
-        - Solo weekend: Sabato, Domenica  
+        - Solo weekend: Sabato, Domenica 
         - Alternato: Lunedì, Mercoledì, Venerdì
       selector:
         select:
           multiple: true
-          mode: dropdown
           options:
             - lunedì
             - martedì
@@ -169,14 +166,12 @@ blueprint:
         **Attiva la pulizia mattutina del programma principale**
         
         🎯 **COMPORTAMENTO:** Sempre eseguita quando abilitata (senza logica adattiva)
-        💡 **Ideale per:** Pulizia quotidiana garantita prima che tutti si sveglino
       selector:
         boolean: {}
 
     main_morning_time:
       name: ⏰ SLOT PRINCIPALE - Mattina - Orario
       description: Orario per la pulizia mattutina del programma principale
-      default: "05:00:00"
       selector:
         time: {}
 
@@ -187,14 +182,10 @@ blueprint:
         
         🎯 **MODALITÀ DISPONIBILI:**
         - **aspira**: Solo aspirazione (veloce)
-        - **lava**: Solo lavaggio (con panno)  
+        - **lava**: Solo lavaggio (con panno) 
         - **aspira_lava**: Aspira + lava (completo)
         - **cleangenius_deep**: AI cleaning profondo
         - **spot_cleaning**: Pulizia mirata
-        - **custom**: Modalità personalizzata
-        
-        💡 **Suggerimento mattina:** `aspira` (veloce per non disturbare)
-      default: "aspira"
       selector:
         select:
           options:
@@ -203,12 +194,10 @@ blueprint:
             - aspira_lava
             - cleangenius_deep
             - spot_cleaning
-            - custom
 
     main_morning_rooms:
       name: 🏠 SLOT PRINCIPALE - Mattina - Stanze
       description: "ID delle stanze da pulire separate da virgole (esempio: 1,2,3) oppure lascia vuoto per pulire tutta la casa"
-      default: ""
       selector:
         text: {}
 
@@ -221,7 +210,6 @@ blueprint:
     main_evening_time:
       name: ⏰ SLOT PRINCIPALE - Sera - Orario
       description: Orario per la pulizia serale del programma principale
-      default: "23:00:00"
       selector:
         time: {}
 
@@ -231,15 +219,14 @@ blueprint:
         **Come comportarsi in base allo stato del flag pulizia:**
         
         - **🔄 Esegui sempre:** Ignora lo stato del flag e pulisce sempre con modalità principale
-        - **⏭️ Salta se già pulito:** Non fa nulla se il flag indica che è già stato pulito oggi  
+        - **⏭️ Salta se già pulito:** Non fa nulla se il flag indica che è già stato pulito oggi 
         - **🧠 Adatta modalità:** Se già pulito oggi, usa modalità e stanze alternative invece di quelle principali
-      default: "always_clean"
       selector:
         select:
           options:
             - value: "always_clean"
               label: "🔄 Esegui Sempre"
-            - value: "skip_if_cleaned"  
+            - value: "skip_if_cleaned" 
               label: "⏭️ Salta se già pulito"
             - value: "adapt_if_cleaned"
               label: "🧠 Adatta modalità"
@@ -247,7 +234,6 @@ blueprint:
     main_evening_preset:
       name: 🎯 SLOT PRINCIPALE - Sera - Modalità Principale
       description: Modalità di pulizia principale da utilizzare per il programma serale (usata sempre, tranne se logica adattiva sceglie modalità alternativa)
-      default: "aspira"
       selector:
         select:
           options:
@@ -256,19 +242,16 @@ blueprint:
             - aspira_lava
             - cleangenius_deep
             - spot_cleaning
-            - custom
 
     main_evening_rooms:
       name: 🏠 SLOT PRINCIPALE - Sera - Stanze Principali
       description: "ID delle stanze da pulire con modalità principale, separate da virgole (esempio: 1,2,3) oppure lascia vuoto per pulire tutta la casa"
-      default: ""
       selector:
         text: {}
 
     main_evening_fallback_preset:
       name: 🔄 SLOT PRINCIPALE - Sera - Modalità Alternativa
       description: Modalità di pulizia alternativa da usare quando la logica adattiva è impostata su "Adatta modalità" e il robot è già stato utilizzato oggi
-      default: "lava"
       selector:
         select:
           options:
@@ -277,12 +260,10 @@ blueprint:
             - aspira_lava
             - cleangenius_deep
             - spot_cleaning
-            - custom
 
     main_evening_fallback_rooms:
       name: 🏠 SLOT PRINCIPALE - Sera - Stanze Alternative
       description: "ID delle stanze da pulire con modalità alternativa (esempio: solo bagno = 3). Se vuoto, usa le stesse stanze principali"
-      default: ""
       selector:
         text: {}
 
@@ -293,7 +274,6 @@ blueprint:
       selector:
         select:
           multiple: true
-          mode: dropdown
           options:
             - lunedì
             - martedì
@@ -312,14 +292,12 @@ blueprint:
     schedule1_morning_time:
       name: ⏰ PRIMA SCHEDULAZIONE - Mattina - Orario
       description: Orario per la pulizia mattutina della prima schedulazione aggiuntiva
-      default: "05:00:00"
       selector:
         time: {}
 
     schedule1_morning_preset:
       name: 🎯 PRIMA SCHEDULAZIONE - Mattina - Modalità
       description: Modalità di pulizia per il programma mattutino della prima schedulazione aggiuntiva
-      default: "aspira"
       selector:
         select:
           options:
@@ -328,12 +306,10 @@ blueprint:
             - aspira_lava
             - cleangenius_deep
             - spot_cleaning
-            - custom
 
     schedule1_morning_rooms:
       name: 🏠 PRIMA SCHEDULAZIONE - Mattina - Stanze
       description: "ID delle stanze da pulire separate da virgole (esempio: 1,2,3) oppure lascia vuoto per pulire tutta la casa"
-      default: ""
       selector:
         text: {}
 
@@ -346,7 +322,6 @@ blueprint:
     schedule1_evening_time:
       name: ⏰ PRIMA SCHEDULAZIONE - Sera - Orario
       description: Orario per la pulizia serale della prima schedulazione aggiuntiva
-      default: "23:00:00"
       selector:
         time: {}
 
@@ -356,9 +331,8 @@ blueprint:
         **Come comportarsi in base allo stato del flag pulizia:**
         
         - **🔄 Esegui sempre:** Ignora lo stato del flag e pulisce sempre con modalità principale
-        - **⏭️ Salta se già pulito:** Non fa nulla se il flag indica che è già stato pulito oggi  
+        - **⏭️ Salta se già pulito:** Non fa nulla se il flag indica che è già stato pulito oggi 
         - **🧠 Adatta modalità:** Se già pulito oggi, usa modalità e stanze alternative invece di quelle principali
-      default: "always_clean"
       selector:
         select:
           options:
@@ -372,7 +346,6 @@ blueprint:
     schedule1_evening_preset:
       name: 🎯 PRIMA SCHEDULAZIONE - Sera - Modalità Principale
       description: Modalità di pulizia principale per il programma serale della prima schedulazione aggiuntiva
-      default: "aspira"
       selector:
         select:
           options:
@@ -381,19 +354,16 @@ blueprint:
             - aspira_lava
             - cleangenius_deep
             - spot_cleaning
-            - custom
 
     schedule1_evening_rooms:
       name: 🏠 PRIMA SCHEDULAZIONE - Sera - Stanze Principali
       description: "ID delle stanze da pulire con modalità principale, separate da virgole (esempio: 1,2,3) oppure lascia vuoto per pulire tutta la casa"
-      default: ""
       selector:
         text: {}
 
     schedule1_evening_fallback_preset:
       name: 🔄 PRIMA SCHEDULAZIONE - Sera - Modalità Alternativa
       description: Modalità di pulizia alternativa da usare quando la logica adattiva sceglie di adattare la modalità
-      default: "lava"
       selector:
         select:
           options:
@@ -402,12 +372,10 @@ blueprint:
             - aspira_lava
             - cleangenius_deep
             - spot_cleaning
-            - custom
 
     schedule1_evening_fallback_rooms:
       name: 🏠 PRIMA SCHEDULAZIONE - Sera - Stanze Alternative
       description: "ID delle stanze da pulire con modalità alternativa (esempio: solo bagno = 3). Se vuoto, usa le stesse stanze principali"
-      default: ""
       selector:
         text: {}
 
@@ -415,11 +383,9 @@ blueprint:
     schedule2_weekdays:
       name: 📅 SECONDA SCHEDULAZIONE - Giorni Attivi
       description: Giorni della settimana in cui la seconda schedulazione è attiva (vale per mattina e sera)
-      default: ["domenica"]
       selector:
         select:
           multiple: true
-          mode: dropdown
           options:
             - lunedì
             - martedì
@@ -438,14 +404,12 @@ blueprint:
     schedule2_morning_time:
       name: ⏰ SECONDA SCHEDULAZIONE - Mattina - Orario
       description: Orario per la pulizia mattutina della seconda schedulazione aggiuntiva
-      default: "05:00:00"
       selector:
         time: {}
 
     schedule2_morning_preset:
       name: 🎯 SECONDA SCHEDULAZIONE - Mattina - Modalità
       description: Modalità di pulizia per il programma mattutino della seconda schedulazione aggiuntiva
-      default: "aspira"
       selector:
         select:
           options:
@@ -454,12 +418,10 @@ blueprint:
             - aspira_lava
             - cleangenius_deep
             - spot_cleaning
-            - custom
 
     schedule2_morning_rooms:
       name: 🏠 SECONDA SCHEDULAZIONE - Mattina - Stanze
       description: "ID delle stanze da pulire separate da virgole (esempio: 1,2,3) oppure lascia vuoto per pulire tutta la casa"
-      default: ""
       selector:
         text: {}
 
@@ -472,7 +434,6 @@ blueprint:
     schedule2_evening_time:
       name: ⏰ SECONDA SCHEDULAZIONE - Sera - Orario
       description: Orario per la pulizia serale della seconda schedulazione aggiuntiva
-      default: "23:00:00"
       selector:
         time: {}
 
@@ -482,9 +443,8 @@ blueprint:
         **Come comportarsi in base allo stato del flag pulizia:**
         
         - **🔄 Esegui sempre:** Ignora lo stato del flag e pulisce sempre con modalità principale
-        - **⏭️ Salta se già pulito:** Non fa nulla se il flag indica che è già stato pulito oggi  
+        - **⏭️ Salta se già pulito:** Non fa nulla se il flag indica che è già stato pulito oggi 
         - **🧠 Adatta modalità:** Se già pulito oggi, usa modalità e stanze alternative invece di quelle principali
-      default: "always_clean"
       selector:
         select:
           options:
@@ -498,7 +458,6 @@ blueprint:
     schedule2_evening_preset:
       name: 🎯 SECONDA SCHEDULAZIONE - Sera - Modalità Principale
       description: Modalità di pulizia principale per il programma serale della seconda schedulazione aggiuntiva
-      default: "aspira"
       selector:
         select:
           options:
@@ -507,19 +466,16 @@ blueprint:
             - aspira_lava
             - cleangenius_deep
             - spot_cleaning
-            - custom
 
     schedule2_evening_rooms:
       name: 🏠 SECONDA SCHEDULAZIONE - Sera - Stanze Principali
       description: "ID delle stanze da pulire con modalità principale, separate da virgole (esempio: 1,2,3) oppure lascia vuoto per pulire tutta la casa"
-      default: ""
       selector:
         text: {}
 
     schedule2_evening_fallback_preset:
       name: 🔄 SECONDA SCHEDULAZIONE - Sera - Modalità Alternativa
       description: Modalità di pulizia alternativa da usare quando la logica adattiva sceglie di adattare la modalità
-      default: "lava"
       selector:
         select:
           options:
@@ -528,12 +484,10 @@ blueprint:
             - aspira_lava
             - cleangenius_deep
             - spot_cleaning
-            - custom
 
     schedule2_evening_fallback_rooms:
       name: 🏠 SECONDA SCHEDULAZIONE - Sera - Stanze Alternative
       description: "ID delle stanze da pulire con modalità alternativa (esempio: solo bagno = 3). Se vuoto, usa le stesse stanze principali"
-      default: ""
       selector:
         text: {}
 
@@ -541,11 +495,9 @@ blueprint:
     schedule3_weekdays:
       name: 📅 TERZA SCHEDULAZIONE - Giorni Attivi
       description: Giorni della settimana in cui la terza schedulazione è attiva (vale per mattina e sera)
-      default: ["sabato"]
       selector:
         select:
           multiple: true
-          mode: dropdown
           options:
             - lunedì
             - martedì
@@ -564,14 +516,12 @@ blueprint:
     schedule3_morning_time:
       name: ⏰ TERZA SCHEDULAZIONE - Mattina - Orario
       description: Orario per la pulizia mattutina della terza schedulazione aggiuntiva
-      default: "05:00:00"
       selector:
         time: {}
 
     schedule3_morning_preset:
       name: 🎯 TERZA SCHEDULAZIONE - Mattina - Modalità
       description: Modalità di pulizia per il programma mattutino della terza schedulazione aggiuntiva
-      default: "aspira"
       selector:
         select:
           options:
@@ -580,12 +530,10 @@ blueprint:
             - aspira_lava
             - cleangenius_deep
             - spot_cleaning
-            - custom
 
     schedule3_morning_rooms:
       name: 🏠 TERZA SCHEDULAZIONE - Mattina - Stanze
       description: "ID delle stanze da pulire separate da virgole (esempio: 1,2,3) oppure lascia vuoto per pulire tutta la casa"
-      default: ""
       selector:
         text: {}
 
@@ -598,7 +546,6 @@ blueprint:
     schedule3_evening_time:
       name: ⏰ TERZA SCHEDULAZIONE - Sera - Orario
       description: Orario per la pulizia serale della terza schedulazione aggiuntiva
-      default: "23:00:00"
       selector:
         time: {}
 
@@ -608,9 +555,8 @@ blueprint:
         **Come comportarsi in base allo stato del flag pulizia:**
         
         - **🔄 Esegui sempre:** Ignora lo stato del flag e pulisce sempre con modalità principale
-        - **⏭️ Salta se già pulito:** Non fa nulla se il flag indica che è già stato pulito oggi  
+        - **⏭️ Salta se già pulito:** Non fa nulla se il flag indica che è già stato pulito oggi 
         - **🧠 Adatta modalità:** Se già pulito oggi, usa modalità e stanze alternative invece di quelle principali
-      default: "always_clean"
       selector:
         select:
           options:
@@ -624,7 +570,6 @@ blueprint:
     schedule3_evening_preset:
       name: 🎯 TERZA SCHEDULAZIONE - Sera - Modalità Principale
       description: Modalità di pulizia principale per il programma serale della terza schedulazione aggiuntiva
-      default: "aspira"
       selector:
         select:
           options:
@@ -633,19 +578,16 @@ blueprint:
             - aspira_lava
             - cleangenius_deep
             - spot_cleaning
-            - custom
 
     schedule3_evening_rooms:
       name: 🏠 TERZA SCHEDULAZIONE - Sera - Stanze Principali
       description: "ID delle stanze da pulire con modalità principale, separate da virgole (esempio: 1,2,3) oppure lascia vuoto per pulire tutta la casa"
-      default: ""
       selector:
         text: {}
 
     schedule3_evening_fallback_preset:
       name: 🔄 TERZA SCHEDULAZIONE - Sera - Modalità Alternativa
       description: Modalità di pulizia alternativa da usare quando la logica adattiva sceglie di adattare la modalità
-      default: "lava"
       selector:
         select:
           options:
@@ -654,12 +596,10 @@ blueprint:
             - aspira_lava
             - cleangenius_deep
             - spot_cleaning
-            - custom
 
     schedule3_evening_fallback_rooms:
       name: 🏠 TERZA SCHEDULAZIONE - Sera - Stanze Alternative
       description: "ID delle stanze da pulire con modalità alternativa (esempio: solo bagno = 3). Se vuoto, usa le stanze principali"
-      default: ""
       selector:
         text: {}
 
@@ -667,11 +607,9 @@ blueprint:
     schedule4_weekdays:
       name: 📅 QUARTA SCHEDULAZIONE - Giorni Attivi
       description: Giorni della settimana in cui la quarta schedulazione è attiva (vale per mattina e sera)
-      default: ["domenica"]
       selector:
         select:
           multiple: true
-          mode: dropdown
           options:
             - lunedì
             - martedì
@@ -690,14 +628,12 @@ blueprint:
     schedule4_morning_time:
       name: ⏰ QUARTA SCHEDULAZIONE - Mattina - Orario
       description: Orario per la pulizia mattutina della quarta schedulazione aggiuntiva
-      default: "05:00:00"
       selector:
         time: {}
 
     schedule4_morning_preset:
       name: 🎯 QUARTA SCHEDULAZIONE - Mattina - Modalità
       description: Modalità di pulizia per il programma mattutino della quarta schedulazione aggiuntiva
-      default: "aspira"
       selector:
         select:
           options:
@@ -706,12 +642,10 @@ blueprint:
             - aspira_lava
             - cleangenius_deep
             - spot_cleaning
-            - custom
 
     schedule4_morning_rooms:
       name: 🏠 QUARTA SCHEDULAZIONE - Mattina - Stanze
       description: "ID delle stanze da pulire separate da virgole (esempio: 1,2,3) oppure lascia vuoto per pulire tutta la casa"
-      default: ""
       selector:
         text: {}
 
@@ -724,7 +658,6 @@ blueprint:
     schedule4_evening_time:
       name: ⏰ QUARTA SCHEDULAZIONE - Sera - Orario
       description: Orario per la pulizia serale della quarta schedulazione aggiuntiva
-      default: "23:00:00"
       selector:
         time: {}
 
@@ -734,9 +667,8 @@ blueprint:
         **Come comportarsi in base allo stato del flag pulizia:**
         
         - **🔄 Esegui sempre:** Ignora lo stato del flag e pulisce sempre con modalità principale
-        - **⏭️ Salta se già pulito:** Non fa nulla se il flag indica che è già stato pulito oggi  
+        - **⏭️ Salta se già pulito:** Non fa nulla se il flag indica che è già stato pulito oggi 
         - **🧠 Adatta modalità:** Se già pulito oggi, usa modalità e stanze alternative invece di quelle principali
-      default: "always_clean"
       selector:
         select:
           options:
@@ -750,7 +682,6 @@ blueprint:
     schedule4_evening_preset:
       name: 🎯 QUARTA SCHEDULAZIONE - Sera - Modalità Principale
       description: Modalità di pulizia principale per il programma serale della quarta schedulazione aggiuntiva
-      default: "aspira"
       selector:
         select:
           options:
@@ -759,19 +690,16 @@ blueprint:
             - aspira_lava
             - cleangenius_deep
             - spot_cleaning
-            - custom
 
     schedule4_evening_rooms:
       name: 🏠 QUARTA SCHEDULAZIONE - Sera - Stanze Principali
       description: "ID delle stanze da pulire con modalità principale, separate da virgole (esempio: 1,2,3) oppure lascia vuoto per pulire tutta la casa"
-      default: ""
       selector:
         text: {}
 
     schedule4_evening_fallback_preset:
       name: 🔄 QUARTA SCHEDULAZIONE - Sera - Modalità Alternativa
       description: Modalità di pulizia alternativa da usare quando la logica adattiva sceglie di adattare la modalità
-      default: "lava"
       selector:
         select:
           options:
@@ -780,12 +708,10 @@ blueprint:
             - aspira_lava
             - cleangenius_deep
             - spot_cleaning
-            - custom
 
     schedule4_evening_fallback_rooms:
       name: 🏠 QUARTA SCHEDULAZIONE - Sera - Stanze Alternative
       description: "ID delle stanze da pulire con modalità alternativa (esempio: solo bagno = 3). Se vuoto, usa le stanze principali"
-      default: ""
       selector:
         text: {}
 
