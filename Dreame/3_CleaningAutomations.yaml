@@ -1170,4 +1170,162 @@ action:
                     - Stanze: {{ schedule3_morning_rooms if schedule3_morning_rooms else 'Tutta casa' }}
           - service: dreame_vacuum.vacuum_clean_segment
             target:
-              entity_id: "{{ vacuum_
+              entity_id: "{{ vacuum_ent }}"
+            data:
+              segments: >
+                {% if schedule3_morning_rooms %}
+                  {{ schedule3_morning_rooms.split(',') | map('int') | list }}
+                {% else %}
+                  []
+                {% endif %}
+              cleaning_mode: "{{ schedule3_morning_preset }}"
+          - service: input_boolean.turn_on
+            target:
+              entity_id: "{{ flag_ent }}"
+
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.id == 'schedule3_evening' }}"
+        sequence:
+          - variables:
+              already_cleaned: "{{ states(flag_ent) == 'on' }}"
+              conditional_mode: "{{ schedule3_evening_conditional }}"
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ conditional_mode == 'skip_if_cleaned' and already_cleaned }}"
+                sequence:
+                  - if:
+                      - condition: template
+                        value_template: "{{ debug_enabled }}"
+                    then:
+                      - service: persistent_notification.create
+                        data:
+                          title: "⏭️ Dreame - Terza Schedulazione Saltata"
+                          message: "Terza schedulazione serale saltata: già pulito oggi"
+              - conditions:
+                  - condition: template
+                    value_template: "{{ conditional_mode == 'adapt_if_cleaned' and already_cleaned }}"
+                sequence:
+                  - service: dreame_vacuum.vacuum_clean_segment
+                    target:
+                      entity_id: "{{ vacuum_ent }}"
+                    data:
+                      segments: >
+                        {% if schedule3_evening_fallback_rooms %}
+                          {{ schedule3_evening_fallback_rooms.split(',') | map('int') | list }}
+                        {% else %}
+                          []
+                        {% endif %}
+                      cleaning_mode: "{{ schedule3_evening_fallback_preset }}"
+            default:
+              - service: dreame_vacuum.vacuum_clean_segment
+                target:
+                  entity_id: "{{ vacuum_ent }}"
+                data:
+                  segments: >
+                    {% if schedule3_evening_rooms %}
+                      {{ schedule3_evening_rooms.split(',') | map('int') | list }}
+                    {% else %}
+                      []
+                    {% endif %}
+                  cleaning_mode: "{{ schedule3_evening_preset }}"
+              - service: input_boolean.turn_on
+                target:
+                  entity_id: "{{ flag_ent }}"
+
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.id == 'schedule4_morning' }}"
+        sequence:
+          - if:
+              - condition: template
+                value_template: "{{ debug_enabled }}"
+            then:
+              - service: persistent_notification.create
+                data:
+                  title: "🌅 Dreame - Quarta Schedulazione Mattina"
+                  message: >
+                    Avvio quarta schedulazione mattutina:
+                    - Modalità: {{ schedule4_morning_preset }}
+                    - Stanze: {{ schedule4_morning_rooms if schedule4_morning_rooms else 'Tutta casa' }}
+          - service: dreame_vacuum.vacuum_clean_segment
+            target:
+              entity_id: "{{ vacuum_ent }}"
+            data:
+              segments: >
+                {% if schedule4_morning_rooms %}
+                  {{ schedule4_morning_rooms.split(',') | map('int') | list }}
+                {% else %}
+                  []
+                {% endif %}
+              cleaning_mode: "{{ schedule4_morning_preset }}"
+          - service: input_boolean.turn_on
+            target:
+              entity_id: "{{ flag_ent }}"
+
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.id == 'schedule4_evening' }}"
+        sequence:
+          - variables:
+              already_cleaned: "{{ states(flag_ent) == 'on' }}"
+              conditional_mode: "{{ schedule4_evening_conditional }}"
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ conditional_mode == 'skip_if_cleaned' and already_cleaned }}"
+                sequence:
+                  - if:
+                      - condition: template
+                        value_template: "{{ debug_enabled }}"
+                    then:
+                      - service: persistent_notification.create
+                        data:
+                          title: "⏭️ Dreame - Quarta Schedulazione Saltata"
+                          message: "Quarta schedulazione serale saltata: già pulito oggi"
+              - conditions:
+                  - condition: template
+                    value_template: "{{ conditional_mode == 'adapt_if_cleaned' and already_cleaned }}"
+                sequence:
+                  - service: dreame_vacuum.vacuum_clean_segment
+                    target:
+                      entity_id: "{{ vacuum_ent }}"
+                    data:
+                      segments: >
+                        {% if schedule4_evening_fallback_rooms %}
+                          {{ schedule4_evening_fallback_rooms.split(',') | map('int') | list }}
+                        {% else %}
+                          []
+                        {% endif %}
+                      cleaning_mode: "{{ schedule4_evening_fallback_preset }}"
+            default:
+              - service: dreame_vacuum.vacuum_clean_segment
+                target:
+                  entity_id: "{{ vacuum_ent }}"
+                data:
+                  segments: >
+                    {% if schedule4_evening_rooms %}
+                      {{ schedule4_evening_rooms.split(',') | map('int') | list }}
+                    {% else %}
+                      []
+                    {% endif %}
+                  cleaning_mode: "{{ schedule4_evening_preset }}"
+              - service: input_boolean.turn_on
+                target:
+                  entity_id: "{{ flag_ent }}"
+
+    default:
+      - if:
+          - condition: template
+            value_template: "{{ debug_enabled }}"
+        then:
+          - service: persistent_notification.create
+            data:
+              title: "❌ Dreame - Errore"
+              message: >
+                Trigger non riconosciuto: {{ trigger.id }}
+                Controlla la configurazione del blueprint.
+
+mode: queued
+max: 10
