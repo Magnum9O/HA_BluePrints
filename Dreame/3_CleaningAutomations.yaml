@@ -18,63 +18,243 @@ blueprint:
   domain: automation
   input:
     # ═══════════════════════════════════════════════════════════════
-    # 🔧 CONFIGURAZIONE BASE
+    # 🔧 CONFIGURAZIONE BASE - ENTITÀ NECESSARIE
     # ═══════════════════════════════════════════════════════════════
     vacuum_entity:
       name: 🤖 Robot Aspirapolvere
-      description: Seleziona l'entità del robot aspirapolvere da controllare
+      description: |
+        **Seleziona l'entità principale del tuo robot Dreame**
+        
+        📍 **Dove trovarla:** Impostazioni → Dispositivi e servizi → Dreame → Cerca entità tipo `vacuum.nome_robot`
+        
+        ✅ **Esempi comuni:**
+        - `vacuum.dreame_l10s_ultra`
+        - `vacuum.ambrogio`  
+        - `vacuum.dreame_robot_vacuum`
+        
+        ⚠️ **Importante:** Deve essere l'entità principale (domain: vacuum), NON i sensori!
       selector:
         entity:
           domain: vacuum
 
     robot_status_sensor:
       name: 📊 Sensore Stato Robot
-      description: Sensore che riporta lo stato attuale del robot (idle, cleaning, etc.)
+      description: |
+        **Sensore che riporta lo stato dettagliato del robot (idle, cleaning, returning, etc.)**
+        
+        📍 **Come trovarlo:** 
+        1. Impostazioni → Dispositivi e servizi → Dreame
+        2. Cerca un sensore con nome tipo `sensor.nome_robot_status` o `sensor.nome_robot_state`
+        3. Gli stati comuni sono: `idle`, `cleaning`, `returning`, `charging`, `docked`, `paused`
+        
+        ✅ **Esempi:**
+        - `sensor.dreame_l10s_ultra_status`
+        - `sensor.ambrogio_status_2` 
+        - `sensor.dreame_robot_vacuum_state`
+        
+        🎯 **A cosa serve:** Il blueprint controlla che il robot sia in uno stato valido (`idle`, `sleeping`, `charging`, `docked`) prima di avviare una pulizia
       selector:
         entity:
           domain: sensor
 
     presence_entity:
       name: 👥 Sensore di Presenza
-      description: Entità che indica se qualcuno è in casa (counter, person, etc.)
+      description: |
+        **Entità che indica se qualcuno è presente in casa**
+        
+        🎯 **A COSA SERVE:** Il robot pulisce SOLO quando la casa è vuota (per sicurezza e comodità)
+        
+        📍 **Opzioni comuni:**
+        
+        **🏠 COUNTER (più semplice):**
+        - `counter.away_home` (0 = casa vuota, 1+ = qualcuno presente)
+        
+        **👤 PERSON TRACKER:**
+        - `person.nome_persona` (away = fuori, home = presente)
+        
+        **🏢 ZONE BASED:**
+        - `input_select.house_mode` (away/home/night)
+        - `binary_sensor.house_occupied`
+        
+        **📱 DEVICE TRACKER:**
+        - `device_tracker.telefono` (away/home)
+        
+        ⚠️ **Nota:** Configura il "Valore Casa Vuota" nel campo successivo!
       selector:
         entity: {}
 
     presence_value:
-      name: 🏠 Valore "Casa Vuota"
-      description: Valore che indica casa vuota (es. 0 per counter, 'away' per person)
+      name: 🏠 Valore "Casa Vuota"  
+      description: |
+        **Il valore che indica che la casa è vuota**
+        
+        📍 **Esempi in base al sensore scelto:**
+        
+        **Se hai scelto un COUNTER:** `0`
+        **Se hai scelto una PERSON:** `away` 
+        **Se hai scelto un INPUT_SELECT:** `away`
+        **Se hai scelto un BINARY_SENSOR:** `off`
+        **Se hai scelto un DEVICE_TRACKER:** `not_home`
+        
+        💡 **Consiglio:** Guarda negli "Stati sviluppatori" il valore effettivo del tuo sensore quando sei fuori casa
       default: "0"
       selector:
         text: {}
 
     flag_cleaned_today:
       name: 🏁 Flag Pulizia Completata
-      description: Input boolean che traccia se è già stato pulito oggi (necessario per logica adattiva)
+      description: |
+        **Input boolean che traccia se è già stato pulito oggi (necessario per logica adattiva)**
+        
+        🎯 **A COSA SERVE:**
+        - Evita pulizie ridondanti nella stessa giornata
+        - Permette alla logica adattiva di funzionare (salta/adatta le pulizie serali)
+        - Si resetta automaticamente ogni giorno a mezzanotte
+        
+        📍 **COME CREARLO:**
+        1. Impostazioni → Dispositivi e servizi → Helper
+        2. Crea Helper → Toggle (Boolean)
+        3. Nome: "Cleaned Today" o "Pulito Oggi"
+        4. ID entità: `cleaned_today`
+        
+        ✅ **Risultato finale:** `input_boolean.cleaned_today`
+        
+        🔄 **AUTOMAZIONE RESET (OPZIONALE):**
+        ```
+        - id: reset_cleaned_today
+          alias: Reset Flag Pulizia
+          trigger:
+            platform: time
+            at: "00:00:00"
+          action:
+            service: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.cleaned_today
+        ```
       selector:
         entity:
           domain: input_boolean
 
     # ═══════════════════════════════════════════════════════════════
-    # 🎯 SLOT PRINCIPALE
+    # 🎯 SLOT PRINCIPALE - PULIZIE PRINCIPALI
     # ═══════════════════════════════════════════════════════════════
 
     # ────────────────────── MATTINA ──────────────────────
     main_morning_on:
       name: 🌅 SLOT PRINCIPALE - Mattina - Abilita
-      description: Attiva la pulizia mattutina del programma principale (sempre eseguita quando abilitata, senza logica adattiva)
+      description: |
+        **Attiva la pulizia mattutina del programma principale**
+        
+        🎯 **COMPORTAMENTO:** Sempre eseguita quando abilitata (senza logica adattiva)
+        💡 **Ideale per:** Pulizia quotidiana garantita prima che tutti si sveglino
       selector:
         boolean: {}
 
     main_morning_time:
       name: ⏰ SLOT PRINCIPALE - Mattina - Orario
-      description: Orario per la pulizia mattutina del programma principale
+      description: |
+        **Orario per la pulizia mattutina del programma principale**
+        
+        💡 **Suggerimento:** Scegli un orario in cui sei sicuro che la casa sia vuota (es. molto presto)
+        ⏰ **Default 05:00** per forzarti a cambiarlo secondo le tue esigenze
       default: "05:00:00"
       selector:
         time: {}
 
     main_morning_weekdays:
       name: 📅 SLOT PRINCIPALE - Mattina - Giorni
-      description: Giorni della settimana in cui eseguire la pulizia mattutina del programma principale
+      description: |
+        **Giorni della settimana in cui eseguire la pulizia mattutina**
+        
+        💡 **Esempi:**
+        - Giorni lavorativi: Lunedì-Venerdì
+        - Solo weekend: Sabato, Domenica  
+        - Alternato: Lunedì, Mercoledì, Venerdì
+      selector:
+        select:
+          multiple: true
+          mode: dropdown
+          options:
+            - lunedì
+            - martedì
+            - mercoledì
+            - giovedì
+            - venerdì
+            - sabato
+            - domenica
+
+    main_morning_preset:
+      name: 🎯 SLOT PRINCIPALE - Mattina - Modalità
+      description: |
+        **Modalità di pulizia per il programma mattutino**
+        
+        🎯 **MODALITÀ DISPONIBILI:**
+        - **aspira**: Solo aspirazione (veloce)
+        - **lava**: Solo lavaggio (con panno)  
+        - **aspira_lava**: Aspira + lava (completo)
+        - **cleangenius_deep**: AI cleaning profondo
+        - **spot_cleaning**: Pulizia mirata
+        - **custom**: Modalità personalizzata
+        
+        💡 **Suggerimento mattina:** `aspira` (veloce per non disturbare)
+      default: "aspira"
+      selector:
+        select:
+          options:
+            - aspira
+            - lava
+            - aspira_lava
+            - cleangenius_deep
+            - spot_cleaning
+            - custom
+
+    main_morning_rooms:
+      name: 🏠 SLOT PRINCIPALE - Mattina - Stanze
+      description: |
+        **ID delle stanze da pulire (separate da virgole)**
+        
+        📍 **COME TROVARE GLI ID STANZE:**
+        1. App Dreame → Mappa → Tocca una stanza → Guarda il numero
+        2. Home Assistant → Stati sviluppatori → Cerca `sensor.nome_robot_room_mapping`
+        
+        ✅ **ESEMPI:**
+        - `1,2,3` = Pulisce stanze 1, 2 e 3
+        - `1` = Solo stanza 1 (es. cucina)
+        - Lascia **vuoto** = Pulisce TUTTA la casa
+        
+        💡 **Suggerimento:** Mattina solo zone trafficate (cucina, soggiorno)
+      default: ""
+      selector:
+        text: {}
+
+    # ────────────────────── SERA ──────────────────────
+    main_evening_on:
+      name: 🌙 SLOT PRINCIPALE - Sera - Abilita
+      description: |
+        **Attiva la pulizia serale del programma principale**
+        
+        🧠 **COMPORTAMENTO:** Con logica adattiva configurabile (può adattarsi se già pulito)
+        💡 **Ideale per:** Pulizia di completamento o alternativa alla mattina
+      selector:
+        boolean: {}
+
+    main_evening_time:
+      name: ⏰ SLOT PRINCIPALE - Sera - Orario
+      description: |
+        **Orario per la pulizia serale del programma principale**
+        
+        💡 **Suggerimento:** Dopo cena quando la casa si svuota
+        ⏰ **Default 23:00** per forzarti a cambiarlo secondo le tue esigenze
+      default: "23:00:00"
+      selector:
+        time: {}
+
+    main_evening_weekdays:
+      name: 📅 SLOT PRINCIPALE - Sera - Giorni
+      description: |
+        **Giorni della settimana in cui eseguire la pulizia serale**
+        
+        💡 **Strategia comune:** Giorni diversi dalla mattina per alternare
       selector:
         select:
           multiple: true
