@@ -1,14 +1,21 @@
 blueprint:
   name: 🤖 [DEV 2.1] Dreame Vacuum - Automazione Pulizie Avanzata
   description: |
-    🚀 **AUTOMAZIONE AVANZATA CON LOGICA ADATTIVA**
+    🚀 **SISTEMA DI PULIZIE INTELLIGENTE PER DREAME**
     
-    ✨ **CARATTERISTICHE:**
-    - 🎯 Slot Principale (sempre attivo)
-    - 📅 4 Schedulazioni Aggiuntive (tutte con logica adattiva)
-    - 🧠 Multi-step cleaning con preset personalizzabili
-    - 🔄 Logica adattiva per evitare pulizie ridondanti
-    - 🏠 Controlli di stato e presenza automatici
+    ✨ **CARATTERISTICHE PRINCIPALI:**
+    - 🎯 **Slot Principale**: Pulizie programmate senza logica adattiva (sempre eseguite)
+    - 📅 **4 Schedulazioni Aggiuntive**: Con logica adattiva intelligente che evita pulizie ridondanti
+    - 🧠 **Multi-Step Cleaning**: Fino a 3 passaggi configurabili per ogni sessione
+    - 🔄 **Logica Adattiva Avanzata**: Salta automaticamente le pulizie se già effettuate di recente
+    - 🏠 **Controlli Intelligenti**: Verifica stato robot e presenza automaticamente
+    - 🔧 **Flessibilità Totale**: Ogni schedulazione configurabile indipendentemente
+    
+    📋 **UTILIZZO:**
+    - Lo **Slot Principale** è ideale per pulizie quotidiane garantite
+    - Le **Schedulazioni Aggiuntive** si adattano automaticamente per ottimizzare l'uso del robot
+    - Configura orari e giorni diversi per ogni tipo di pulizia
+    - Il sistema evita sovrapposizioni e sprechi energetici
 
   domain: automation
   input:
@@ -27,7 +34,7 @@ blueprint:
     # ═══════════════════════════════════════════════════════════════
     main_schedule_enabled:
       name: 🎯 Abilita Slot Principale
-      description: Attiva o disattiva il programma principale di pulizia (sempre eseguito, senza logica adattiva)
+      description: Attiva il programma principale di pulizia (sempre eseguito, senza logica adattiva)
       selector:
         boolean: {}
 
@@ -78,7 +85,7 @@ blueprint:
             - domenica
 
     main_evening_preset:
-      name: 🎯 Slot Principale - Preset Serale Step 1
+      name: 🎯 Slot Principale - Sera - Preset Step 1
       description: Modalità di pulizia per il primo passaggio del programma serale principale
       default: "aspira"
       selector:
@@ -90,7 +97,7 @@ blueprint:
             - custom_cleaning
 
     main_morning_preset:
-      name: 🎯 Slot Principale - Preset Mattutino Step 1
+      name: 🎯 Slot Principale - Mattina - Preset Step 1
       description: Modalità di pulizia per il primo passaggio del programma mattutino principale
       default: "aspira"
       selector:
@@ -102,8 +109,8 @@ blueprint:
             - custom_cleaning
 
     main_evening_step2_preset:
-      name: 🎯 Slot Principale - Preset Serale Step 2
-      description: Modalità di pulizia per il secondo passaggio del programma serale principale
+      name: 🎯 Slot Principale - Sera - Preset Step 2
+      description: Modalità di pulizia per il secondo passaggio (se abilitato)
       default: "cleangenius_deep"
       selector:
         select:
@@ -114,8 +121,8 @@ blueprint:
             - custom_cleaning
 
     main_morning_step2_preset:
-      name: 🎯 Slot Principale - Preset Mattutino Step 2
-      description: Modalità di pulizia per il secondo passaggio del programma mattutino principale
+      name: 🎯 Slot Principale - Mattina - Preset Step 2
+      description: Modalità di pulizia per il secondo passaggio (se abilitato)
       default: "cleangenius_deep"
       selector:
         select:
@@ -126,8 +133,8 @@ blueprint:
             - custom_cleaning
 
     main_evening_step3_preset:
-      name: 🎯 Slot Principale - Preset Serale Step 3
-      description: Modalità di pulizia per il terzo passaggio del programma serale principale
+      name: 🎯 Slot Principale - Sera - Preset Step 3
+      description: Modalità di pulizia per il terzo passaggio (se abilitato)
       default: "cleangenius_deep"
       selector:
         select:
@@ -138,8 +145,8 @@ blueprint:
             - custom_cleaning
 
     main_morning_step3_preset:
-      name: 🎯 Slot Principale - Preset Mattutino Step 3
-      description: Modalità di pulizia per il terzo passaggio del programma mattutino principale
+      name: 🎯 Slot Principale - Mattina - Preset Step 3
+      description: Modalità di pulizia per il terzo passaggio (se abilitato)
       default: "cleangenius_deep"
       selector:
         select:
@@ -160,21 +167,21 @@ blueprint:
 
     schedule1_evening_time:
       name: ⏰ Schedulazione 1 - Orario Serale
-      description: Orario per la pulizia serale della prima schedulazione aggiuntiva con logica adattiva
+      description: Orario per la pulizia serale della prima schedulazione aggiuntiva
       default: "23:00:00"
       selector:
         time: {}
 
     schedule1_morning_time:
       name: ⏰ Schedulazione 1 - Orario Mattutino
-      description: Orario per la pulizia mattutina della prima schedulazione aggiuntiva con logica adattiva
+      description: Orario per la pulizia mattutina della prima schedulazione aggiuntiva
       default: "05:00:00"
       selector:
         time: {}
 
     schedule1_evening_weekdays:
       name: 📅 Schedulazione 1 - Giorni Serali
-      description: Giorni della settimana per pulizia serale della prima schedulazione aggiuntiva con logica adattiva
+      description: Giorni della settimana per pulizia serale della prima schedulazione aggiuntiva
       selector:
         select:
           multiple: true
@@ -190,7 +197,7 @@ blueprint:
 
     schedule1_morning_weekdays:
       name: 📅 Schedulazione 1 - Giorni Mattutini
-      description: Giorni della settimana per pulizia mattutina della prima schedulazione aggiuntiva con logica adattiva
+      description: Giorni della settimana per pulizia mattutina della prima schedulazione aggiuntiva
       selector:
         select:
           multiple: true
@@ -205,8 +212,8 @@ blueprint:
             - domenica
 
     schedule1_evening_preset:
-      name: 🎯 Schedulazione 1 - Preset Serale Step 1
-      description: Modalità per il primo passaggio della pulizia serale della prima schedulazione aggiuntiva con logica adattiva
+      name: 🎯 Schedulazione 1 - Sera - Preset Step 1
+      description: Modalità per il primo passaggio della pulizia serale
       default: "aspira"
       selector:
         select:
@@ -217,8 +224,8 @@ blueprint:
             - custom_cleaning
 
     schedule1_morning_preset:
-      name: 🎯 Schedulazione 1 - Preset Mattutino Step 1
-      description: Modalità per il primo passaggio della pulizia mattutina della prima schedulazione aggiuntiva con logica adattiva
+      name: 🎯 Schedulazione 1 - Mattina - Preset Step 1
+      description: Modalità per il primo passaggio della pulizia mattutina
       default: "aspira"
       selector:
         select:
@@ -229,8 +236,8 @@ blueprint:
             - custom_cleaning
 
     schedule1_evening_step2_preset:
-      name: 🎯 Schedulazione 1 - Preset Serale Step 2
-      description: Modalità per il secondo passaggio della pulizia serale della prima schedulazione aggiuntiva con logica adattiva
+      name: 🎯 Schedulazione 1 - Sera - Preset Step 2
+      description: Modalità per il secondo passaggio della pulizia serale
       default: "cleangenius_deep"
       selector:
         select:
@@ -241,8 +248,8 @@ blueprint:
             - custom_cleaning
 
     schedule1_morning_step2_preset:
-      name: 🎯 Schedulazione 1 - Preset Mattutino Step 2
-      description: Modalità per il secondo passaggio della pulizia mattutina della prima schedulazione aggiuntiva con logica adattiva
+      name: 🎯 Schedulazione 1 - Mattina - Preset Step 2
+      description: Modalità per il secondo passaggio della pulizia mattutina
       default: "cleangenius_deep"
       selector:
         select:
@@ -253,8 +260,8 @@ blueprint:
             - custom_cleaning
 
     schedule1_evening_step3_preset:
-      name: 🎯 Schedulazione 1 - Preset Serale Step 3
-      description: Modalità per il terzo passaggio della pulizia serale della prima schedulazione aggiuntiva con logica adattiva
+      name: 🎯 Schedulazione 1 - Sera - Preset Step 3
+      description: Modalità per il terzo passaggio della pulizia serale
       default: "cleangenius_deep"
       selector:
         select:
@@ -265,8 +272,8 @@ blueprint:
             - custom_cleaning
 
     schedule1_morning_step3_preset:
-      name: 🎯 Schedulazione 1 - Preset Mattutino Step 3
-      description: Modalità per il terzo passaggio della pulizia mattutina della prima schedulazione aggiuntiva con logica adattiva
+      name: 🎯 Schedulazione 1 - Mattina - Preset Step 3
+      description: Modalità per il terzo passaggio della pulizia mattutina
       default: "cleangenius_deep"
       selector:
         select:
@@ -287,21 +294,21 @@ blueprint:
 
     schedule2_evening_time:
       name: ⏰ Schedulazione 2 - Orario Serale
-      description: Orario per la pulizia serale della seconda schedulazione aggiuntiva con logica adattiva
+      description: Orario per la pulizia serale della seconda schedulazione aggiuntiva
       default: "23:00:00"
       selector:
         time: {}
 
     schedule2_morning_time:
       name: ⏰ Schedulazione 2 - Orario Mattutino
-      description: Orario per la pulizia mattutina della seconda schedulazione aggiuntiva con logica adattiva
+      description: Orario per la pulizia mattutina della seconda schedulazione aggiuntiva
       default: "05:00:00"
       selector:
         time: {}
 
     schedule2_evening_weekdays:
       name: 📅 Schedulazione 2 - Giorni Serali
-      description: Giorni della settimana per pulizia serale della seconda schedulazione aggiuntiva con logica adattiva
+      description: Giorni della settimana per pulizia serale della seconda schedulazione aggiuntiva
       selector:
         select:
           multiple: true
@@ -317,7 +324,8 @@ blueprint:
 
     schedule2_morning_weekdays:
       name: 📅 Schedulazione 2 - Giorni Mattutini
-      description: Giorni della settimana per pulizia mattutina della seconda schedulazione aggiuntiva con logica adattiva
+      description: Giorni della settimana per pulizia mattutina della seconda schedulazione aggiuntiva
+      default: ["domenica"]
       selector:
         select:
           multiple: true
@@ -332,8 +340,8 @@ blueprint:
             - domenica
 
     schedule2_evening_preset:
-      name: 🎯 Schedulazione 2 - Preset Serale Step 1
-      description: Modalità per il primo passaggio della pulizia serale della seconda schedulazione aggiuntiva con logica adattiva
+      name: 🎯 Schedulazione 2 - Sera - Preset Step 1
+      description: Modalità per il primo passaggio della pulizia serale
       default: "aspira"
       selector:
         select:
@@ -344,8 +352,8 @@ blueprint:
             - custom_cleaning
 
     schedule2_morning_preset:
-      name: 🎯 Schedulazione 2 - Preset Mattutino Step 1
-      description: Modalità per il primo passaggio della pulizia mattutina della seconda schedulazione aggiuntiva con logica adattiva
+      name: 🎯 Schedulazione 2 - Mattina - Preset Step 1
+      description: Modalità per il primo passaggio della pulizia mattutina
       default: "aspira"
       selector:
         select:
@@ -356,8 +364,8 @@ blueprint:
             - custom_cleaning
 
     schedule2_evening_step2_preset:
-      name: 🎯 Schedulazione 2 - Preset Serale Step 2
-      description: Modalità per il secondo passaggio della pulizia serale della seconda schedulazione aggiuntiva con logica adattiva
+      name: 🎯 Schedulazione 2 - Sera - Preset Step 2
+      description: Modalità per il secondo passaggio della pulizia serale
       default: "cleangenius_deep"
       selector:
         select:
@@ -368,8 +376,8 @@ blueprint:
             - custom_cleaning
 
     schedule2_morning_step2_preset:
-      name: 🎯 Schedulazione 2 - Preset Mattutino Step 2
-      description: Modalità per il secondo passaggio della pulizia mattutina della seconda schedulazione aggiuntiva con logica adattiva
+      name: 🎯 Schedulazione 2 - Mattina - Preset Step 2
+      description: Modalità per il secondo passaggio della pulizia mattutina
       default: "cleangenius_deep"
       selector:
         select:
@@ -380,8 +388,8 @@ blueprint:
             - custom_cleaning
 
     schedule2_evening_step3_preset:
-      name: 🎯 Schedulazione 2 - Preset Serale Step 3
-      description: Modalità per il terzo passaggio della pulizia serale della seconda schedulazione aggiuntiva con logica adattiva
+      name: 🎯 Schedulazione 2 - Sera - Preset Step 3
+      description: Modalità per il terzo passaggio della pulizia serale
       default: "cleangenius_deep"
       selector:
         select:
@@ -392,8 +400,8 @@ blueprint:
             - custom_cleaning
 
     schedule2_morning_step3_preset:
-      name: 🎯 Schedulazione 2 - Preset Mattutino Step 3
-      description: Modalità per il terzo passaggio della pulizia mattutina della seconda schedulazione aggiuntiva con logica adattiva
+      name: 🎯 Schedulazione 2 - Mattina - Preset Step 3
+      description: Modalità per il terzo passaggio della pulizia mattutina
       default: "cleangenius_deep"
       selector:
         select:
@@ -414,21 +422,22 @@ blueprint:
 
     schedule3_evening_time:
       name: ⏰ Schedulazione 3 - Orario Serale
-      description: Orario per la pulizia serale della terza schedulazione aggiuntiva con logica adattiva
+      description: Orario per la pulizia serale della terza schedulazione aggiuntiva
       default: "23:00:00"
       selector:
         time: {}
 
     schedule3_morning_time:
       name: ⏰ Schedulazione 3 - Orario Mattutino
-      description: Orario per la pulizia mattutina della terza schedulazione aggiuntiva con logica adattiva
+      description: Orario per la pulizia mattutina della terza schedulazione aggiuntiva
       default: "05:00:00"
       selector:
         time: {}
 
     schedule3_evening_weekdays:
       name: 📅 Schedulazione 3 - Giorni Serali
-      description: Giorni della settimana per pulizia serale della terza schedulazione aggiuntiva con logica adattiva
+      description: Giorni della settimana per pulizia serale della terza schedulazione aggiuntiva
+      default: ["sabato"]
       selector:
         select:
           multiple: true
@@ -444,7 +453,8 @@ blueprint:
 
     schedule3_morning_weekdays:
       name: 📅 Schedulazione 3 - Giorni Mattutini
-      description: Giorni della settimana per pulizia mattutina della terza schedulazione aggiuntiva con logica adattiva
+      description: Giorni della settimana per pulizia mattutina della terza schedulazione aggiuntiva
+      default: ["sabato"]
       selector:
         select:
           multiple: true
@@ -459,8 +469,8 @@ blueprint:
             - domenica
 
     schedule3_evening_preset:
-      name: 🎯 Schedulazione 3 - Preset Serale Step 1
-      description: Modalità per il primo passaggio della pulizia serale della terza schedulazione aggiuntiva con logica adattiva
+      name: 🎯 Schedulazione 3 - Sera - Preset Step 1
+      description: Modalità per il primo passaggio della pulizia serale
       default: "aspira"
       selector:
         select:
@@ -471,8 +481,8 @@ blueprint:
             - custom_cleaning
 
     schedule3_morning_preset:
-      name: 🎯 Schedulazione 3 - Preset Mattutino Step 1
-      description: Modalità per il primo passaggio della pulizia mattutina della terza schedulazione aggiuntiva con logica adattiva
+      name: 🎯 Schedulazione 3 - Mattina - Preset Step 1
+      description: Modalità per il primo passaggio della pulizia mattutina
       default: "aspira"
       selector:
         select:
@@ -483,8 +493,8 @@ blueprint:
             - custom_cleaning
 
     schedule3_evening_step2_preset:
-      name: 🎯 Schedulazione 3 - Preset Serale Step 2
-      description: Modalità per il secondo passaggio della pulizia serale della terza schedulazione aggiuntiva con logica adattiva
+      name: 🎯 Schedulazione 3 - Sera - Preset Step 2
+      description: Modalità per il secondo passaggio della pulizia serale
       default: "cleangenius_deep"
       selector:
         select:
@@ -495,8 +505,8 @@ blueprint:
             - custom_cleaning
 
     schedule3_morning_step2_preset:
-      name: 🎯 Schedulazione 3 - Preset Mattutino Step 2
-      description: Modalità per il secondo passaggio della pulizia mattutina della terza schedulazione aggiuntiva con logica adattiva
+      name: 🎯 Schedulazione 3 - Mattina - Preset Step 2
+      description: Modalità per il secondo passaggio della pulizia mattutina
       default: "cleangenius_deep"
       selector:
         select:
@@ -507,8 +517,8 @@ blueprint:
             - custom_cleaning
 
     schedule3_evening_step3_preset:
-      name: 🎯 Schedulazione 3 - Preset Serale Step 3
-      description: Modalità per il terzo passaggio della pulizia serale della terza schedulazione aggiuntiva con logica adattiva
+      name: 🎯 Schedulazione 3 - Sera - Preset Step 3
+      description: Modalità per il terzo passaggio della pulizia serale
       default: "cleangenius_deep"
       selector:
         select:
@@ -519,8 +529,8 @@ blueprint:
             - custom_cleaning
 
     schedule3_morning_step3_preset:
-      name: 🎯 Schedulazione 3 - Preset Mattutino Step 3
-      description: Modalità per il terzo passaggio della pulizia mattutina della terza schedulazione aggiuntiva con logica adattiva
+      name: 🎯 Schedulazione 3 - Mattina - Preset Step 3
+      description: Modalità per il terzo passaggio della pulizia mattutina
       default: "cleangenius_deep"
       selector:
         select:
@@ -541,21 +551,22 @@ blueprint:
 
     schedule4_evening_time:
       name: ⏰ Schedulazione 4 - Orario Serale
-      description: Orario per la pulizia serale della quarta schedulazione aggiuntiva con logica adattiva
+      description: Orario per la pulizia serale della quarta schedulazione aggiuntiva
       default: "23:00:00"
       selector:
         time: {}
 
     schedule4_morning_time:
       name: ⏰ Schedulazione 4 - Orario Mattutino
-      description: Orario per la pulizia mattutina della quarta schedulazione aggiuntiva con logica adattiva
+      description: Orario per la pulizia mattutina della quarta schedulazione aggiuntiva
       default: "05:00:00"
       selector:
         time: {}
 
     schedule4_evening_weekdays:
       name: 📅 Schedulazione 4 - Giorni Serali
-      description: Giorni della settimana per pulizia serale della quarta schedulazione aggiuntiva con logica adattiva
+      description: Giorni della settimana per pulizia serale della quarta schedulazione aggiuntiva
+      default: ["domenica"]
       selector:
         select:
           multiple: true
@@ -571,7 +582,8 @@ blueprint:
 
     schedule4_morning_weekdays:
       name: 📅 Schedulazione 4 - Giorni Mattutini
-      description: Giorni della settimana per pulizia mattutina della quarta schedulazione aggiuntiva con logica adattiva
+      description: Giorni della settimana per pulizia mattutina della quarta schedulazione aggiuntiva
+      default: ["domenica"]
       selector:
         select:
           multiple: true
@@ -586,8 +598,8 @@ blueprint:
             - domenica
 
     schedule4_evening_preset:
-      name: 🎯 Schedulazione 4 - Preset Serale Step 1
-      description: Modalità per il primo passaggio della pulizia serale della quarta schedulazione aggiuntiva con logica adattiva
+      name: 🎯 Schedulazione 4 - Sera - Preset Step 1
+      description: Modalità per il primo passaggio della pulizia serale
       default: "aspira"
       selector:
         select:
@@ -598,8 +610,8 @@ blueprint:
             - custom_cleaning
 
     schedule4_morning_preset:
-      name: 🎯 Schedulazione 4 - Preset Mattutino Step 1
-      description: Modalità per il primo passaggio della pulizia mattutina della quarta schedulazione aggiuntiva con logica adattiva
+      name: 🎯 Schedulazione 4 - Mattina - Preset Step 1
+      description: Modalità per il primo passaggio della pulizia mattutina
       default: "aspira"
       selector:
         select:
@@ -610,8 +622,8 @@ blueprint:
             - custom_cleaning
 
     schedule4_evening_step2_preset:
-      name: 🎯 Schedulazione 4 - Preset Serale Step 2
-      description: Modalità per il secondo passaggio della pulizia serale della quarta schedulazione aggiuntiva con logica adattiva
+      name: 🎯 Schedulazione 4 - Sera - Preset Step 2
+      description: Modalità per il secondo passaggio della pulizia serale
       default: "cleangenius_deep"
       selector:
         select:
@@ -622,8 +634,8 @@ blueprint:
             - custom_cleaning
 
     schedule4_morning_step2_preset:
-      name: 🎯 Schedulazione 4 - Preset Mattutino Step 2
-      description: Modalità per il secondo passaggio della pulizia mattutina della quarta schedulazione aggiuntiva con logica adattiva
+      name: 🎯 Schedulazione 4 - Mattina - Preset Step 2
+      description: Modalità per il secondo passaggio della pulizia mattutina
       default: "cleangenius_deep"
       selector:
         select:
@@ -634,8 +646,8 @@ blueprint:
             - custom_cleaning
 
     schedule4_evening_step3_preset:
-      name: 🎯 Schedulazione 4 - Preset Serale Step 3
-      description: Modalità per il terzo passaggio della pulizia serale della quarta schedulazione aggiuntiva con logica adattiva
+      name: 🎯 Schedulazione 4 - Sera - Preset Step 3
+      description: Modalità per il terzo passaggio della pulizia serale
       default: "cleangenius_deep"
       selector:
         select:
@@ -646,8 +658,8 @@ blueprint:
             - custom_cleaning
 
     schedule4_morning_step3_preset:
-      name: 🎯 Schedulazione 4 - Preset Mattutino Step 3
-      description: Modalità per il terzo passaggio della pulizia mattutina della quarta schedulazione aggiuntiva con logica adattiva
+      name: 🎯 Schedulazione 4 - Mattina - Preset Step 3
+      description: Modalità per il terzo passaggio della pulizia mattutina
       default: "cleangenius_deep"
       selector:
         select:
@@ -658,11 +670,11 @@ blueprint:
             - custom_cleaning
 
     # ═══════════════════════════════════════════════════════════════
-    # ⚙️ IMPOSTAZIONI COMUNI
+    # ⚙️ IMPOSTAZIONI GLOBALI
     # ═══════════════════════════════════════════════════════════════
     delay_between_steps:
-      name: ⏱️ Ritardo tra Passaggi
-      description: Tempo di attesa in minuti tra un passaggio e l'altro nella pulizia multi-step
+      name: ⏱️ Pausa tra Passaggi
+      description: Tempo di attesa in minuti tra un passaggio di pulizia e il successivo
       default: 5
       selector:
         number:
@@ -672,22 +684,22 @@ blueprint:
 
     max_cleaning_steps:
       name: 🔢 Numero Massimo Passaggi
-      description: Numero massimo di passaggi di pulizia da eseguire per ogni schedulazione
+      description: Numero massimo di passaggi di pulizia da eseguire per ogni sessione (1-3)
       default: 2
       selector:
         number:
           min: 1
-          max: 5
+          max: 3
 
     enable_adaptive_cleaning:
       name: 🧠 Abilita Logica Adattiva
-      description: Attiva la logica adattiva che salta le pulizie delle schedulazioni aggiuntive se il robot è già stato utilizzato di recente (non si applica al Slot Principale)
+      description: Attiva il controllo intelligente che evita pulizie ridondanti per le schedulazioni aggiuntive (non si applica al Slot Principale)
       selector:
         boolean: {}
 
     adaptive_threshold_hours:
       name: ⏰ Soglia Adattiva (Ore)
-      description: Ore minime che devono passare dall'ultima pulizia prima di attivare una nuova sessione adattiva per le schedulazioni aggiuntive
+      description: Numero di ore minime che devono trascorrere dall'ultima pulizia prima che una schedulazione aggiuntiva possa essere eseguita nuovamente
       default: 2
       selector:
         number:
@@ -697,21 +709,14 @@ blueprint:
           unit_of_measurement: "ore"
 
     main_flag_cleaned_today:
-      name: 🏁 Flag Pulizia Completata
-      description: Input boolean che traccia se è già stato pulito oggi (necessario per la logica adattiva)
+      name: 🏁 Sensore Ultima Pulizia
+      description: Input boolean che tiene traccia dello stato di pulizia per la logica adattiva
       selector:
         entity:
           domain: input_boolean
 
 # ═══════════════════════════════════════════════════════════════
-# 🔥 VARIABILI
-# ═══════════════════════════════════════════════════════════════
-variables:
-  # STATI ROBOT HARDCODATI (CORRETTO!)
-  vacuum_states: ["docked", "returning", "idle", "paused"]
-
-# ═══════════════════════════════════════════════════════════════
-# ⚡ TRIGGER
+# 🔥 SISTEMA TRIGGER
 # ═══════════════════════════════════════════════════════════════
 trigger:
   # SLOT PRINCIPALE
@@ -722,7 +727,7 @@ trigger:
     at: !input main_morning_time
     id: main_morning
     
-  # SCHEDULAZIONI AGGIUNTIVE
+  # SCHEDULAZIONI AGGIUNTIVE  
   - platform: time
     at: !input schedule1_evening_time
     id: schedule1_evening
@@ -749,9 +754,10 @@ trigger:
     id: schedule4_morning
 
 # ═══════════════════════════════════════════════════════════════
-# 🛡️ CONDIZIONI
+# 🛡️ CONDIZIONI GLOBALI
 # ═══════════════════════════════════════════════════════════════
 condition:
+  # CONTROLLO GIORNO APPROPRIATO PER IL TRIGGER ATTIVATO
   - condition: template
     value_template: >
       {% set current_day = now().strftime('%A') %}
@@ -789,35 +795,46 @@ condition:
       {% else %}
         {{ false }}
       {% endif %}
-      
+
+  # CONTROLLO STATO ROBOT (HARDCODATO - CORRETTO!)
   - condition: template
     value_template: >
-      {{ states(vacuum_entity) in vacuum_states }}
+      {{ states(vacuum_entity) in ['idle', 'sleeping', 'charging', 'docked'] }}
 
 # ═══════════════════════════════════════════════════════════════
-# 🚀 AZIONI
+# 🚀 LOGICA DI ESECUZIONE
 # ═══════════════════════════════════════════════════════════════
 action:
-  # LOGICA ADATTIVA (SOLO PER SCHEDULAZIONI AGGIUNTIVE)
+  # CONTROLLO LOGICA ADATTIVA (SOLO PER SCHEDULAZIONI)
   - choose:
       - conditions:
           - condition: template
-            value_template: "{{ enable_adaptive_cleaning }}"
+            value_template: >
+              {{ enable_adaptive_cleaning and not trigger.id.startswith('main_') }}
           - condition: template
-            value_template: "{{ not trigger.id.startswith('main_') }}"
-          - condition: state
-            entity_id: !input main_flag_cleaned_today
-            state: 'on'
+            value_template: >
+              {% set last_cleaned = states(main_flag_cleaned_today) %}
+              {% if last_cleaned == 'on' %}
+                {% set last_change = state_attr(main_flag_cleaned_today, 'last_changed') %}
+                {% if last_change %}
+                  {% set hours_since = (now() - last_change).total_seconds() / 3600 %}
+                  {{ hours_since < adaptive_threshold_hours }}
+                {% else %}
+                  {{ false }}
+                {% endif %}
+              {% else %}
+                {{ false }}
+              {% endif %}
         sequence:
           - service: persistent_notification.create
             data:
               title: "🤖 Robot - Pulizia Saltata"
               message: >
-                Pulizia {{ trigger.id }} saltata: logica adattiva attiva 
-                (robot già utilizzato di recente)
+                Pulizia {{ trigger.id }} saltata per logica adattiva: 
+                robot utilizzato di recente (meno di {{ adaptive_threshold_hours }} ore fa)
           - stop: "Pulizia saltata per logica adattiva"
 
-  # DETERMINA PRESET BASATO SUL TRIGGER  
+  # DETERMINAZIONE PRESET BASATA SUL TRIGGER ATTIVATO
   - variables:
       current_preset: >
         {% if trigger.id == 'main_evening' %}
@@ -894,7 +911,7 @@ action:
           cleangenius_deep
         {% endif %}
 
-  # STEP 1 - PRIMO PASSAGGIO
+  # PRIMO PASSAGGIO - AVVIO PULIZIA
   - service: vacuum.send_command
     target:
       entity_id: !input vacuum_entity
@@ -903,22 +920,26 @@ action:
       
   - service: persistent_notification.create
     data:
-      title: "🤖 Robot - Avvio"
-      message: "Avviata pulizia {{ trigger.id }} - Step 1/{{ max_cleaning_steps }} con preset {{ current_preset }}"
+      title: "🤖 Robot - Avvio Pulizia"
+      message: >
+        Avviata {{ trigger.id }} - Step 1/{{ max_cleaning_steps }} 
+        con modalità {{ current_preset }}
       
-  # AGGIORNA FLAG PULIZIA
+  # AGGIORNAMENTO FLAG DI PULIZIA
   - service: input_boolean.turn_on
     target:
       entity_id: !input main_flag_cleaned_today
 
-  # ATTESA COMPLETAMENTO STEP 1
-  - wait_template: "{{ states(vacuum_entity) in vacuum_states }}"
+  # ATTESA COMPLETAMENTO PRIMO PASSAGGIO
+  - wait_template: >
+      {{ states(vacuum_entity) in ['idle', 'sleeping', 'charging', 'docked'] }}
     timeout: "02:00:00"
     
-  # LOGICA MULTI-STEP
+  # ESECUZIONE PASSAGGI AGGIUNTIVI (SE CONFIGURATI)
   - repeat:
       count: "{{ max_cleaning_steps - 1 }}"
       sequence:
+        # PAUSA TRA PASSAGGI
         - delay:
             minutes: "{{ delay_between_steps }}"
             
@@ -933,6 +954,7 @@ action:
                 {{ step2_preset }}
               {% endif %}
               
+        # AVVIO PASSAGGIO SUCCESSIVO
         - service: vacuum.send_command
           target:
             entity_id: !input vacuum_entity
@@ -942,16 +964,25 @@ action:
         - service: persistent_notification.create
           data:
             title: "🤖 Robot - Step {{ current_step }}"
-            message: "Avviato step {{ current_step }}/{{ max_cleaning_steps }} con preset {{ next_preset }}"
+            message: >
+              Avviato passaggio {{ current_step }}/{{ max_cleaning_steps }} 
+              con modalità {{ next_preset }}
             
-        - wait_template: "{{ states(vacuum_entity) in vacuum_states }}"
+        # ATTESA COMPLETAMENTO PASSAGGIO
+        - wait_template: >
+            {{ states(vacuum_entity) in ['idle', 'sleeping', 'charging', 'docked'] }}
           timeout: "02:00:00"
 
-  # NOTIFICA FINALE
+  # NOTIFICA COMPLETAMENTO SESSIONE
   - service: persistent_notification.create
     data:
-      title: "🤖 Robot - Completato"
-      message: "Pulizia {{ trigger.id }} completata con {{ max_cleaning_steps }} passaggi"
+      title: "🎉 Robot - Pulizia Completata"
+      message: >
+        Sessione {{ trigger.id }} completata con successo!
+        Eseguiti {{ max_cleaning_steps }} passaggi di pulizia.
 
+# ═══════════════════════════════════════════════════════════════
+# ⚙️ CONFIGURAZIONI FINALI  
+# ═══════════════════════════════════════════════════════════════
 mode: queued
 max: 10
