@@ -96,6 +96,7 @@ blueprint:
         **Se hai scelto un DEVICE_TRACKER:** `not_home`
         
         💡 **Consiglio:** Guarda negli "Stati sviluppatori" il valore effettivo del tuo sensore quando sei fuori casa
+      default: "0"
       selector:
         text: {}
 
@@ -148,10 +149,11 @@ blueprint:
         - Giorni lavorativi: Lunedì-Venerdì
         - Solo weekend: Sabato, Domenica 
         - Alternato: Lunedì, Mercoledì, Venerdì
+      default: []
       selector:
         select:
           multiple: true
-          custom_value: false
+          mode: list
           options:
             - lunedì
             - martedì
@@ -167,12 +169,14 @@ blueprint:
         **Attiva la pulizia mattutina del programma principale**
         
         🎯 **COMPORTAMENTO:** Sempre eseguita quando abilitata (senza logica adattiva)
+      default: false
       selector:
         boolean: {}
 
     main_morning_time:
       name: ⏰ SLOT PRINCIPALE - Mattina - Orario
       description: Orario per la pulizia mattutina del programma principale
+      default: "05:00:00"
       selector:
         time: {}
 
@@ -186,6 +190,7 @@ blueprint:
         - **Solo lavaggio**: Solo lavaggio (con panno) 
         - **Aspira + lava (Clean Genius)**: Aspira + lava modalità intelligente
         - **Aspira + lava (Clean Genius Deep)**: Aspira + lava modalità intelligente profonda
+      default: "aspira"
       selector:
         select:
           options:
@@ -201,18 +206,21 @@ blueprint:
     main_morning_rooms:
       name: 🏠 SLOT PRINCIPALE - Mattina - Stanze
       description: "ID delle stanze da pulire separate da virgole (esempio: 1,2,3) oppure lascia vuoto per pulire tutta la casa"
+      default: ""
       selector:
         text: {}
 
     main_evening_on:
       name: 🌙 SLOT PRINCIPALE - Sera - Abilita
       description: Attiva la pulizia serale del programma principale (con logica adattiva configurabile)
+      default: false
       selector:
         boolean: {}
 
     main_evening_time:
       name: ⏰ SLOT PRINCIPALE - Sera - Orario
       description: Orario per la pulizia serale del programma principale
+      default: "23:00:00"
       selector:
         time: {}
 
@@ -224,6 +232,7 @@ blueprint:
         - **🔄 Esegui sempre:** Ignora lo stato del flag e pulisce sempre con modalità principale
         - **⏭️ Salta se già pulito:** Non fa nulla se il flag indica che è già stato pulito oggi 
         - **🧠 Adatta modalità:** Se già pulito oggi, usa modalità e stanze alternative invece di quelle principali
+      default: "always_clean"
       selector:
         select:
           options:
@@ -237,6 +246,7 @@ blueprint:
     main_evening_preset:
       name: 🎯 SLOT PRINCIPALE - Sera - Modalità Principale
       description: Modalità di pulizia principale da utilizzare per il programma serale (usata sempre, tranne se logica adattiva sceglie modalità alternativa)
+      default: "aspira"
       selector:
         select:
           options:
@@ -252,12 +262,14 @@ blueprint:
     main_evening_rooms:
       name: 🏠 SLOT PRINCIPALE - Sera - Stanze Principali
       description: "ID delle stanze da pulire con modalità principale, separate da virgole (esempio: 1,2,3) oppure lascia vuoto per pulire tutta la casa"
+      default: ""
       selector:
         text: {}
 
     main_evening_fallback_preset:
       name: 🔄 SLOT PRINCIPALE - Sera - Modalità Alternativa
       description: Modalità di pulizia alternativa da usare quando la logica adattiva è impostata su "Adatta modalità" e il robot è già stato utilizzato oggi
+      default: "lava"
       selector:
         select:
           options:
@@ -273,6 +285,7 @@ blueprint:
     main_evening_fallback_rooms:
       name: 🏠 SLOT PRINCIPALE - Sera - Stanze Alternative
       description: "ID delle stanze da pulire con modalità alternativa (esempio: solo bagno = 3). Se vuoto, usa le stesse stanze principali"
+      default: ""
       selector:
         text: {}
 
@@ -280,10 +293,11 @@ blueprint:
     schedule1_weekdays:
       name: 📅 PRIMA SCHEDULAZIONE - Giorni Attivi
       description: Giorni della settimana in cui la prima schedulazione è attiva (vale per mattina e sera)
+      default: []
       selector:
         select:
           multiple: true
-          custom_value: false
+          mode: list
           options:
             - lunedì
             - martedì
@@ -296,18 +310,21 @@ blueprint:
     schedule1_morning_on:
       name: 🌅 PRIMA SCHEDULAZIONE - Mattina - Abilita
       description: Attiva la pulizia mattutina della prima schedulazione aggiuntiva
+      default: false
       selector:
         boolean: {}
 
     schedule1_morning_time:
       name: ⏰ PRIMA SCHEDULAZIONE - Mattina - Orario
       description: Orario per la pulizia mattutina della prima schedulazione aggiuntiva
+      default: "05:00:00"
       selector:
         time: {}
 
     schedule1_morning_preset:
       name: 🎯 PRIMA SCHEDULAZIONE - Mattina - Modalità
       description: Modalità di pulizia per il programma mattutino della prima schedulazione aggiuntiva
+      default: "aspira"
       selector:
         select:
           options:
@@ -323,18 +340,21 @@ blueprint:
     schedule1_morning_rooms:
       name: 🏠 PRIMA SCHEDULAZIONE - Mattina - Stanze
       description: "ID delle stanze da pulire separate da virgole (esempio: 1,2,3) oppure lascia vuoto per pulire tutta la casa"
+      default: ""
       selector:
         text: {}
 
     schedule1_evening_on:
       name: 🌙 PRIMA SCHEDULAZIONE - Sera - Abilita
       description: Attiva la pulizia serale della prima schedulazione aggiuntiva (con logica adattiva)
+      default: false
       selector:
         boolean: {}
 
     schedule1_evening_time:
       name: ⏰ PRIMA SCHEDULAZIONE - Sera - Orario
       description: Orario per la pulizia serale della prima schedulazione aggiuntiva
+      default: "23:00:00"
       selector:
         time: {}
 
@@ -346,6 +366,7 @@ blueprint:
         - **🔄 Esegui sempre:** Ignora lo stato del flag e pulisce sempre con modalità principale
         - **⏭️ Salta se già pulito:** Non fa nulla se il flag indica che è già stato pulito oggi 
         - **🧠 Adatta modalità:** Se già pulito oggi, usa modalità e stanze alternative invece di quelle principali
+      default: "always_clean"
       selector:
         select:
           options:
@@ -359,6 +380,7 @@ blueprint:
     schedule1_evening_preset:
       name: 🎯 PRIMA SCHEDULAZIONE - Sera - Modalità Principale
       description: Modalità di pulizia principale per il programma serale della prima schedulazione aggiuntiva
+      default: "aspira"
       selector:
         select:
           options:
@@ -374,12 +396,14 @@ blueprint:
     schedule1_evening_rooms:
       name: 🏠 PRIMA SCHEDULAZIONE - Sera - Stanze Principali
       description: "ID delle stanze da pulire con modalità principale, separate da virgole (esempio: 1,2,3) oppure lascia vuoto per pulire tutta la casa"
+      default: ""
       selector:
         text: {}
 
     schedule1_evening_fallback_preset:
       name: 🔄 PRIMA SCHEDULAZIONE - Sera - Modalità Alternativa
       description: Modalità di pulizia alternativa da usare quando la logica adattiva sceglie di adattare la modalità
+      default: "lava"
       selector:
         select:
           options:
@@ -395,6 +419,7 @@ blueprint:
     schedule1_evening_fallback_rooms:
       name: 🏠 PRIMA SCHEDULAZIONE - Sera - Stanze Alternative
       description: "ID delle stanze da pulire con modalità alternativa (esempio: solo bagno = 3). Se vuoto, usa le stesse stanze principali"
+      default: ""
       selector:
         text: {}
 
@@ -402,10 +427,11 @@ blueprint:
     schedule2_weekdays:
       name: 📅 SECONDA SCHEDULAZIONE - Giorni Attivi
       description: Giorni della settimana in cui la seconda schedulazione è attiva (vale per mattina e sera)
+      default: ["domenica"]
       selector:
         select:
           multiple: true
-          custom_value: false
+          mode: list
           options:
             - lunedì
             - martedì
@@ -418,18 +444,21 @@ blueprint:
     schedule2_morning_on:
       name: 🌅 SECONDA SCHEDULAZIONE - Mattina - Abilita
       description: Attiva la pulizia mattutina della seconda schedulazione aggiuntiva
+      default: false
       selector:
         boolean: {}
 
     schedule2_morning_time:
       name: ⏰ SECONDA SCHEDULAZIONE - Mattina - Orario
       description: Orario per la pulizia mattutina della seconda schedulazione aggiuntiva
+      default: "05:00:00"
       selector:
         time: {}
 
     schedule2_morning_preset:
       name: 🎯 SECONDA SCHEDULAZIONE - Mattina - Modalità
       description: Modalità di pulizia per il programma mattutino della seconda schedulazione aggiuntiva
+      default: "aspira"
       selector:
         select:
           options:
@@ -445,18 +474,21 @@ blueprint:
     schedule2_morning_rooms:
       name: 🏠 SECONDA SCHEDULAZIONE - Mattina - Stanze
       description: "ID delle stanze da pulire separate da virgole (esempio: 1,2,3) oppure lascia vuoto per pulire tutta la casa"
+      default: ""
       selector:
         text: {}
 
     schedule2_evening_on:
       name: 🌙 SECONDA SCHEDULAZIONE - Sera - Abilita
       description: Attiva la pulizia serale della seconda schedulazione aggiuntiva (con logica adattiva)
+      default: false
       selector:
         boolean: {}
 
     schedule2_evening_time:
       name: ⏰ SECONDA SCHEDULAZIONE - Sera - Orario
       description: Orario per la pulizia serale della seconda schedulazione aggiuntiva
+      default: "23:00:00"
       selector:
         time: {}
 
@@ -468,6 +500,7 @@ blueprint:
         - **🔄 Esegui sempre:** Ignora lo stato del flag e pulisce sempre con modalità principale
         - **⏭️ Salta se già pulito:** Non fa nulla se il flag indica che è già stato pulito oggi 
         - **🧠 Adatta modalità:** Se già pulito oggi, usa modalità e stanze alternative invece di quelle principali
+      default: "always_clean"
       selector:
         select:
           options:
@@ -481,6 +514,7 @@ blueprint:
     schedule2_evening_preset:
       name: 🎯 SECONDA SCHEDULAZIONE - Sera - Modalità Principale
       description: Modalità di pulizia principale per il programma serale della seconda schedulazione aggiuntiva
+      default: "aspira"
       selector:
         select:
           options:
@@ -496,12 +530,14 @@ blueprint:
     schedule2_evening_rooms:
       name: 🏠 SECONDA SCHEDULAZIONE - Sera - Stanze Principali
       description: "ID delle stanze da pulire con modalità principale, separate da virgole (esempio: 1,2,3) oppure lascia vuoto per pulire tutta la casa"
+      default: ""
       selector:
         text: {}
 
     schedule2_evening_fallback_preset:
       name: 🔄 SECONDA SCHEDULAZIONE - Sera - Modalità Alternativa
       description: Modalità di pulizia alternativa da usare quando la logica adattiva sceglie di adattare la modalità
+      default: "lava"
       selector:
         select:
           options:
@@ -517,6 +553,7 @@ blueprint:
     schedule2_evening_fallback_rooms:
       name: 🏠 SECONDA SCHEDULAZIONE - Sera - Stanze Alternative
       description: "ID delle stanze da pulire con modalità alternativa (esempio: solo bagno = 3). Se vuoto, usa le stesse stanze principali"
+      default: ""
       selector:
         text: {}
 
@@ -524,10 +561,11 @@ blueprint:
     schedule3_weekdays:
       name: 📅 TERZA SCHEDULAZIONE - Giorni Attivi
       description: Giorni della settimana in cui la terza schedulazione è attiva (vale per mattina e sera)
+      default: ["sabato"]
       selector:
         select:
           multiple: true
-          custom_value: false
+          mode: list
           options:
             - lunedì
             - martedì
@@ -540,18 +578,21 @@ blueprint:
     schedule3_morning_on:
       name: 🌅 TERZA SCHEDULAZIONE - Mattina - Abilita
       description: Attiva la pulizia mattutina della terza schedulazione aggiuntiva
+      default: false
       selector:
         boolean: {}
 
     schedule3_morning_time:
       name: ⏰ TERZA SCHEDULAZIONE - Mattina - Orario
       description: Orario per la pulizia mattutina della terza schedulazione aggiuntiva
+      default: "05:00:00"
       selector:
         time: {}
 
     schedule3_morning_preset:
       name: 🎯 TERZA SCHEDULAZIONE - Mattina - Modalità
       description: Modalità di pulizia per il programma mattutino della terza schedulazione aggiuntiva
+      default: "aspira"
       selector:
         select:
           options:
@@ -567,18 +608,21 @@ blueprint:
     schedule3_morning_rooms:
       name: 🏠 TERZA SCHEDULAZIONE - Mattina - Stanze
       description: "ID delle stanze da pulire separate da virgole (esempio: 1,2,3) oppure lascia vuoto per pulire tutta la casa"
+      default: ""
       selector:
         text: {}
 
     schedule3_evening_on:
       name: 🌙 TERZA SCHEDULAZIONE - Sera - Abilita
       description: Attiva la pulizia serale della terza schedulazione aggiuntiva (con logica adattiva)
+      default: false
       selector:
         boolean: {}
 
     schedule3_evening_time:
       name: ⏰ TERZA SCHEDULAZIONE - Sera - Orario
       description: Orario per la pulizia serale della terza schedulazione aggiuntiva
+      default: "23:00:00"
       selector:
         time: {}
 
@@ -590,6 +634,7 @@ blueprint:
         - **🔄 Esegui sempre:** Ignora lo stato del flag e pulisce sempre con modalità principale
         - **⏭️ Salta se già pulito:** Non fa nulla se il flag indica che è già stato pulito oggi 
         - **🧠 Adatta modalità:** Se già pulito oggi, usa modalità e stanze alternative invece di quelle principali
+      default: "always_clean"
       selector:
         select:
           options:
@@ -603,6 +648,7 @@ blueprint:
     schedule3_evening_preset:
       name: 🎯 TERZA SCHEDULAZIONE - Sera - Modalità Principale
       description: Modalità di pulizia principale per il programma serale della terza schedulazione aggiuntiva
+      default: "aspira"
       selector:
         select:
           options:
@@ -618,12 +664,14 @@ blueprint:
     schedule3_evening_rooms:
       name: 🏠 TERZA SCHEDULAZIONE - Sera - Stanze Principali
       description: "ID delle stanze da pulire con modalità principale, separate da virgole (esempio: 1,2,3) oppure lascia vuoto per pulire tutta la casa"
+      default: ""
       selector:
         text: {}
 
     schedule3_evening_fallback_preset:
       name: 🔄 TERZA SCHEDULAZIONE - Sera - Modalità Alternativa
       description: Modalità di pulizia alternativa da usare quando la logica adattiva sceglie di adattare la modalità
+      default: "lava"
       selector:
         select:
           options:
@@ -639,6 +687,7 @@ blueprint:
     schedule3_evening_fallback_rooms:
       name: 🏠 TERZA SCHEDULAZIONE - Sera - Stanze Alternative
       description: "ID delle stanze da pulire con modalità alternativa (esempio: solo bagno = 3). Se vuoto, usa le stanze principali"
+      default: ""
       selector:
         text: {}
 
@@ -646,10 +695,11 @@ blueprint:
     schedule4_weekdays:
       name: 📅 QUARTA SCHEDULAZIONE - Giorni Attivi
       description: Giorni della settimana in cui la quarta schedulazione è attiva (vale per mattina e sera)
+      default: ["domenica"]
       selector:
         select:
           multiple: true
-          custom_value: false
+          mode: list
           options:
             - lunedì
             - martedì
@@ -662,18 +712,21 @@ blueprint:
     schedule4_morning_on:
       name: 🌅 QUARTA SCHEDULAZIONE - Mattina - Abilita
       description: Attiva la pulizia mattutina della quarta schedulazione aggiuntiva
+      default: false
       selector:
         boolean: {}
 
     schedule4_morning_time:
       name: ⏰ QUARTA SCHEDULAZIONE - Mattina - Orario
       description: Orario per la pulizia mattutina della quarta schedulazione aggiuntiva
+      default: "05:00:00"
       selector:
         time: {}
 
     schedule4_morning_preset:
       name: 🎯 QUARTA SCHEDULAZIONE - Mattina - Modalità
       description: Modalità di pulizia per il programma mattutino della quarta schedulazione aggiuntiva
+      default: "aspira"
       selector:
         select:
           options:
@@ -689,18 +742,21 @@ blueprint:
     schedule4_morning_rooms:
       name: 🏠 QUARTA SCHEDULAZIONE - Mattina - Stanze
       description: "ID delle stanze da pulire separate da virgole (esempio: 1,2,3) oppure lascia vuoto per pulire tutta la casa"
+      default: ""
       selector:
         text: {}
 
     schedule4_evening_on:
       name: 🌙 QUARTA SCHEDULAZIONE - Sera - Abilita
       description: Attiva la pulizia serale della quarta schedulazione aggiuntiva (con logica adattiva)
+      default: false
       selector:
         boolean: {}
 
     schedule4_evening_time:
       name: ⏰ QUARTA SCHEDULAZIONE - Sera - Orario
       description: Orario per la pulizia serale della quarta schedulazione aggiuntiva
+      default: "23:00:00"
       selector:
         time: {}
 
@@ -712,6 +768,7 @@ blueprint:
         - **🔄 Esegui sempre:** Ignora lo stato del flag e pulisce sempre con modalità principale
         - **⏭️ Salta se già pulito:** Non fa nulla se il flag indica che è già stato pulito oggi 
         - **🧠 Adatta modalità:** Se già pulito oggi, usa modalità e stanze alternative invece di quelle principali
+      default: "always_clean"
       selector:
         select:
           options:
@@ -725,6 +782,7 @@ blueprint:
     schedule4_evening_preset:
       name: 🎯 QUARTA SCHEDULAZIONE - Sera - Modalità Principale
       description: Modalità di pulizia principale per il programma serale della quarta schedulazione aggiuntiva
+      default: "aspira"
       selector:
         select:
           options:
@@ -740,12 +798,14 @@ blueprint:
     schedule4_evening_rooms:
       name: 🏠 QUARTA SCHEDULAZIONE - Sera - Stanze Principali
       description: "ID delle stanze da pulire con modalità principale, separate da virgole (esempio: 1,2,3) oppure lascia vuoto per pulire tutta la casa"
+      default: ""
       selector:
         text: {}
 
     schedule4_evening_fallback_preset:
       name: 🔄 QUARTA SCHEDULAZIONE - Sera - Modalità Alternativa
       description: Modalità di pulizia alternativa da usare quando la logica adattiva sceglie di adattare la modalità
+      default: "lava"
       selector:
         select:
           options:
@@ -761,6 +821,7 @@ blueprint:
     schedule4_evening_fallback_rooms:
       name: 🏠 QUARTA SCHEDULAZIONE - Sera - Stanze Alternative
       description: "ID delle stanze da pulire con modalità alternativa (esempio: solo bagno = 3). Se vuoto, usa le stanze principali"
+      default: ""
       selector:
         text: {}
 
@@ -770,6 +831,7 @@ blueprint:
     debug_mode:
       name: 🐛 Modalità Debug
       description: Abilita notifiche dettagliate per troubleshooting e monitoraggio delle operazioni
+      default: false
       selector:
         boolean: {}
 
