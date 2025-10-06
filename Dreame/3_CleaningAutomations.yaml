@@ -13,7 +13,7 @@ blueprint:
     📋 **COME FUNZIONA:**
     - Ogni slot può essere abilitato/disabilitato separatamente (mattina/sera)
     - Le pulizie serali si adattano automaticamente in base alla situazione
-    - Sistema ottimizzato per evitare sprechi energetici
+    
   domain: automation
   input:
     # ═══════════════════════════════════════════════════════════════
@@ -48,7 +48,7 @@ blueprint:
         
         ✅ **Esempi:**
         - `sensor.dreame_l10s_ultra_status`
-        - `sensor.ambrogio_status_2` 
+        - `sensor.ambrogio_status` 
         - `sensor.dreame_robot_vacuum_state`
         
         🎯 **A cosa serve:** Il blueprint controlla che il robot sia in uno stato valido (`idle`, `sleeping`, `charging`, `docked`) prima di avviare una pulizia
@@ -118,7 +118,7 @@ blueprint:
         
         ✅ **Risultato finale:** `input_boolean.cleaned_today`
         
-        🔄 **AUTOMAZIONE RESET (OPZIONALE):**
+        🔄 **AUTOMAZIONE RESET:**
         ```
         - id: reset_cleaned_today
           alias: Reset Flag Pulizia
@@ -290,6 +290,13 @@ blueprint:
         text: {}
 
     # ────────────────────── PRIMA SCHEDULAZIONE ──────────────────────
+    schedule1_morning_on:
+      name: 🌅 PRIMA SCHEDULAZIONE - Mattina - Abilita
+      description: Attiva la pulizia mattutina della prima schedulazione aggiuntiva
+      default: false
+      selector:
+        boolean: {}
+
     schedule1_weekdays:
       name: 📅 PRIMA SCHEDULAZIONE - Giorni Attivi
       description: Giorni della settimana in cui la prima schedulazione è attiva (vale per mattina e sera)
@@ -306,13 +313,6 @@ blueprint:
             - venerdì
             - sabato
             - domenica
-
-    schedule1_morning_on:
-      name: 🌅 PRIMA SCHEDULAZIONE - Mattina - Abilita
-      description: Attiva la pulizia mattutina della prima schedulazione aggiuntiva
-      default: false
-      selector:
-        boolean: {}
 
     schedule1_morning_time:
       name: ⏰ PRIMA SCHEDULAZIONE - Mattina - Orario
@@ -424,6 +424,13 @@ blueprint:
         text: {}
 
     # ────────────────────── SECONDA SCHEDULAZIONE ──────────────────────
+    schedule2_morning_on:
+      name: 🌅 SECONDA SCHEDULAZIONE - Mattina - Abilita
+      description: Attiva la pulizia mattutina della seconda schedulazione aggiuntiva
+      default: false
+      selector:
+        boolean: {}
+
     schedule2_weekdays:
       name: 📅 SECONDA SCHEDULAZIONE - Giorni Attivi
       description: Giorni della settimana in cui la seconda schedulazione è attiva (vale per mattina e sera)
@@ -440,13 +447,6 @@ blueprint:
             - venerdì
             - sabato
             - domenica
-
-    schedule2_morning_on:
-      name: 🌅 SECONDA SCHEDULAZIONE - Mattina - Abilita
-      description: Attiva la pulizia mattutina della seconda schedulazione aggiuntiva
-      default: false
-      selector:
-        boolean: {}
 
     schedule2_morning_time:
       name: ⏰ SECONDA SCHEDULAZIONE - Mattina - Orario
@@ -558,6 +558,13 @@ blueprint:
         text: {}
 
     # ────────────────────── TERZA SCHEDULAZIONE ──────────────────────
+    schedule3_morning_on:
+      name: 🌅 TERZA SCHEDULAZIONE - Mattina - Abilita
+      description: Attiva la pulizia mattutina della terza schedulazione aggiuntiva
+      default: false
+      selector:
+        boolean: {}
+
     schedule3_weekdays:
       name: 📅 TERZA SCHEDULAZIONE - Giorni Attivi
       description: Giorni della settimana in cui la terza schedulazione è attiva (vale per mattina e sera)
@@ -574,13 +581,6 @@ blueprint:
             - venerdì
             - sabato
             - domenica
-
-    schedule3_morning_on:
-      name: 🌅 TERZA SCHEDULAZIONE - Mattina - Abilita
-      description: Attiva la pulizia mattutina della terza schedulazione aggiuntiva
-      default: false
-      selector:
-        boolean: {}
 
     schedule3_morning_time:
       name: ⏰ TERZA SCHEDULAZIONE - Mattina - Orario
@@ -692,6 +692,13 @@ blueprint:
         text: {}
 
     # ────────────────────── QUARTA SCHEDULAZIONE ──────────────────────
+    schedule4_morning_on:
+      name: 🌅 QUARTA SCHEDULAZIONE - Mattina - Abilita
+      description: Attiva la pulizia mattutina della quarta schedulazione aggiuntiva
+      default: false
+      selector:
+        boolean: {}
+
     schedule4_weekdays:
       name: 📅 QUARTA SCHEDULAZIONE - Giorni Attivi
       description: Giorni della settimana in cui la quarta schedulazione è attiva (vale per mattina e sera)
@@ -708,13 +715,6 @@ blueprint:
             - venerdì
             - sabato
             - domenica
-
-    schedule4_morning_on:
-      name: 🌅 QUARTA SCHEDULAZIONE - Mattina - Abilita
-      description: Attiva la pulizia mattutina della quarta schedulazione aggiuntiva
-      default: false
-      selector:
-        boolean: {}
 
     schedule4_morning_time:
       name: ⏰ QUARTA SCHEDULAZIONE - Mattina - Orario
