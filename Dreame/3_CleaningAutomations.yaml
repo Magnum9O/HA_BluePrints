@@ -1183,7 +1183,6 @@ variables:
   # Entità principali
   vacuum_ent: !input vacuum_entity
   robot_status: !input robot_status_sensor
-  valid_states: !input valid_robot_states
   presence_ent: !input presence_entity
   pres_val: !input presence_value
   notification_targets: !input notification_targets
