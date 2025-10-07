@@ -134,12 +134,12 @@ blueprint:
         entity:
           domain: input_boolean
     
-  export_entity:
-    name: Entity di export (JSON)
-    description: Dove salvare la configurazione del blueprint in formato JSON
-    selector:
-      entity:
-        domain: input_text
+    export_entity:
+      name: Entity di export (JSON)
+      description: Dove salvare la configurazione del blueprint in formato JSON
+      selector:
+        entity:
+          domain: input_text
     
 
     # ═══════════════════════════════════════════════════════════════
