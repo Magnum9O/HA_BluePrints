@@ -134,12 +134,12 @@ blueprint:
         entity:
           domain: input_boolean
     
-    export_entity:
-      name: Entity di export (JSON)
-      description: Dove salvare la configurazione del blueprint in formato JSON
-      selector:
-        entity:
-          domain: input_text
+  export_entity:
+    name: Entity di export (JSON)
+    description: Dove salvare la configurazione del blueprint in formato JSON
+    selector:
+      entity:
+        domain: input_text
     
 
     # ═══════════════════════════════════════════════════════════════
@@ -853,7 +853,30 @@ variables:
   pres_val: !input presence_value
   flag_ent: !input flag_cleaned_today
   debug_enabled: !input debug_mode
+  main_weekdays: !input main_weekdays
+  main_morning_on: !input main_morning_on
+  main_morning_time: !input main_morning_time
+  main_morning_preset: !input main_morning_preset
+  main_morning_rooms: !input main_morning_rooms
+  main_evening_on: !input main_evening_on
+  main_evening_time: !input main_evening_time
+  main_evening_conditional: !input main_evening_conditional
+  main_evening_rooms: !input main_evening_rooms
+  main_evening_preset: !input main_evening_preset
+  main_evening_fallback_preset: !input main_evening_fallback_preset
+  main_evening_fallback_rooms: !input main_evening_fallback_rooms
 
+  schedule1_morning_on: !input schedule1_morning_on
+  schedule1_weekdays: !input schedule1_weekdays
+  schedule1_morning_time: !input schedule1_morning_time
+  schedule1_morning_preset: !input schedule1_morning_preset
+  schedule1_morning_rooms: !input schedule1_morning_rooms
+  schedule1_evening_on: !input schedule1_evening_on
+  schedule1_evening_time: !input schedule1_evening_time
+  schedule1_evening_preset: !input schedule1_evening_preset
+  schedule1_evening_rooms: !input schedule1_evening_rooms
+
+  export_entity: !input export_entity
 # ═══════════════════════════════════════════════════════════════
 # ⚡ TRIGGER SYSTEM
 # ═══════════════════════════════════════════════════════════════
