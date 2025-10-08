@@ -1,1440 +1,436 @@
 blueprint:
-  name: 🤖 Dreame Vacuum - Automazione Pulizie Avanzata
+  name: 🤖 Dreame Vacuum - Automazione Pulizie Avanzata (Full + Export JSON)
   description: |
-    🚀 **SISTEMA INTELLIGENTE DI PULIZIE AUTOMATICHE**
-    
-    ✨ **CARATTERISTICHE:**
-    - 🎯 **Slot Principale**: Mattina standard + Sera con logica adattiva
-    - 📅 **4 Schedulazioni Aggiuntive**: Tutte con logica adattiva intelligente 
-    - 🧠 **Controlli Automatici**: Verifica stato robot e presenza
-    - 🔄 **Logica Adattiva Avanzata**: Evita pulizie ridondanti
-    - 🏠 **Configurazione Flessibile**: Ogni slot indipendente
-    
-    📋 **COME FUNZIONA:**
-    - Ogni slot può essere abilitato/disabilitato separatamente (mattina/sera)
-    - Le pulizie serali si adattano automaticamente in base alla situazione
-    
+    🚀 SISTEMA INTELLIGENTE DI PULIZIE AUTOMATICHE per Dreame (integrazione `dreame_vacuum`)
+    - Slot Principale (mattina/sera) con logica adattiva (always / skip_if_cleaned / adapt_if_cleaned)
+    - 4 Schedulazioni aggiuntive (schedule1..4), ognuna con mattina/sera e logica adattiva
+    - Controllo presenza opzionale
+    - Flag "pulito oggi" con reset giornaliero
+    - ✨ Export automatico della configurazione in JSON verso un `input_text` per usarla in Template/Dashboard
   domain: automation
+
   input:
-    # ═══════════════════════════════════════════════════════════════
-    # 🔧 CONFIGURAZIONE BASE - ENTITÀ NECESSARIE
-    # ═══════════════════════════════════════════════════════════════
+    # === Base ===
     vacuum_entity:
       name: 🤖 Robot Aspirapolvere
-      description: |
-        **Seleziona l'entità principale del tuo robot Dreame**
-        
-        📍 **Dove trovarla:** Impostazioni → Dispositivi e servizi → Dreame → Cerca entità tipo `vacuum.nome_robot`
-        
-        ✅ **Esempi comuni:**
-        - `vacuum.dreame_l10s_ultra`
-        - `vacuum.ambrogio` 
-        - `vacuum.dreame_robot_vacuum`
-        
-        ⚠️ **Importante:** Deve essere l'entità principale (domain: vacuum), NON i sensori!
-      selector:
-        entity:
-          domain: vacuum
+      selector: {entity: {domain: vacuum}}
 
     robot_status_sensor:
-      name: 📊 Sensore Stato Robot
-      description: |
-        **Sensore che riporta lo stato dettagliato del robot (idle, cleaning, returning, etc.)**
-        
-        📍 **Come trovarlo:** 
-        1. Impostazioni → Dispositivi e servizi → Dreame
-        2. Cerca un sensore con nome tipo `sensor.nome_robot_status` o `sensor.nome_robot_state`
-        3. Gli stati comuni sono: `idle`, `cleaning`, `returning`, `charging`, `docked`, `paused`
-        
-        ✅ **Esempi:**
-        - `sensor.dreame_l10s_ultra_status`
-        - `sensor.ambrogio_status` 
-        - `sensor.dreame_robot_vacuum_state`
-        
-        🎯 **A cosa serve:** Il blueprint controlla che il robot sia in uno stato valido (`idle`, `sleeping`, `charging`, `docked`) prima di avviare una pulizia
-      selector:
-        entity:
-          domain: sensor
+      name: 📊 Sensore stato robot (opzionale)
+      default: ""
+      selector: {entity: {domain: sensor}}
 
     presence_entity:
-      name: 👥 Sensore di Presenza
-      description: |
-        **Entità che indica se qualcuno è presente in casa**
-        
-        🎯 **A COSA SERVE:** Il robot pulisce SOLO quando la casa è vuota (per sicurezza e comodità)
-        
-        📍 **Opzioni comuni:**
-        
-        **🏠 COUNTER (più semplice):**
-        - `counter.away_home` (0 = casa vuota, 1+ = qualcuno presente)
-        
-        **👤 PERSON TRACKER:**
-        - `person.nome_persona` (away = fuori, home = presente)
-        
-        **🏢 ZONE BASED:**
-        - `input_select.house_mode` (away/home/night)
-        - `binary_sensor.house_occupied`
-        
-        **📱 DEVICE TRACKER:**
-        - `device_tracker.telefono` (away/home)
-        
-        ⚠️ **Nota:** Configura il "Valore Casa Vuota" nel campo successivo!
-      selector:
-        entity: {}
+      name: 👥 Entità presenza (opzionale)
+      description: Esegui solo se questa entità indica "casa vuota" (valore sotto)
+      default: ""
+      selector: {entity: {}}
 
     presence_value:
-      name: 🏠 Valore "Casa Vuota" 
-      description: |
-        **Il valore che indica che la casa è vuota**
-        
-        📍 **Esempi in base al sensore scelto:**
-        
-        **Se hai scelto un COUNTER:** `0`
-        **Se hai scelto una PERSON:** `away` 
-        **Se hai scelto un INPUT_SELECT:** `away`
-        **Se hai scelto un BINARY_SENSOR:** `off`
-        **Se hai scelto un DEVICE_TRACKER:** `not_home`
-        
-        💡 **Consiglio:** Guarda negli "Stati sviluppatori" il valore effettivo del tuo sensore quando sei fuori casa
+      name: 🏠 Valore "casa vuota" (opzionale)
       default: "0"
-      selector:
-        text: {}
+      selector: {text: {}}
 
     flag_cleaned_today:
-      name: 🏁 Flag Pulizia Completata
-      description: |
-        **Input boolean che traccia se è già stato pulito oggi (necessario per logica adattiva)**
-        
-        🎯 **A COSA SERVE:**
-        - Evita pulizie ridondanti nella stessa giornata
-        - Permette alla logica adattiva di funzionare (salta/adatta le pulizie serali)
-        - Si resetta automaticamente ogni giorno a mezzanotte
-        
-        📍 **COME CREARLO:**
-        1. Impostazioni → Dispositivi e servizi → Helper
-        2. Crea Helper → Toggle (Boolean)
-        3. Nome: "Cleaned Today" o "Pulito Oggi"
-        4. ID entità: `cleaned_today`
-        
-        ✅ **Risultato finale:** `input_boolean.cleaned_today`
-        
-        🔄 **AUTOMAZIONE RESET:**
-        ```
-        - id: reset_cleaned_today
-          alias: Reset Flag Pulizia
-          trigger:
-            platform: time
-            at: "00:00:00"
-          action:
-            service: input_boolean.turn_off
-            target:
-              entity_id: input_boolean.cleaned_today
-        ```
-      selector:
-        entity:
-          domain: input_boolean
-    
-    export_entity:
-      name: Entity di export (JSON)
-      description: Dove salvare la configurazione del blueprint in formato JSON
-      selector:
-        entity:
-          domain: input_text
-    
+      name: 🏁 Flag "Pulito oggi" (input_boolean)
+      selector: {entity: {domain: input_boolean}}
 
-    # ═══════════════════════════════════════════════════════════════
-    # 🎯 PULIZIE AUTOMATICHE
-    # ═══════════════════════════════════════════════════════════════
+    cleangenius_select:
+      name: 🎛️ Select CleanGenius (opzionale)
+      description: Entità select.* per settare routine/deep quando preset = genius/genius_deep
+      default: ""
+      selector: {entity: {domain: select}}
 
-    # ────────────────────── SLOT PRINCIPALE ──────────────────────
+    # === Slot principale ===
     main_weekdays:
-      name: 📅 SLOT PRINCIPALE - Giorni Attivi
-      description: |
-        **Giorni della settimana in cui lo slot principale è attivo**
-        
-        💡 **Questo vale per ENTRAMBI mattina e sera dello slot principale**
-        📋 **Esempi:**
-        - Giorni lavorativi: Lunedì-Venerdì
-        - Solo weekend: Sabato, Domenica 
-        - Alternato: Lunedì, Mercoledì, Venerdì
+      name: 📅 Principale - Giorni attivi
       default: []
       selector:
         select:
           multiple: true
           mode: list
-          options:
-            - lunedì
-            - martedì
-            - mercoledì
-            - giovedì
-            - venerdì
-            - sabato
-            - domenica
+          options: [lunedì, martedì, mercoledì, giovedì, venerdì, sabato, domenica]
 
     main_morning_on:
-      name: 🌅 SLOT PRINCIPALE - Mattina - Abilita
-      description: |
-        **Attiva la pulizia mattutina del programma principale**
-        
-        🎯 **COMPORTAMENTO:** Sempre eseguita quando abilitata (senza logica adattiva)
+      name: 🌅 Principale - Mattina attiva
       default: false
-      selector:
-        boolean: {}
+      selector: {boolean: {}}
 
     main_morning_time:
-      name: ⏰ SLOT PRINCIPALE - Mattina - Orario
-      description: Orario per la pulizia mattutina del programma principale
-      default: "05:00:00"
-      selector:
-        time: {}
+      name: ⏰ Principale - Orario mattina
+      default: "09:00:00"
+      selector: {time: {}}
 
     main_morning_preset:
-      name: 🎯 SLOT PRINCIPALE - Mattina - Modalità
-      description: |
-        **Modalità di pulizia per il programma mattutino**
-        
-        🎯 **MODALITÀ DISPONIBILI:**
-        - **Sola aspirazione**: Solo aspirazione (veloce)
-        - **Solo lavaggio**: Solo lavaggio (con panno) 
-        - **Aspira + lava (Clean Genius)**: Aspira + lava modalità intelligente
-        - **Aspira + lava (Clean Genius Deep)**: Aspira + lava modalità intelligente profonda
-      default: "aspira"
-      selector:
-        select:
-          options:
-            - value: "aspira"
-              label: "Sola aspirazione"
-            - value: "lava"
-              label: "Solo lavaggio"
-            - value: "aspira_lava"
-              label: "Aspira + lava (Clean Genius)"
-            - value: "cleangenius_deep"
-              label: "Aspira + lava (Clean Genius Deep)"
+      name: 🎯 Principale - Preset mattina
+      default: aspira_lava
+      selector: {select: {options: [aspira, lava, aspira_lava, genius, genius_deep]}}
 
     main_morning_rooms:
-      name: 🏠 SLOT PRINCIPALE - Mattina - Stanze
-      description: "ID delle stanze da pulire separate da virgole (esempio: 1,2,3) oppure lascia vuoto per pulire tutta la casa"
+      name: 🏠 Principale - Stanze mattina (ID, separati da virgole)
       default: ""
-      selector:
-        text: {}
+      selector: {text: {}}
 
     main_evening_on:
-      name: 🌙 SLOT PRINCIPALE - Sera - Abilita
-      description: Attiva la pulizia serale del programma principale (con logica adattiva configurabile)
+      name: 🌙 Principale - Sera attiva
       default: false
-      selector:
-        boolean: {}
+      selector: {boolean: {}}
 
     main_evening_time:
-      name: ⏰ SLOT PRINCIPALE - Sera - Orario
-      description: Orario per la pulizia serale del programma principale
-      default: "23:00:00"
-      selector:
-        time: {}
+      name: ⏰ Principale - Orario sera
+      default: "18:00:00"
+      selector: {time: {}}
 
     main_evening_conditional:
-      name: 🧠 SLOT PRINCIPALE - Sera - Logica Adattiva
-      description: |
-        **Come comportarsi in base allo stato del flag pulizia:**
-        
-        - **🔄 Esegui sempre:** Ignora lo stato del flag e pulisce sempre con modalità principale
-        - **⏭️ Salta se già pulito:** Non fa nulla se il flag indica che è già stato pulito oggi 
-        - **🧠 Adatta modalità:** Se già pulito oggi, usa modalità e stanze alternative invece di quelle principali
-      default: "always_clean"
-      selector:
-        select:
-          options:
-            - value: "always_clean"
-              label: "🔄 Esegui Sempre"
-            - value: "skip_if_cleaned" 
-              label: "⏭️ Salta se già pulito"
-            - value: "adapt_if_cleaned"
-              label: "🧠 Adatta modalità"
+      name: 🧠 Principale - Logica sera
+      default: adapt_if_cleaned
+      selector: {select: {options: [always, skip_if_cleaned, adapt_if_cleaned]}}
 
     main_evening_preset:
-      name: 🎯 SLOT PRINCIPALE - Sera - Modalità Principale
-      description: Modalità di pulizia principale da utilizzare per il programma serale (usata sempre, tranne se logica adattiva sceglie modalità alternativa)
-      default: "aspira"
-      selector:
-        select:
-          options:
-            - value: "aspira"
-              label: "Sola aspirazione"
-            - value: "lava"
-              label: "Solo lavaggio"
-            - value: "aspira_lava"
-              label: "Aspira + lava (Clean Genius)"
-            - value: "cleangenius_deep"
-              label: "Aspira + lava (Clean Genius Deep)"
+      name: 🎯 Principale - Preset sera
+      default: lava
+      selector: {select: {options: [aspira, lava, aspira_lava, genius, genius_deep]}}
 
     main_evening_rooms:
-      name: 🏠 SLOT PRINCIPALE - Sera - Stanze Principali
-      description: "ID delle stanze da pulire con modalità principale, separate da virgole (esempio: 1,2,3) oppure lascia vuoto per pulire tutta la casa"
+      name: 🏠 Principale - Stanze sera
       default: ""
-      selector:
-        text: {}
+      selector: {text: {}}
 
     main_evening_fallback_preset:
-      name: 🔄 SLOT PRINCIPALE - Sera - Modalità Alternativa
-      description: Modalità di pulizia alternativa da usare quando la logica adattiva è impostata su "Adatta modalità" e il robot è già stato utilizzato oggi
-      default: "lava"
-      selector:
-        select:
-          options:
-            - value: "aspira"
-              label: "Sola aspirazione"
-            - value: "lava"
-              label: "Solo lavaggio"
-            - value: "aspira_lava"
-              label: "Aspira + lava (Clean Genius)"
-            - value: "cleangenius_deep"
-              label: "Aspira + lava (Clean Genius Deep)"
+      name: 🔄 Principale - Preset fallback sera (se già pulito)
+      default: aspira
+      selector: {select: {options: [aspira, lava, aspira_lava, genius, genius_deep]}}
 
     main_evening_fallback_rooms:
-      name: 🏠 SLOT PRINCIPALE - Sera - Stanze Alternative
-      description: "ID delle stanze da pulire con modalità alternativa (esempio: solo bagno = 3). Se vuoto, usa le stesse stanze principali"
+      name: 🔄 Principale - Stanze fallback sera
       default: ""
-      selector:
-        text: {}
+      selector: {text: {}}
 
-    # ────────────────────── PRIMA SCHEDULAZIONE ──────────────────────
-    schedule1_morning_on:
-      name: 🌅 PRIMA SCHEDULAZIONE - Mattina - Abilita
-      description: Attiva la pulizia mattutina della prima schedulazione aggiuntiva
-      default: false
-      selector:
-        boolean: {}
+    # === Schedulazioni 1..4 (stessa struttura) ===
+    schedule1_morning_on:   {name: "☀️ Schedule1 - Mattina attiva", default: false, selector: {boolean: {}}}
+    schedule1_weekdays:     {name: "📅 Schedule1 - Giorni attivi", selector: {select: {multiple: true, mode: list, options: [lunedì, martedì, mercoledì, giovedì, venerdì, sabato, domenica]}}, default: []}
+    schedule1_morning_time: {name: "☀️ Schedule1 - Orario mattina", default: "08:00:00", selector: {time: {}}}
+    schedule1_morning_preset: {name: "☀️ Schedule1 - Preset mattina", default: lava, selector: {select: {options: [aspira, lava, aspira_lava, genius, genius_deep]}}}
+    schedule1_morning_rooms:  {name: "📍 Schedule1 - Stanze mattina", default: "3", selector: {text: {}}}
+    schedule1_evening_on:   {name: "🌙 Schedule1 - Sera attiva", default: false, selector: {boolean: {}}}
+    schedule1_evening_time: {name: "🌙 Schedule1 - Orario sera", default: "19:00:00", selector: {time: {}}}
+    schedule1_evening_conditional: {name: "🧠 Schedule1 - Logica sera", default: always, selector: {select: {options: [always, skip_if_cleaned, adapt_if_cleaned]}}}
+    schedule1_evening_preset: {name: "🌙 Schedule1 - Preset sera", default: lava, selector: {select: {options: [aspira, lava, aspira_lava, genius, genius_deep]}}}
+    schedule1_evening_rooms:  {name: "📍 Schedule1 - Stanze sera", default: "3", selector: {text: {}}}
+    schedule1_evening_fallback_preset: {name: "🔄 Schedule1 - Preset fallback sera", default: aspira, selector: {select: {options: [aspira, lava, aspira_lava, genius, genius_deep]}}}
+    schedule1_evening_fallback_rooms:  {name: "🔄 Schedule1 - Stanze fallback sera", default: "", selector: {text: {}}}
 
-    schedule1_weekdays:
-      name: 📅 PRIMA SCHEDULAZIONE - Giorni Attivi
-      description: Giorni della settimana in cui la prima schedulazione è attiva (vale per mattina e sera)
-      default: []
-      selector:
-        select:
-          multiple: true
-          mode: list
-          options:
-            - lunedì
-            - martedì
-            - mercoledì
-            - giovedì
-            - venerdì
-            - sabato
-            - domenica
+    schedule2_morning_on:   {name: "☀️ Schedule2 - Mattina attiva", default: false, selector: {boolean: {}}}
+    schedule2_weekdays:     {name: "📅 Schedule2 - Giorni attivi", selector: {select: {multiple: true, mode: list, options: [lunedì, martedì, mercoledì, giovedì, venerdì, sabato, domenica]}}, default: []}
+    schedule2_morning_time: {name: "☀️ Schedule2 - Orario mattina", default: "08:30:00", selector: {time: {}}}
+    schedule2_morning_preset: {name: "☀️ Schedule2 - Preset mattina", default: aspira, selector: {select: {options: [aspira, lava, aspira_lava, genius, genius_deep]}}}
+    schedule2_morning_rooms:  {name: "📍 Schedule2 - Stanze mattina", default: "", selector: {text: {}}}
+    schedule2_evening_on:   {name: "🌙 Schedule2 - Sera attiva", default: false, selector: {boolean: {}}}
+    schedule2_evening_time: {name: "🌙 Schedule2 - Orario sera", default: "19:30:00", selector: {time: {}}}
+    schedule2_evening_conditional: {name: "🧠 Schedule2 - Logica sera", default: always, selector: {select: {options: [always, skip_if_cleaned, adapt_if_cleaned]}}}
+    schedule2_evening_preset: {name: "🌙 Schedule2 - Preset sera", default: aspira_lava, selector: {select: {options: [aspira, lava, aspira_lava, genius, genius_deep]}}}
+    schedule2_evening_rooms:  {name: "📍 Schedule2 - Stanze sera", default: "", selector: {text: {}}}
+    schedule2_evening_fallback_preset: {name: "🔄 Schedule2 - Preset fallback sera", default: lava, selector: {select: {options: [aspira, lava, aspira_lava, genius, genius_deep]}}}
+    schedule2_evening_fallback_rooms:  {name: "🔄 Schedule2 - Stanze fallback sera", default: "", selector: {text: {}}}
 
-    schedule1_morning_time:
-      name: ⏰ PRIMA SCHEDULAZIONE - Mattina - Orario
-      description: Orario per la pulizia mattutina della prima schedulazione aggiuntiva
-      default: "05:00:00"
-      selector:
-        time: {}
+    schedule3_morning_on:   {name: "☀️ Schedule3 - Mattina attiva", default: false, selector: {boolean: {}}}
+    schedule3_weekdays:     {name: "📅 Schedule3 - Giorni attivi", selector: {select: {multiple: true, mode: list, options: [lunedì, martedì, mercoledì, giovedì, venerdì, sabato, domenica]}}, default: []}
+    schedule3_morning_time: {name: "☀️ Schedule3 - Orario mattina", default: "07:30:00", selector: {time: {}}}
+    schedule3_morning_preset: {name: "☀️ Schedule3 - Preset mattina", default: aspira, selector: {select: {options: [aspira, lava, aspira_lava, genius, genius_deep]}}}
+    schedule3_morning_rooms:  {name: "📍 Schedule3 - Stanze mattina", default: "", selector: {text: {}}}
+    schedule3_evening_on:   {name: "🌙 Schedule3 - Sera attiva", default: false, selector: {boolean: {}}}
+    schedule3_evening_time: {name: "🌙 Schedule3 - Orario sera", default: "20:00:00", selector: {time: {}}}
+    schedule3_evening_conditional: {name: "🧠 Schedule3 - Logica sera", default: always, selector: {select: {options: [always, skip_if_cleaned, adapt_if_cleaned]}}}
+    schedule3_evening_preset: {name: "🌙 Schedule3 - Preset sera", default: aspira_lava, selector: {select: {options: [aspira, lava, aspira_lava, genius, genius_deep]}}}
+    schedule3_evening_rooms:  {name: "📍 Schedule3 - Stanze sera", default: "", selector: {text: {}}}
+    schedule3_evening_fallback_preset: {name: "🔄 Schedule3 - Preset fallback sera", default: lava, selector: {select: {options: [aspira, lava, aspira_lava, genius, genius_deep]}}}
+    schedule3_evening_fallback_rooms:  {name: "🔄 Schedule3 - Stanze fallback sera", default: "", selector: {text: {}}}
 
-    schedule1_morning_preset:
-      name: 🎯 PRIMA SCHEDULAZIONE - Mattina - Modalità
-      description: Modalità di pulizia per il programma mattutino della prima schedulazione aggiuntiva
-      default: "aspira"
-      selector:
-        select:
-          options:
-            - value: "aspira"
-              label: "Sola aspirazione"
-            - value: "lava"
-              label: "Solo lavaggio"
-            - value: "aspira_lava"
-              label: "Aspira + lava (Clean Genius)"
-            - value: "cleangenius_deep"
-              label: "Aspira + lava (Clean Genius Deep)"
+    schedule4_morning_on:   {name: "☀️ Schedule4 - Mattina attiva", default: false, selector: {boolean: {}}}
+    schedule4_weekdays:     {name: "📅 Schedule4 - Giorni attivi", selector: {select: {multiple: true, mode: list, options: [lunedì, martedì, mercoledì, giovedì, venerdì, sabato, domenica]}}, default: []}
+    schedule4_morning_time: {name: "☀️ Schedule4 - Orario mattina", default: "07:00:00", selector: {time: {}}}
+    schedule4_morning_preset: {name: "☀️ Schedule4 - Preset mattina", default: aspira, selector: {select: {options: [aspira, lava, aspira_lava, genius, genius_deep]}}}
+    schedule4_morning_rooms:  {name: "📍 Schedule4 - Stanze mattina", default: "", selector: {text: {}}}
+    schedule4_evening_on:   {name: "🌙 Schedule4 - Sera attiva", default: false, selector: {boolean: {}}}
+    schedule4_evening_time: {name: "🌙 Schedule4 - Orario sera", default: "20:30:00", selector: {time: {}}}
+    schedule4_evening_conditional: {name: "🧠 Schedule4 - Logica sera", default: always, selector: {select: {options: [always, skip_if_cleaned, adapt_if_cleaned]}}}
+    schedule4_evening_preset: {name: "🌙 Schedule4 - Preset sera", default: aspira_lava, selector: {select: {options: [aspira, lava, aspira_lava, genius, genius_deep]}}}
+    schedule4_evening_rooms:  {name: "📍 Schedule4 - Stanze sera", default: "", selector: {text: {}}}
+    schedule4_evening_fallback_preset: {name: "🔄 Schedule4 - Preset fallback sera", default: lava, selector: {select: {options: [aspira, lava, aspira_lava, genius, genius_deep]}}}
+    schedule4_evening_fallback_rooms:  {name: "🔄 Schedule4 - Stanze fallback sera", default: "", selector: {text: {}}}
 
-    schedule1_morning_rooms:
-      name: 🏠 PRIMA SCHEDULAZIONE - Mattina - Stanze
-      description: "ID delle stanze da pulire separate da virgole (esempio: 1,2,3) oppure lascia vuoto per pulire tutta la casa"
-      default: ""
-      selector:
-        text: {}
+    # === Export JSON ===
+    export_entity:
+      name: 🧱 Entity di export (JSON)
+      description: Helper input_text dove salvare la configurazione corrente
+      selector: {entity: {domain: input_text}}
 
-    schedule1_evening_on:
-      name: 🌙 PRIMA SCHEDULAZIONE - Sera - Abilita
-      description: Attiva la pulizia serale della prima schedulazione aggiuntiva (con logica adattiva)
-      default: false
-      selector:
-        boolean: {}
-
-    schedule1_evening_time:
-      name: ⏰ PRIMA SCHEDULAZIONE - Sera - Orario
-      description: Orario per la pulizia serale della prima schedulazione aggiuntiva
-      default: "23:00:00"
-      selector:
-        time: {}
-
-    schedule1_evening_conditional:
-      name: 🧠 PRIMA SCHEDULAZIONE - Sera - Logica Adattiva
-      description: |
-        **Come comportarsi in base allo stato del flag pulizia:**
-        
-        - **🔄 Esegui sempre:** Ignora lo stato del flag e pulisce sempre con modalità principale
-        - **⏭️ Salta se già pulito:** Non fa nulla se il flag indica che è già stato pulito oggi 
-        - **🧠 Adatta modalità:** Se già pulito oggi, usa modalità e stanze alternative invece di quelle principali
-      default: "always_clean"
-      selector:
-        select:
-          options:
-            - value: "always_clean"
-              label: "🔄 Esegui Sempre"
-            - value: "skip_if_cleaned"
-              label: "⏭️ Salta se già pulito"
-            - value: "adapt_if_cleaned"
-              label: "🧠 Adatta modalità"
-
-    schedule1_evening_preset:
-      name: 🎯 PRIMA SCHEDULAZIONE - Sera - Modalità Principale
-      description: Modalità di pulizia principale per il programma serale della prima schedulazione aggiuntiva
-      default: "aspira"
-      selector:
-        select:
-          options:
-            - value: "aspira"
-              label: "Sola aspirazione"
-            - value: "lava"
-              label: "Solo lavaggio"
-            - value: "aspira_lava"
-              label: "Aspira + lava (Clean Genius)"
-            - value: "cleangenius_deep"
-              label: "Aspira + lava (Clean Genius Deep)"
-
-    schedule1_evening_rooms:
-      name: 🏠 PRIMA SCHEDULAZIONE - Sera - Stanze Principali
-      description: "ID delle stanze da pulire con modalità principale, separate da virgole (esempio: 1,2,3) oppure lascia vuoto per pulire tutta la casa"
-      default: ""
-      selector:
-        text: {}
-
-    schedule1_evening_fallback_preset:
-      name: 🔄 PRIMA SCHEDULAZIONE - Sera - Modalità Alternativa
-      description: Modalità di pulizia alternativa da usare quando la logica adattiva sceglie di adattare la modalità
-      default: "lava"
-      selector:
-        select:
-          options:
-            - value: "aspira"
-              label: "Sola aspirazione"
-            - value: "lava"
-              label: "Solo lavaggio"
-            - value: "aspira_lava"
-              label: "Aspira + lava (Clean Genius)"
-            - value: "cleangenius_deep"
-              label: "Aspira + lava (Clean Genius Deep)"
-
-    schedule1_evening_fallback_rooms:
-      name: 🏠 PRIMA SCHEDULAZIONE - Sera - Stanze Alternative
-      description: "ID delle stanze da pulire con modalità alternativa (esempio: solo bagno = 3). Se vuoto, usa le stesse stanze principali"
-      default: ""
-      selector:
-        text: {}
-
-    # ────────────────────── SECONDA SCHEDULAZIONE ──────────────────────
-    schedule2_morning_on:
-      name: 🌅 SECONDA SCHEDULAZIONE - Mattina - Abilita
-      description: Attiva la pulizia mattutina della seconda schedulazione aggiuntiva
-      default: false
-      selector:
-        boolean: {}
-
-    schedule2_weekdays:
-      name: 📅 SECONDA SCHEDULAZIONE - Giorni Attivi
-      description: Giorni della settimana in cui la seconda schedulazione è attiva (vale per mattina e sera)
-      default: ["domenica"]
-      selector:
-        select:
-          multiple: true
-          mode: list
-          options:
-            - lunedì
-            - martedì
-            - mercoledì
-            - giovedì
-            - venerdì
-            - sabato
-            - domenica
-
-    schedule2_morning_time:
-      name: ⏰ SECONDA SCHEDULAZIONE - Mattina - Orario
-      description: Orario per la pulizia mattutina della seconda schedulazione aggiuntiva
-      default: "05:00:00"
-      selector:
-        time: {}
-
-    schedule2_morning_preset:
-      name: 🎯 SECONDA SCHEDULAZIONE - Mattina - Modalità
-      description: Modalità di pulizia per il programma mattutino della seconda schedulazione aggiuntiva
-      default: "aspira"
-      selector:
-        select:
-          options:
-            - value: "aspira"
-              label: "Sola aspirazione"
-            - value: "lava"
-              label: "Solo lavaggio"
-            - value: "aspira_lava"
-              label: "Aspira + lava (Clean Genius)"
-            - value: "cleangenius_deep"
-              label: "Aspira + lava (Clean Genius Deep)"
-
-    schedule2_morning_rooms:
-      name: 🏠 SECONDA SCHEDULAZIONE - Mattina - Stanze
-      description: "ID delle stanze da pulire separate da virgole (esempio: 1,2,3) oppure lascia vuoto per pulire tutta la casa"
-      default: ""
-      selector:
-        text: {}
-
-    schedule2_evening_on:
-      name: 🌙 SECONDA SCHEDULAZIONE - Sera - Abilita
-      description: Attiva la pulizia serale della seconda schedulazione aggiuntiva (con logica adattiva)
-      default: false
-      selector:
-        boolean: {}
-
-    schedule2_evening_time:
-      name: ⏰ SECONDA SCHEDULAZIONE - Sera - Orario
-      description: Orario per la pulizia serale della seconda schedulazione aggiuntiva
-      default: "23:00:00"
-      selector:
-        time: {}
-
-    schedule2_evening_conditional:
-      name: 🧠 SECONDA SCHEDULAZIONE - Sera - Logica Adattiva
-      description: |
-        **Come comportarsi in base allo stato del flag pulizia:**
-        
-        - **🔄 Esegui sempre:** Ignora lo stato del flag e pulisce sempre con modalità principale
-        - **⏭️ Salta se già pulito:** Non fa nulla se il flag indica che è già stato pulito oggi 
-        - **🧠 Adatta modalità:** Se già pulito oggi, usa modalità e stanze alternative invece di quelle principali
-      default: "always_clean"
-      selector:
-        select:
-          options:
-            - value: "always_clean"
-              label: "🔄 Esegui Sempre"
-            - value: "skip_if_cleaned"
-              label: "⏭️ Salta se già pulito"
-            - value: "adapt_if_cleaned"
-              label: "🧠 Adatta modalità"
-
-    schedule2_evening_preset:
-      name: 🎯 SECONDA SCHEDULAZIONE - Sera - Modalità Principale
-      description: Modalità di pulizia principale per il programma serale della seconda schedulazione aggiuntiva
-      default: "aspira"
-      selector:
-        select:
-          options:
-            - value: "aspira"
-              label: "Sola aspirazione"
-            - value: "lava"
-              label: "Solo lavaggio"
-            - value: "aspira_lava"
-              label: "Aspira + lava (Clean Genius)"
-            - value: "cleangenius_deep"
-              label: "Aspira + lava (Clean Genius Deep)"
-
-    schedule2_evening_rooms:
-      name: 🏠 SECONDA SCHEDULAZIONE - Sera - Stanze Principali
-      description: "ID delle stanze da pulire con modalità principale, separate da virgole (esempio: 1,2,3) oppure lascia vuoto per pulire tutta la casa"
-      default: ""
-      selector:
-        text: {}
-
-    schedule2_evening_fallback_preset:
-      name: 🔄 SECONDA SCHEDULAZIONE - Sera - Modalità Alternativa
-      description: Modalità di pulizia alternativa da usare quando la logica adattiva sceglie di adattare la modalità
-      default: "lava"
-      selector:
-        select:
-          options:
-            - value: "aspira"
-              label: "Sola aspirazione"
-            - value: "lava"
-              label: "Solo lavaggio"
-            - value: "aspira_lava"
-              label: "Aspira + lava (Clean Genius)"
-            - value: "cleangenius_deep"
-              label: "Aspira + lava (Clean Genius Deep)"
-
-    schedule2_evening_fallback_rooms:
-      name: 🏠 SECONDA SCHEDULAZIONE - Sera - Stanze Alternative
-      description: "ID delle stanze da pulire con modalità alternativa (esempio: solo bagno = 3). Se vuoto, usa le stesse stanze principali"
-      default: ""
-      selector:
-        text: {}
-
-    # ────────────────────── TERZA SCHEDULAZIONE ──────────────────────
-    schedule3_morning_on:
-      name: 🌅 TERZA SCHEDULAZIONE - Mattina - Abilita
-      description: Attiva la pulizia mattutina della terza schedulazione aggiuntiva
-      default: false
-      selector:
-        boolean: {}
-
-    schedule3_weekdays:
-      name: 📅 TERZA SCHEDULAZIONE - Giorni Attivi
-      description: Giorni della settimana in cui la terza schedulazione è attiva (vale per mattina e sera)
-      default: ["sabato"]
-      selector:
-        select:
-          multiple: true
-          mode: list
-          options:
-            - lunedì
-            - martedì
-            - mercoledì
-            - giovedì
-            - venerdì
-            - sabato
-            - domenica
-
-    schedule3_morning_time:
-      name: ⏰ TERZA SCHEDULAZIONE - Mattina - Orario
-      description: Orario per la pulizia mattutina della terza schedulazione aggiuntiva
-      default: "05:00:00"
-      selector:
-        time: {}
-
-    schedule3_morning_preset:
-      name: 🎯 TERZA SCHEDULAZIONE - Mattina - Modalità
-      description: Modalità di pulizia per il programma mattutino della terza schedulazione aggiuntiva
-      default: "aspira"
-      selector:
-        select:
-          options:
-            - value: "aspira"
-              label: "Sola aspirazione"
-            - value: "lava"
-              label: "Solo lavaggio"
-            - value: "aspira_lava"
-              label: "Aspira + lava (Clean Genius)"
-            - value: "cleangenius_deep"
-              label: "Aspira + lava (Clean Genius Deep)"
-
-    schedule3_morning_rooms:
-      name: 🏠 TERZA SCHEDULAZIONE - Mattina - Stanze
-      description: "ID delle stanze da pulire separate da virgole (esempio: 1,2,3) oppure lascia vuoto per pulire tutta la casa"
-      default: ""
-      selector:
-        text: {}
-
-    schedule3_evening_on:
-      name: 🌙 TERZA SCHEDULAZIONE - Sera - Abilita
-      description: Attiva la pulizia serale della terza schedulazione aggiuntiva (con logica adattiva)
-      default: false
-      selector:
-        boolean: {}
-
-    schedule3_evening_time:
-      name: ⏰ TERZA SCHEDULAZIONE - Sera - Orario
-      description: Orario per la pulizia serale della terza schedulazione aggiuntiva
-      default: "23:00:00"
-      selector:
-        time: {}
-
-    schedule3_evening_conditional:
-      name: 🧠 TERZA SCHEDULAZIONE - Sera - Logica Adattiva
-      description: |
-        **Come comportarsi in base allo stato del flag pulizia:**
-        
-        - **🔄 Esegui sempre:** Ignora lo stato del flag e pulisce sempre con modalità principale
-        - **⏭️ Salta se già pulito:** Non fa nulla se il flag indica che è già stato pulito oggi 
-        - **🧠 Adatta modalità:** Se già pulito oggi, usa modalità e stanze alternative invece di quelle principali
-      default: "always_clean"
-      selector:
-        select:
-          options:
-            - value: "always_clean"
-              label: "🔄 Esegui Sempre"
-            - value: "skip_if_cleaned"
-              label: "⏭️ Salta se già pulito"
-            - value: "adapt_if_cleaned"
-              label: "🧠 Adatta modalità"
-
-    schedule3_evening_preset:
-      name: 🎯 TERZA SCHEDULAZIONE - Sera - Modalità Principale
-      description: Modalità di pulizia principale per il programma serale della terza schedulazione aggiuntiva
-      default: "aspira"
-      selector:
-        select:
-          options:
-            - value: "aspira"
-              label: "Sola aspirazione"
-            - value: "lava"
-              label: "Solo lavaggio"
-            - value: "aspira_lava"
-              label: "Aspira + lava (Clean Genius)"
-            - value: "cleangenius_deep"
-              label: "Aspira + lava (Clean Genius Deep)"
-
-    schedule3_evening_rooms:
-      name: 🏠 TERZA SCHEDULAZIONE - Sera - Stanze Principali
-      description: "ID delle stanze da pulire con modalità principale, separate da virgole (esempio: 1,2,3) oppure lascia vuoto per pulire tutta la casa"
-      default: ""
-      selector:
-        text: {}
-
-    schedule3_evening_fallback_preset:
-      name: 🔄 TERZA SCHEDULAZIONE - Sera - Modalità Alternativa
-      description: Modalità di pulizia alternativa da usare quando la logica adattiva sceglie di adattare la modalità
-      default: "lava"
-      selector:
-        select:
-          options:
-            - value: "aspira"
-              label: "Sola aspirazione"
-            - value: "lava"
-              label: "Solo lavaggio"
-            - value: "aspira_lava"
-              label: "Aspira + lava (Clean Genius)"
-            - value: "cleangenius_deep"
-              label: "Aspira + lava (Clean Genius Deep)"
-
-    schedule3_evening_fallback_rooms:
-      name: 🏠 TERZA SCHEDULAZIONE - Sera - Stanze Alternative
-      description: "ID delle stanze da pulire con modalità alternativa (esempio: solo bagno = 3). Se vuoto, usa le stanze principali"
-      default: ""
-      selector:
-        text: {}
-
-    # ────────────────────── QUARTA SCHEDULAZIONE ──────────────────────
-    schedule4_morning_on:
-      name: 🌅 QUARTA SCHEDULAZIONE - Mattina - Abilita
-      description: Attiva la pulizia mattutina della quarta schedulazione aggiuntiva
-      default: false
-      selector:
-        boolean: {}
-
-    schedule4_weekdays:
-      name: 📅 QUARTA SCHEDULAZIONE - Giorni Attivi
-      description: Giorni della settimana in cui la quarta schedulazione è attiva (vale per mattina e sera)
-      default: ["domenica"]
-      selector:
-        select:
-          multiple: true
-          mode: list
-          options:
-            - lunedì
-            - martedì
-            - mercoledì
-            - giovedì
-            - venerdì
-            - sabato
-            - domenica
-
-    schedule4_morning_time:
-      name: ⏰ QUARTA SCHEDULAZIONE - Mattina - Orario
-      description: Orario per la pulizia mattutina della quarta schedulazione aggiuntiva
-      default: "05:00:00"
-      selector:
-        time: {}
-
-    schedule4_morning_preset:
-      name: 🎯 QUARTA SCHEDULAZIONE - Mattina - Modalità
-      description: Modalità di pulizia per il programma mattutino della quarta schedulazione aggiuntiva
-      default: "aspira"
-      selector:
-        select:
-          options:
-            - value: "aspira"
-              label: "Sola aspirazione"
-            - value: "lava"
-              label: "Solo lavaggio"
-            - value: "aspira_lava"
-              label: "Aspira + lava (Clean Genius)"
-            - value: "cleangenius_deep"
-              label: "Aspira + lava (Clean Genius Deep)"
-
-    schedule4_morning_rooms:
-      name: 🏠 QUARTA SCHEDULAZIONE - Mattina - Stanze
-      description: "ID delle stanze da pulire separate da virgole (esempio: 1,2,3) oppure lascia vuoto per pulire tutta la casa"
-      default: ""
-      selector:
-        text: {}
-
-    schedule4_evening_on:
-      name: 🌙 QUARTA SCHEDULAZIONE - Sera - Abilita
-      description: Attiva la pulizia serale della quarta schedulazione aggiuntiva (con logica adattiva)
-      default: false
-      selector:
-        boolean: {}
-
-    schedule4_evening_time:
-      name: ⏰ QUARTA SCHEDULAZIONE - Sera - Orario
-      description: Orario per la pulizia serale della quarta schedulazione aggiuntiva
-      default: "23:00:00"
-      selector:
-        time: {}
-
-    schedule4_evening_conditional:
-      name: 🧠 QUARTA SCHEDULAZIONE - Sera - Logica Adattiva
-      description: |
-        **Come comportarsi in base allo stato del flag pulizia:**
-        
-        - **🔄 Esegui sempre:** Ignora lo stato del flag e pulisce sempre con modalità principale
-        - **⏭️ Salta se già pulito:** Non fa nulla se il flag indica che è già stato pulito oggi 
-        - **🧠 Adatta modalità:** Se già pulito oggi, usa modalità e stanze alternative invece di quelle principali
-      default: "always_clean"
-      selector:
-        select:
-          options:
-            - value: "always_clean"
-              label: "🔄 Esegui Sempre"
-            - value: "skip_if_cleaned"
-              label: "⏭️ Salta se già pulito"
-            - value: "adapt_if_cleaned"
-              label: "🧠 Adatta modalità"
-
-    schedule4_evening_preset:
-      name: 🎯 QUARTA SCHEDULAZIONE - Sera - Modalità Principale
-      description: Modalità di pulizia principale per il programma serale della quarta schedulazione aggiuntiva
-      default: "aspira"
-      selector:
-        select:
-          options:
-            - value: "aspira"
-              label: "Sola aspirazione"
-            - value: "lava"
-              label: "Solo lavaggio"
-            - value: "aspira_lava"
-              label: "Aspira + lava (Clean Genius)"
-            - value: "cleangenius_deep"
-              label: "Aspira + lava (Clean Genius Deep)"
-
-    schedule4_evening_rooms:
-      name: 🏠 QUARTA SCHEDULAZIONE - Sera - Stanze Principali
-      description: "ID delle stanze da pulire con modalità principale, separate da virgole (esempio: 1,2,3) oppure lascia vuoto per pulire tutta la casa"
-      default: ""
-      selector:
-        text: {}
-
-    schedule4_evening_fallback_preset:
-      name: 🔄 QUARTA SCHEDULAZIONE - Sera - Modalità Alternativa
-      description: Modalità di pulizia alternativa da usare quando la logica adattiva sceglie di adattare la modalità
-      default: "lava"
-      selector:
-        select:
-          options:
-            - value: "aspira"
-              label: "Sola aspirazione"
-            - value: "lava"
-              label: "Solo lavaggio"
-            - value: "aspira_lava"
-              label: "Aspira + lava (Clean Genius)"
-            - value: "cleangenius_deep"
-              label: "Aspira + lava (Clean Genius Deep)"
-
-    schedule4_evening_fallback_rooms:
-      name: 🏠 QUARTA SCHEDULAZIONE - Sera - Stanze Alternative
-      description: "ID delle stanze da pulire con modalità alternativa (esempio: solo bagno = 3). Se vuoto, usa le stanze principali"
-      default: ""
-      selector:
-        text: {}
-
-    # ═══════════════════════════════════════════════════════════════
-    # 🐛 DEBUG
-    # ═══════════════════════════════════════════════════════════════
-    debug_mode:
-      name: 🐛 Modalità Debug
-      description: Abilita notifiche dettagliate per troubleshooting e monitoraggio delle operazioni
-      default: false
-      selector:
-        boolean: {}
-
-# ═══════════════════════════════════════════════════════════════
-# 🔥 VARIABILI GLOBALI
-# ═══════════════════════════════════════════════════════════════
-variables:
-  robot_status: !input robot_status_sensor
-  vacuum_ent: !input vacuum_entity
-  presence_ent: !input presence_entity
-  pres_val: !input presence_value
-  flag_ent: !input flag_cleaned_today
-  debug_enabled: !input debug_mode
-  main_weekdays: !input main_weekdays
-  main_morning_on: !input main_morning_on
-  main_morning_time: !input main_morning_time
-  main_morning_preset: !input main_morning_preset
-  main_morning_rooms: !input main_morning_rooms
-  main_evening_on: !input main_evening_on
-  main_evening_time: !input main_evening_time
-  main_evening_conditional: !input main_evening_conditional
-  main_evening_rooms: !input main_evening_rooms
-  main_evening_preset: !input main_evening_preset
-  main_evening_fallback_preset: !input main_evening_fallback_preset
-  main_evening_fallback_rooms: !input main_evening_fallback_rooms
-
-  schedule1_morning_on: !input schedule1_morning_on
-  schedule1_weekdays: !input schedule1_weekdays
-  schedule1_morning_time: !input schedule1_morning_time
-  schedule1_morning_preset: !input schedule1_morning_preset
-  schedule1_morning_rooms: !input schedule1_morning_rooms
-  schedule1_evening_on: !input schedule1_evening_on
-  schedule1_evening_time: !input schedule1_evening_time
-  schedule1_evening_preset: !input schedule1_evening_preset
-  schedule1_evening_rooms: !input schedule1_evening_rooms
-
-  export_entity: !input export_entity
-# ═══════════════════════════════════════════════════════════════
-# ⚡ TRIGGER SYSTEM
-# ═══════════════════════════════════════════════════════════════
+# === Trigger ===
 trigger:
-  - platform: time
+  # Export all'avvio e su reload automazioni
+  - id: export_on_start
+    platform: homeassistant
+    event: start
+  - id: export_on_reload
+    platform: event
+    event_type: automation_reloaded
+
+  # Reset flag giornaliero
+  - id: daily_reset
+    platform: time
+    at: "00:01:00"
+
+  # Slot principale
+  - id: main_morning
+    platform: time
     at: !input main_morning_time
-    id: main_morning
-  - platform: time
+  - id: main_evening
+    platform: time
     at: !input main_evening_time
-    id: main_evening
-  - platform: time
-    at: !input schedule1_morning_time
-    id: schedule1_morning
-  - platform: time
-    at: !input schedule1_evening_time
-    id: schedule1_evening
-  - platform: time
-    at: !input schedule2_morning_time
-    id: schedule2_morning
-  - platform: time
-    at: !input schedule2_evening_time
-    id: schedule2_evening
-  - platform: time
-    at: !input schedule3_morning_time
-    id: schedule3_morning
-  - platform: time
-    at: !input schedule3_evening_time
-    id: schedule3_evening
-  - platform: time
-    at: !input schedule4_morning_time
-    id: schedule4_morning
-  - platform: time
-    at: !input schedule4_evening_time
-    id: schedule4_evening
 
-# ═══════════════════════════════════════════════════════════════
-# 🛡️ CONDIZIONI GLOBALI
-# ═══════════════════════════════════════════════════════════════
-condition:
-  - condition: and
-    conditions:
-      - condition: template
-        value_template: >
-          {{ states(robot_status) in ['idle', 'sleeping', 'charging', 'docked'] }}
-      - condition: template
-        value_template: >
-          {{ states(presence_ent) == pres_val }}
-      - condition: template
-        value_template: >
-          {%- set current_day = now().strftime('%A') | lower -%}
-          {%- set day_mapping = {
-            'monday': 'lunedì', 'tuesday': 'martedì', 'wednesday': 'mercoledì',
-            'thursday': 'giovedì', 'friday': 'venerdì', 'saturday': 'sabato', 'sunday': 'domenica'
-          } -%}
-          {%- set today_ita = day_mapping[current_day] -%}
-          
-          {%- if trigger.id == 'main_morning' -%}
-            {{ main_morning_on and today_ita in main_weekdays }}
-          {%- elif trigger.id == 'main_evening' -%}
-            {{ main_evening_on and today_ita in main_weekdays }}
-          {%- elif trigger.id == 'schedule1_morning' -%}
-            {{ schedule1_morning_on and today_ita in schedule1_weekdays }}
-          {%- elif trigger.id == 'schedule1_evening' -%}
-            {{ schedule1_evening_on and today_ita in schedule1_weekdays }}
-          {%- elif trigger.id == 'schedule2_morning' -%}
-            {{ schedule2_morning_on and today_ita in schedule2_weekdays }}
-          {%- elif trigger.id == 'schedule2_evening' -%}
-            {{ schedule2_evening_on and today_ita in schedule2_weekdays }}
-          {%- elif trigger.id == 'schedule3_morning' -%}
-            {{ schedule3_morning_on and today_ita in schedule3_weekdays }}
-          {%- elif trigger.id == 'schedule3_evening' -%}
-            {{ schedule3_evening_on and today_ita in schedule3_weekdays }}
-          {%- elif trigger.id == 'schedule4_morning' -%}
-            {{ schedule4_morning_on and today_ita in schedule4_weekdays }}
-          {%- elif trigger.id == 'schedule4_evening' -%}
-            {{ schedule4_evening_on and today_ita in schedule4_weekdays }}
-          {%- else -%}
-            false
-          {%- endif -%}
+  # Schedulazioni 1..4 (mattina/sera)
+  - {id: schedule1_morning, platform: time, at: !input schedule1_morning_time}
+  - {id: schedule1_evening, platform: time, at: !input schedule1_evening_time}
+  - {id: schedule2_morning, platform: time, at: !input schedule2_morning_time}
+  - {id: schedule2_evening, platform: time, at: !input schedule2_evening_time}
+  - {id: schedule3_morning, platform: time, at: !input schedule3_morning_time}
+  - {id: schedule3_evening, platform: time, at: !input schedule3_evening_time}
+  - {id: schedule4_morning, platform: time, at: !input schedule4_morning_time}
+  - {id: schedule4_evening, platform: time, at: !input schedule4_evening_time}
 
-# ═══════════════════════════════════════════════════════════════
-# 🚀 SISTEMA DI ESECUZIONE
-# ═══════════════════════════════════════════════════════════════
+condition: []
+
+# === Azioni ===
 action:
   - choose:
-      - conditions:
-          - condition: template
-            value_template: "{{ trigger.id == 'main_morning' }}"
+      # --- Export JSON ---
+      - conditions: "{{ trigger.id in ['export_on_start','export_on_reload'] }}"
         sequence:
-          - if:
-              - condition: template
-                value_template: "{{ debug_enabled }}"
-            then:
-              - service: persistent_notification.create
-                data:
-                  title: "🌅 Dreame - Slot Principale Mattina"
-                  message: >
-                    Avvio pulizia mattutina:
-                    - Modalità: {{ main_morning_preset }}
-                    - Stanze: {{ main_morning_rooms if main_morning_rooms else 'Tutta casa' }}
-                    - Orario: {{ main_morning_time }}
-          - service: dreame_vacuum.vacuum_clean_segment
-            target:
-              entity_id: "{{ vacuum_ent }}"
+          - service: input_text.set_value
+            target: {entity_id: !input export_entity}
             data:
-              segments: >
-                {% if main_morning_rooms %}
-                  {{ main_morning_rooms.split(',') | map('int') | list }}
-                {% else %}
-                  []
-                {% endif %}
-              cleaning_mode: "{{ main_morning_preset }}"
-          - service: input_boolean.turn_on
-            target:
-              entity_id: "{{ flag_ent }}"
+              value: >
+                {{
+                  dict(
+                    vacuum_entity = !input vacuum_entity,
+                    robot_status_sensor = !input robot_status_sensor,
+                    presence_entity = !input presence_entity,
+                    presence_value = !input presence_value,
+                    flag_cleaned_today = !input flag_cleaned_today,
+                    cleangenius_select = !input cleangenius_select,
 
-      - conditions:
-          - condition: template
-            value_template: "{{ trigger.id == 'main_evening' }}"
-        sequence:
-          - variables:
-              already_cleaned: "{{ states(flag_ent) == 'on' }}"
-              conditional_mode: "{{ main_evening_conditional }}"
-          - if:
-              - condition: template
-                value_template: "{{ debug_enabled }}"
-            then:
-              - service: persistent_notification.create
-                data:
-                  title: "🌙 Dreame - Slot Principale Sera"
-                  message: >
-                    Controllo pulizia serale:
-                    - Già pulito oggi: {{ already_cleaned }}
-                    - Logica: {{ conditional_mode }}
-                    - Modalità primaria: {{ main_evening_preset }}
-                    {% if conditional_mode == 'adapt_if_cleaned' %}
-                    - Modalità alternativa: {{ main_evening_fallback_preset }}
-                    {% endif %}
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: "{{ conditional_mode == 'skip_if_cleaned' and already_cleaned }}"
-                sequence:
-                  - if:
-                      - condition: template
-                        value_template: "{{ debug_enabled }}"
-                    then:
-                      - service: persistent_notification.create
-                        data:
-                          title: "⏭️ Dreame - Pulizia Saltata"
-                          message: "Pulizia serale saltata: già pulito oggi"
-              - conditions:
-                  - condition: template
-                    value_template: "{{ conditional_mode == 'adapt_if_cleaned' and already_cleaned }}"
-                sequence:
-                  - service: dreame_vacuum.vacuum_clean_segment
-                    target:
-                      entity_id: "{{ vacuum_ent }}"
-                    data:
-                      segments: >
-                        {% if main_evening_fallback_rooms %}
-                          {{ main_evening_fallback_rooms.split(',') | map('int') | list }}
-                        {% else %}
-                          []
-                        {% endif %}
-                      cleaning_mode: "{{ main_evening_fallback_preset }}"
-            default:
-              - service: dreame_vacuum.vacuum_clean_segment
-                target:
-                  entity_id: "{{ vacuum_ent }}"
-                data:
-                  segments: >
-                    {% if main_evening_rooms %}
-                      {{ main_evening_rooms.split(',') | map('int') | list }}
-                    {% else %}
-                      []
-                    {% endif %}
-                  cleaning_mode: "{{ main_evening_preset }}"
-              - service: input_boolean.turn_on
-                target:
-                  entity_id: "{{ flag_ent }}"
+                    main_weekdays = !input main_weekdays,
+                    main_morning_on = !input main_morning_on,
+                    main_morning_time = !input main_morning_time,
+                    main_morning_preset = !input main_morning_preset,
+                    main_morning_rooms = !input main_morning_rooms,
+                    main_evening_on = !input main_evening_on,
+                    main_evening_time = !input main_evening_time,
+                    main_evening_conditional = !input main_evening_conditional,
+                    main_evening_preset = !input main_evening_preset,
+                    main_evening_rooms = !input main_evening_rooms,
+                    main_evening_fallback_preset = !input main_evening_fallback_preset,
+                    main_evening_fallback_rooms = !input main_evening_fallback_rooms,
 
-      - conditions:
-          - condition: template
-            value_template: "{{ trigger.id == 'schedule1_morning' }}"
-        sequence:
-          - if:
-              - condition: template
-                value_template: "{{ debug_enabled }}"
-            then:
-              - service: persistent_notification.create
-                data:
-                  title: "🌅 Dreame - Prima Schedulazione Mattina"
-                  message: >
-                    Avvio prima schedulazione mattutina:
-                    - Modalità: {{ schedule1_morning_preset }}
-                    - Stanze: {{ schedule1_morning_rooms if schedule1_morning_rooms else 'Tutta casa' }}
-          - service: dreame_vacuum.vacuum_clean_segment
-            target:
-              entity_id: "{{ vacuum_ent }}"
-            data:
-              segments: >
-                {% if schedule1_morning_rooms %}
-                  {{ schedule1_morning_rooms.split(',') | map('int') | list }}
-                {% else %}
-                  []
-                {% endif %}
-              cleaning_mode: "{{ schedule1_morning_preset }}"
-          - service: input_boolean.turn_on
-            target:
-              entity_id: "{{ flag_ent }}"
+                    schedule1_morning_on = !input schedule1_morning_on,
+                    schedule1_weekdays = !input schedule1_weekdays,
+                    schedule1_morning_time = !input schedule1_morning_time,
+                    schedule1_morning_preset = !input schedule1_morning_preset,
+                    schedule1_morning_rooms = !input schedule1_morning_rooms,
+                    schedule1_evening_on = !input schedule1_evening_on,
+                    schedule1_evening_time = !input schedule1_evening_time,
+                    schedule1_evening_conditional = !input schedule1_evening_conditional,
+                    schedule1_evening_preset = !input schedule1_evening_preset,
+                    schedule1_evening_rooms = !input schedule1_evening_rooms,
+                    schedule1_evening_fallback_preset = !input schedule1_evening_fallback_preset,
+                    schedule1_evening_fallback_rooms = !input schedule1_evening_fallback_rooms,
 
-      - conditions:
-          - condition: template
-            value_template: "{{ trigger.id == 'schedule1_evening' }}"
-        sequence:
-          - variables:
-              already_cleaned: "{{ states(flag_ent) == 'on' }}"
-              conditional_mode: "{{ schedule1_evening_conditional }}"
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: "{{ conditional_mode == 'skip_if_cleaned' and already_cleaned }}"
-                sequence:
-                  - if:
-                      - condition: template
-                        value_template: "{{ debug_enabled }}"
-                    then:
-                      - service: persistent_notification.create
-                        data:
-                          title: "⏭️ Dreame - Prima Schedulazione Saltata"
-                          message: "Prima schedulazione serale saltata: già pulito oggi"
-              - conditions:
-                  - condition: template
-                    value_template: "{{ conditional_mode == 'adapt_if_cleaned' and already_cleaned }}"
-                sequence:
-                  - service: dreame_vacuum.vacuum_clean_segment
-                    target:
-                      entity_id: "{{ vacuum_ent }}"
-                    data:
-                      segments: >
-                        {% if schedule1_evening_fallback_rooms %}
-                          {{ schedule1_evening_fallback_rooms.split(',') | map('int') | list }}
-                        {% else %}
-                          []
-                        {% endif %}
-                      cleaning_mode: "{{ schedule1_evening_fallback_preset }}"
-            default:
-              - service: dreame_vacuum.vacuum_clean_segment
-                target:
-                  entity_id: "{{ vacuum_ent }}"
-                data:
-                  segments: >
-                    {% if schedule1_evening_rooms %}
-                      {{ schedule1_evening_rooms.split(',') | map('int') | list }}
-                    {% else %}
-                      []
-                    {% endif %}
-                  cleaning_mode: "{{ schedule1_evening_preset }}"
-              - service: input_boolean.turn_on
-                target:
-                  entity_id: "{{ flag_ent }}"
+                    schedule2_morning_on = !input schedule2_morning_on,
+                    schedule2_weekdays = !input schedule2_weekdays,
+                    schedule2_morning_time = !input schedule2_morning_time,
+                    schedule2_morning_preset = !input schedule2_morning_preset,
+                    schedule2_morning_rooms = !input schedule2_morning_rooms,
+                    schedule2_evening_on = !input schedule2_evening_on,
+                    schedule2_evening_time = !input schedule2_evening_time,
+                    schedule2_evening_conditional = !input schedule2_evening_conditional,
+                    schedule2_evening_preset = !input schedule2_evening_preset,
+                    schedule2_evening_rooms = !input schedule2_evening_rooms,
+                    schedule2_evening_fallback_preset = !input schedule2_evening_fallback_preset,
+                    schedule2_evening_fallback_rooms = !input schedule2_evening_fallback_rooms,
 
-      - conditions:
-          - condition: template
-            value_template: "{{ trigger.id == 'schedule2_morning' }}"
-        sequence:
-          - if:
-              - condition: template
-                value_template: "{{ debug_enabled }}"
-            then:
-              - service: persistent_notification.create
-                data:
-                  title: "🌅 Dreame - Seconda Schedulazione Mattina"
-                  message: >
-                    Avvio seconda schedulazione mattutina:
-                    - Modalità: {{ schedule2_morning_preset }}
-                    - Stanze: {{ schedule2_morning_rooms if schedule2_morning_rooms else 'Tutta casa' }}
-          - service: dreame_vacuum.vacuum_clean_segment
-            target:
-              entity_id: "{{ vacuum_ent }}"
-            data:
-              segments: >
-                {% if schedule2_morning_rooms %}
-                  {{ schedule2_morning_rooms.split(',') | map('int') | list }}
-                {% else %}
-                  []
-                {% endif %}
-              cleaning_mode: "{{ schedule2_morning_preset }}"
-          - service: input_boolean.turn_on
-            target:
-              entity_id: "{{ flag_ent }}"
+                    schedule3_morning_on = !input schedule3_morning_on,
+                    schedule3_weekdays = !input schedule3_weekdays,
+                    schedule3_morning_time = !input schedule3_morning_time,
+                    schedule3_morning_preset = !input schedule3_morning_preset,
+                    schedule3_morning_rooms = !input schedule3_morning_rooms,
+                    schedule3_evening_on = !input schedule3_evening_on,
+                    schedule3_evening_time = !input schedule3_evening_time,
+                    schedule3_evening_conditional = !input schedule3_evening_conditional,
+                    schedule3_evening_preset = !input schedule3_evening_preset,
+                    schedule3_evening_rooms = !input schedule3_evening_rooms,
+                    schedule3_evening_fallback_preset = !input schedule3_evening_fallback_preset,
+                    schedule3_evening_fallback_rooms = !input schedule3_evening_fallback_rooms,
 
-      - conditions:
-          - condition: template
-            value_template: "{{ trigger.id == 'schedule2_evening' }}"
-        sequence:
-          - variables:
-              already_cleaned: "{{ states(flag_ent) == 'on' }}"
-              conditional_mode: "{{ schedule2_evening_conditional }}"
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: "{{ conditional_mode == 'skip_if_cleaned' and already_cleaned }}"
-                sequence:
-                  - if:
-                      - condition: template
-                        value_template: "{{ debug_enabled }}"
-                    then:
-                      - service: persistent_notification.create
-                        data:
-                          title: "⏭️ Dreame - Seconda Schedulazione Saltata"
-                          message: "Seconda schedulazione serale saltata: già pulito oggi"
-              - conditions:
-                  - condition: template
-                    value_template: "{{ conditional_mode == 'adapt_if_cleaned' and already_cleaned }}"
-                sequence:
-                  - service: dreame_vacuum.vacuum_clean_segment
-                    target:
-                      entity_id: "{{ vacuum_ent }}"
-                    data:
-                      segments: >
-                        {% if schedule2_evening_fallback_rooms %}
-                          {{ schedule2_evening_fallback_rooms.split(',') | map('int') | list }}
-                        {% else %}
-                          []
-                        {% endif %}
-                      cleaning_mode: "{{ schedule2_evening_fallback_preset }}"
-            default:
-              - service: dreame_vacuum.vacuum_clean_segment
-                target:
-                  entity_id: "{{ vacuum_ent }}"
-                data:
-                  segments: >
-                    {% if schedule2_evening_rooms %}
-                      {{ schedule2_evening_rooms.split(',') | map('int') | list }}
-                    {% else %}
-                      []
-                    {% endif %}
-                  cleaning_mode: "{{ schedule2_evening_preset }}"
-              - service: input_boolean.turn_on
-                target:
-                  entity_id: "{{ flag_ent }}"
+                    schedule4_morning_on = !input schedule4_morning_on,
+                    schedule4_weekdays = !input schedule4_weekdays,
+                    schedule4_morning_time = !input schedule4_morning_time,
+                    schedule4_morning_preset = !input schedule4_morning_preset,
+                    schedule4_morning_rooms = !input schedule4_morning_rooms,
+                    schedule4_evening_on = !input schedule4_evening_on,
+                    schedule4_evening_time = !input schedule4_evening_time,
+                    schedule4_evening_conditional = !input schedule4_evening_conditional,
+                    schedule4_evening_preset = !input schedule4_evening_preset,
+                    schedule4_evening_rooms = !input schedule4_evening_rooms,
+                    schedule4_evening_fallback_preset = !input schedule4_evening_fallback_preset,
+                    schedule4_evening_fallback_rooms = !input schedule4_evening_fallback_rooms
+                  ) | tojson
+                }}
 
-      - conditions:
-          - condition: template
-            value_template: "{{ trigger.id == 'schedule3_morning' }}"
+      # --- Reset flag ---
+      - conditions: "{{ trigger.id == 'daily_reset' }}"
         sequence:
-          - if:
-              - condition: template
-                value_template: "{{ debug_enabled }}"
-            then:
-              - service: persistent_notification.create
-                data:
-                  title: "🌅 Dreame - Terza Schedulazione Mattina"
-                  message: >
-                    Avvio terza schedulazione mattutina:
-                    - Modalità: {{ schedule3_morning_preset }}
-                    - Stanze: {{ schedule3_morning_rooms if schedule3_morning_rooms else 'Tutta casa' }}
-          - service: dreame_vacuum.vacuum_clean_segment
-            target:
-              entity_id: "{{ vacuum_ent }}"
-            data:
-              segments: >
-                {% if schedule3_morning_rooms %}
-                  {{ schedule3_morning_rooms.split(',') | map('int') | list }}
-                {% else %}
-                  []
-                {% endif %}
-              cleaning_mode: "{{ schedule3_morning_preset }}"
-          - service: input_boolean.turn_on
-            target:
-              entity_id: "{{ flag_ent }}"
-
-      - conditions:
-          - condition: template
-            value_template: "{{ trigger.id == 'schedule3_evening' }}"
-        sequence:
-          - variables:
-              already_cleaned: "{{ states(flag_ent) == 'on' }}"
-              conditional_mode: "{{ schedule3_evening_conditional }}"
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: "{{ conditional_mode == 'skip_if_cleaned' and already_cleaned }}"
-                sequence:
-                  - if:
-                      - condition: template
-                        value_template: "{{ debug_enabled }}"
-                    then:
-                      - service: persistent_notification.create
-                        data:
-                          title: "⏭️ Dreame - Terza Schedulazione Saltata"
-                          message: "Terza schedulazione serale saltata: già pulito oggi"
-              - conditions:
-                  - condition: template
-                    value_template: "{{ conditional_mode == 'adapt_if_cleaned' and already_cleaned }}"
-                sequence:
-                  - service: dreame_vacuum.vacuum_clean_segment
-                    target:
-                      entity_id: "{{ vacuum_ent }}"
-                    data:
-                      segments: >
-                        {% if schedule3_evening_fallback_rooms %}
-                          {{ schedule3_evening_fallback_rooms.split(',') | map('int') | list }}
-                        {% else %}
-                          []
-                        {% endif %}
-                      cleaning_mode: "{{ schedule3_evening_fallback_preset }}"
-            default:
-              - service: dreame_vacuum.vacuum_clean_segment
-                target:
-                  entity_id: "{{ vacuum_ent }}"
-                data:
-                  segments: >
-                    {% if schedule3_evening_rooms %}
-                      {{ schedule3_evening_rooms.split(',') | map('int') | list }}
-                    {% else %}
-                      []
-                    {% endif %}
-                  cleaning_mode: "{{ schedule3_evening_preset }}"
-              - service: input_boolean.turn_on
-                target:
-                  entity_id: "{{ flag_ent }}"
-
-      - conditions:
-          - condition: template
-            value_template: "{{ trigger.id == 'schedule4_morning' }}"
-        sequence:
-          - if:
-              - condition: template
-                value_template: "{{ debug_enabled }}"
-            then:
-              - service: persistent_notification.create
-                data:
-                  title: "🌅 Dreame - Quarta Schedulazione Mattina"
-                  message: >
-                    Avvio quarta schedulazione mattutina:
-                    - Modalità: {{ schedule4_morning_preset }}
-                    - Stanze: {{ schedule4_morning_rooms if schedule4_morning_rooms else 'Tutta casa' }}
-          - service: dreame_vacuum.vacuum_clean_segment
-            target:
-              entity_id: "{{ vacuum_ent }}"
-            data:
-              segments: >
-                {% if schedule4_morning_rooms %}
-                  {{ schedule4_morning_rooms.split(',') | map('int') | list }}
-                {% else %}
-                  []
-                {% endif %}
-              cleaning_mode: "{{ schedule4_morning_preset }}"
-          - service: input_boolean.turn_on
-            target:
-              entity_id: "{{ flag_ent }}"
-
-      - conditions:
-          - condition: template
-            value_template: "{{ trigger.id == 'schedule4_evening' }}"
-        sequence:
-          - variables:
-              already_cleaned: "{{ states(flag_ent) == 'on' }}"
-              conditional_mode: "{{ schedule4_evening_conditional }}"
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: "{{ conditional_mode == 'skip_if_cleaned' and already_cleaned }}"
-                sequence:
-                  - if:
-                      - condition: template
-                        value_template: "{{ debug_enabled }}"
-                    then:
-                      - service: persistent_notification.create
-                        data:
-                          title: "⏭️ Dreame - Quarta Schedulazione Saltata"
-                          message: "Quarta schedulazione serale saltata: già pulito oggi"
-              - conditions:
-                  - condition: template
-                    value_template: "{{ conditional_mode == 'adapt_if_cleaned' and already_cleaned }}"
-                sequence:
-                  - service: dreame_vacuum.vacuum_clean_segment
-                    target:
-                      entity_id: "{{ vacuum_ent }}"
-                    data:
-                      segments: >
-                        {% if schedule4_evening_fallback_rooms %}
-                          {{ schedule4_evening_fallback_rooms.split(',') | map('int') | list }}
-                        {% else %}
-                          []
-                        {% endif %}
-                      cleaning_mode: "{{ schedule4_evening_fallback_preset }}"
-            default:
-              - service: dreame_vacuum.vacuum_clean_segment
-                target:
-                  entity_id: "{{ vacuum_ent }}"
-                data:
-                  segments: >
-                    {% if schedule4_evening_rooms %}
-                      {{ schedule4_evening_rooms.split(',') | map('int') | list }}
-                    {% else %}
-                      []
-                    {% endif %}
-                  cleaning_mode: "{{ schedule4_evening_preset }}"
-              - service: input_boolean.turn_on
-                target:
-                  entity_id: "{{ flag_ent }}"
+          - service: input_boolean.turn_off
+            target: {entity_id: !input flag_cleaned_today}
 
     default:
-      - if:
-          - condition: template
-            value_template: "{{ debug_enabled }}"
-        then:
-          - service: persistent_notification.create
-            data:
-              title: "❌ Dreame - Errore"
-              message: >
-                Trigger non riconosciuto: {{ trigger.id }}
-                Controlla la configurazione del blueprint.
+      # Tutta la logica di pulizia (principale + schedules) con guardie comuni
+      - variables:
+          dow_map: {1: 'lunedì', 2: 'martedì', 3: 'mercoledì', 4: 'giovedì', 5: 'venerdì', 6: 'sabato', 7: 'domenica'}
+          oggi: "{{ dow_map[now().isoweekday()] }}"
+          presence_ok: >
+            {%- set e = (!input presence_entity) -%}
+            {%- set v = (!input presence_value) -%}
+            {%- if e == '' -%} true
+            {%- else -%} {{ states(e) == v }}
+            {%- endif -%}
 
-  # -------------------------------
-  # 🔸 Esportazione configurazione in JSON
-  # -------------------------------
+      - condition: template
+        value_template: "{{ presence_ok }}"
 
-  - alias: "Export configurazione Dreame (JSON)"
-    service: input_text.set_value
-    target:
-      entity_id: "{{ export_entity }}"
-    data:
-      value: >
-        {{
-          dict(
-            main_weekdays = main_weekdays,
-            main_morning_on = main_morning_on,
-            main_morning_time = main_morning_time,
-            main_morning_preset = main_morning_preset,
-            main_morning_rooms = main_morning_rooms,
-            main_evening_on = main_evening_on,
-            main_evening_time = main_evening_time,
-            main_evening_conditional = main_evening_conditional,
-            main_evening_preset = main_evening_preset,
-            main_evening_rooms = main_evening_rooms,
-            main_evening_fallback_preset = main_evening_fallback_preset,
-            main_evening_fallback_rooms = main_evening_fallback_rooms,
-            schedule1_morning_on = schedule1_morning_on,
-            schedule1_weekdays = schedule1_weekdays,
-            schedule1_morning_time = schedule1_morning_time,
-            schedule1_morning_preset = schedule1_morning_preset,
-            schedule1_morning_rooms = schedule1_morning_rooms,
-            schedule1_evening_on = schedule1_evening_on,
-            schedule1_evening_time = schedule1_evening_time,
-            schedule1_evening_preset = schedule1_evening_preset,
-            schedule1_evening_rooms = schedule1_evening_rooms
-          ) | tojson
-        }}
+      - choose:
+          # ===== Principale mattina =====
+          - conditions: >
+              {{ trigger.id == 'main_morning'
+                 and ( !input main_morning_on )
+                 and ( oggi in (!input main_weekdays) ) }}
+            sequence:
+              - variables:
+                  preset: "{{ !input main_morning_preset }}"
+                  rooms:  "{{ !input main_morning_rooms }}"
+              - choose:
+                  - conditions: "{{ (!input cleangenius_select) != '' and preset in ['genius','genius_deep'] }}"
+                    sequence:
+                      - service: select.select_option
+                        target: {entity_id: !input cleangenius_select}
+                        data: {option: "{{ 'deep_cleaning' if preset == 'genius_deep' else 'routine_cleaning' }}"}
+              - choose:
+                  - conditions: "{{ (rooms | trim) != '' }}"
+                    sequence:
+                      - service: dreame_vacuum.vacuum_clean_segment
+                        target: {entity_id: !input vacuum_entity}
+                        data:
+                          segments: >
+                            {%- set s = rooms | replace(' ', '') -%}
+                            {%- if s == '' -%}[]
+                            {%- else -%}[{{ s }}]{%- endif -%}
+                  - conditions: "{{ (rooms | trim) == '' }}"
+                    sequence:
+                      - service: vacuum.start
+                        target: {entity_id: !input vacuum_entity}
+              - service: input_boolean.turn_on
+                target: {entity_id: !input flag_cleaned_today}
 
+          # ===== Principale sera (adattiva) =====
+          - conditions: >
+              {{ trigger.id == 'main_evening'
+                 and ( !input main_evening_on )
+                 and ( oggi in (!input main_weekdays) ) }}
+            sequence:
+              - variables:
+                  already: "{{ is_state(!input flag_cleaned_today, 'on') }}"
+                  mode: "{{ !input main_evening_conditional }}"
+                  preset: >
+                    {% if mode == 'adapt_if_cleaned' and already %}{{ !input main_evening_fallback_preset }}
+                    {% else %}{{ !input main_evening_preset }}{% endif %}
+                  rooms: >
+                    {% if mode == 'adapt_if_cleaned' and already %}{{ !input main_evening_fallback_rooms }}
+                    {% else %}{{ !input main_evening_rooms }}{% endif %}
+              - condition: template
+                value_template: "{{ not (mode == 'skip_if_cleaned' and already) }}"
+              - choose:
+                  - conditions: "{{ (!input cleangenius_select) != '' and preset in ['genius','genius_deep'] }}"
+                    sequence:
+                      - service: select.select_option
+                        target: {entity_id: !input cleangenius_select}
+                        data: {option: "{{ 'deep_cleaning' if preset == 'genius_deep' else 'routine_cleaning' }}"}
+              - choose:
+                  - conditions: "{{ (rooms | trim) != '' }}"
+                    sequence:
+                      - service: dreame_vacuum.vacuum_clean_segment
+                        target: {entity_id: !input vacuum_entity}
+                        data:
+                          segments: >
+                            {%- set s = rooms | replace(' ', '') -%}
+                            {%- if s == '' -%}[]
+                            {%- else -%}[{{ s }}]{%- endif -%}
+                  - conditions: "{{ (rooms | trim) == '' }}"
+                    sequence:
+                      - service: vacuum.start
+                        target: {entity_id: !input vacuum_entity}
+              - service: input_boolean.turn_on
+                target: {entity_id: !input flag_cleaned_today}
+
+          # ===== Schedules 1..4 =====
+          {% for X in [1,2,3,4] %}
+          - conditions: >
+              {% set days = !input ("schedule" ~ X ~ "_weekdays") %}
+              {{
+                (trigger.id == ("schedule" ~ X ~ "_morning") and (oggi in days) and (!input ("schedule" ~ X ~ "_morning_on")))
+                or
+                (trigger.id == ("schedule" ~ X ~ "_evening") and (oggi in days) and (!input ("schedule" ~ X ~ "_evening_on")))
+              }}
+            sequence:
+              - variables:
+                  is_morning: "{{ trigger.id == ('schedule' ~ X ~ '_morning') }}"
+                  mode: "{{ ( !input('schedule' ~ X ~ '_evening_conditional') ) if not is_morning else 'always' }}"
+                  already: "{{ is_state(!input flag_cleaned_today, 'on') }}"
+                  preset: >
+                    {% if is_morning %}{{ !input('schedule' ~ X ~ '_morning_preset') }}
+                    {% else %}
+                      {% if mode == 'adapt_if_cleaned' and already %}{{ !input('schedule' ~ X ~ '_evening_fallback_preset') }}
+                      {% else %}{{ !input('schedule' ~ X ~ '_evening_preset') }}{% endif %}
+                    {% endif %}
+                  rooms: >
+                    {% if is_morning %}{{ !input('schedule' ~ X ~ '_morning_rooms') }}
+                    {% else %}
+                      {% if mode == 'adapt_if_cleaned' and already %}{{ !input('schedule' ~ X ~ '_evening_fallback_rooms') }}
+                      {% else %}{{ !input('schedule' ~ X ~ '_evening_rooms') }}{% endif %}
+                    {% endif %}
+              - condition: template
+                value_template: "{{ not (not is_morning and mode == 'skip_if_cleaned' and already) }}"
+              - choose:
+                  - conditions: "{{ (!input cleangenius_select) != '' and preset in ['genius','genius_deep'] }}"
+                    sequence:
+                      - service: select.select_option
+                        target: {entity_id: !input cleangenius_select}
+                        data: {option: "{{ 'deep_cleaning' if preset == 'genius_deep' else 'routine_cleaning' }}"}
+              - choose:
+                  - conditions: "{{ (rooms | trim) != '' }}"
+                    sequence:
+                      - service: dreame_vacuum.vacuum_clean_segment
+                        target: {entity_id: !input vacuum_entity}
+                        data:
+                          segments: >
+                            {%- set s = rooms | replace(' ', '') -%}
+                            {%- if s == '' -%}[]
+                            {%- else -%}[{{ s }}]{%- endif -%}
+                  - conditions: "{{ (rooms | trim) == '' }}"
+                    sequence:
+                      - service: vacuum.start
+                        target: {entity_id: !input vacuum_entity}
+              - service: input_boolean.turn_on
+                target: {entity_id: !input flag_cleaned_today}
+          {% endfor %}
 
 mode: queued
 max: 10
-
-
-
-
