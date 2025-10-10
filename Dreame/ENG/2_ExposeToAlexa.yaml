@@ -1,79 +1,141 @@
 blueprint:
-  name: "Dreame Script Creation for Alexa Exposure"
+  name: "🎙️ Alexa: Dreame Room Cleaning Scripts"
   description: |
-    Generates a script to start the cleaning of a **specific room** of your Dreame robot,
-    ready to be exposed to Alexa. The room ``ID`` is fixed at creation time,
-    allowing you to clone the script for each room or preset.
-    To help with the ``room/ID`` mapping, use Blueprint #1 (``dreame_create_room``),
-    and scroll through the helper to view the room ``IDs``.
-
-    ``NOTE: the **Cleaning** and **Deep Cleaning** modes activate CleanGenius and Deep CleanGenius,
-    which perform vacuuming and mopping simultaneously.``
-
-    Afterwards, you can expose the created script to Alexa via Nabu, Lambda, or Matter.
-    ``If using Matter, assign a Matter-exposed label to the script right away!``
-
-    Voice commands to trigger the scripts from Alexa:
-    - "start ``<script name>``"
-    - "open ``<script name>``"
-
-    ``Example:`` I create my first script that defines bathroom vacuuming.
-    I give it a meaningful name, such as "vacuum bathroom".
-    This way, Alexa only needs to hear: ``START`` vacuum bathroom,
-    and it will trigger the newly generated script.
-    If I also want to add another cleaning mode, like mopping only,
-    I just clone the created script, keep the same room ID (for the bathroom),
-    and change the mode from vacuum → mop.
-    I rename the cloned script to ``mop bathroom``.
-    Now I can tell Alexa: ``START`` mop bathroom, and the new script will execute.
+    ## 🚀 What this blueprint does
+    Creates a **custom script** to control your Dreame robot with voice commands via Alexa!
+    
+    ✅ **Targeted cleaning** of a specific room  
+    ✅ **4 cleaning modes** available  
+    ✅ **Alexa ready** - no additional configuration needed  
+    ✅ **Easily clonable** for multiple rooms  
+    
+    ## 🏠 Available Cleaning Modes
+    
+    | **Mode** | **Description** | **Technology** |
+    |:---:|:---:|:---:|
+    | 🧹 **Vacuum** | Vacuum only | Custom Cleaning |
+    | 💧 **Mop** | Mop only | Custom Cleaning |
+    | ✨ **Cleaning** | Vacuum + Mop | CleanGenius |
+    | 🔥 **Deep Cleaning** | Vacuum + Intensive Mop | CleanGenius Deep |
+    
+    ## 📋 Prerequisites
+    1. ✅ Dreame robot configured in Home Assistant
+    2. ✅ Room helper created (use the "🏠 Room Helper Creation" blueprint)
+    3. ✅ Alexa configured (Nabu Casa, Lambda, or Matter)
+    
+    ## 🎯 How to Use It
+    
+    ### Step 1: Configure the Script
+    1. **Select** your robot and required entities
+    2. **Enter** the room ID (find it in your room helper)
+    3. **Choose** the cleaning mode
+    4. **Save** the script with a descriptive name
+    
+    ### Step 2: Expose to Alexa
+    - **Nabu Casa**: Script will appear automatically
+    - **Matter**: Add "matter" label to the script
+    - **Lambda**: Configure in your AWS setup
+    
+    ### Step 3: Voice Commands
+    **"Alexa, start [script name]"**  
+    **"Alexa, open [script name]"**
+    
+    ## 💡 Practical Examples
+    
+    ### Scenario: Bathroom Cleaning
+    1. **Create** script: "Vacuum Bathroom" (Room ID: 5, Mode: Vacuum)
+    2. **Clone** script: "Clean Bathroom" (same ID, Mode: Cleaning)
+    3. **Commands**: 
+       - "Alexa, start vacuum bathroom" 
+       - "Alexa, start clean bathroom"
+    
+    ### Scenario: Complete Kitchen
+    - Script 1: "Clean Kitchen" → "Alexa, start clean kitchen"
+    - Script 2: "Deep Clean Kitchen" → "Alexa, start deep clean kitchen"
+    
+    ## ⚙️ Technical Notes
+    - **CleanGenius**: Advanced mode that combines vacuuming and mopping
+    - **Custom Cleaning**: Basic mode for separate vacuuming or mopping
+    - **Timeout**: 10 seconds for setting changes
+    - **Validation**: Automatically checks that room ID is valid
     
   domain: script
   source_url: https://raw.githubusercontent.com/Magnum9O/HA_BluePrints/main/Dreame/ENG/2_ExposeToAlexa.yaml
 
   input:
     vacuum_entity:
-      name: Dreame Robot
-      description: Select your vacuum entity (e.g. vacuum.ambrogio)
+      name: "🤖 Dreame Robot"
+      description: |
+        Select your Dreame robot vacuum cleaner.
+        
+        💡 **Example**: `vacuum.dreame_l10s_ultra` or `vacuum.xiaomi_vacuum_cleaner`
       selector:
         entity:
           domain: vacuum
 
     cleangenius_select:
-      name: Select the CleanGenius Entity
-      description: CleanGenius mode selector (e.g. select.YourRobot_cleangenius)
+      name: "✨ CleanGenius Entity"
+      description: |
+        Select the entity that controls your robot's **CleanGenius** mode.
+        
+        💡 **How to find it**: Look among your robot's `select` entities, usually named:
+        - `select.robot_name_cleangenius`
+        - `select.dreame_cleangenius`
       selector:
         entity:
           domain: select
 
     cleaning_mode_select:
-      name: Select the Cleaning Mode Entity
-      description: Cleaning mode “segment” selector (e.g. select.YourRobot_cleaning_mode)
+      name: "🔧 Cleaning Mode Entity"
+      description: |
+        Select the entity that controls **Cleaning Mode** (separate vacuum/mop).
+        
+        💡 **How to find it**: Look among your robot's `select` entities, usually:
+        - `select.robot_name_cleaning_mode`
+        - `select.dreame_cleaning_mode`
       selector:
         entity:
           domain: select
 
     room_id:
-      name: Room ID (number)
-      description: >
-        Copy the ID in parentheses from your helper “Name (ID)”.
-        Example: "Kitchen (3)" → enter **3**.
+      name: "🏠 Room ID"
+      description: |
+        **Enter the numeric ID** of the room you want to clean.
+        
+        🔍 **How to find it**: 
+        1. Use the "🏠 Room Helper Creation" blueprint
+        2. Check the created helper to see "Room Name (**ID**)"
+        3. Enter only the number in parentheses
+        
+        📝 **Example**: If you see "Kitchen (3)", enter **3**
       selector:
         number:
           min: 0
+          max: 999
           mode: box
       default: 0
 
     cleaning_preset:
-      name: Cleaning Type
-      description: Choose the preset. “Cleaning/Deep Cleaning” use CleanGenius; “Vacuum/Mop” use Cleaning Mode with CleanGenius OFF.
+      name: "🎯 Cleaning Mode"
+      description: |
+        Choose your desired cleaning mode:
+        
+        🧹 **Vacuum**: Vacuum only (CleanGenius OFF)
+        💧 **Mop**: Mop only (CleanGenius OFF)  
+        ✨ **Cleaning**: Vacuum + Mop simultaneously
+        🔥 **Deep Cleaning**: Vacuum + Intensive Mop
       selector:
         select:
           options:
-            - Vacuum
-            - Mop
-            - Cleaning
-            - Deep Cleaning
-      default: Cleaning
+            - label: "🧹 Vacuum"
+              value: "Vacuum"
+            - label: "💧 Mop" 
+              value: "Mop"
+            - label: "✨ Cleaning"
+              value: "Cleaning"
+            - label: "🔥 Deep Cleaning"
+              value: "Deep Cleaning"
+      default: "Cleaning"
 
 icon: mdi:robot-vacuum
 
@@ -91,6 +153,7 @@ sequence:
   # Validate room ID
   - condition: template
     value_template: "{{ (_rid | int(default=-1)) >= 0 }}"
+    alias: "Verify room ID validity"
 
   # Branch based on preset
   - choose:
@@ -99,17 +162,20 @@ sequence:
           - condition: template
             value_template: "{{ preset == 'deep cleaning' }}"
         sequence:
-          - service: select.select_option
+          - alias: "Set CleanGenius Deep Cleaning"
+            service: select.select_option
             target:
               entity_id: "{{ _cg_sel }}"
             data:
               option: deep_cleaning
 
-          - wait_template: >-
+          - alias: "Wait for CleanGenius mode change"
+            wait_template: >-
               {{ states(_cg_sel) in ['deep_cleaning','unknown','unavailable','none'] }}
             timeout: "00:00:10"
 
-          - service: dreame_vacuum.vacuum_clean_segment
+          - alias: "Start deep cleaning room"
+            service: dreame_vacuum.vacuum_clean_segment
             target:
               entity_id: "{{ _vac }}"
             data:
@@ -121,7 +187,8 @@ sequence:
           - condition: template
             value_template: "{{ preset == 'cleaning' }}"
         sequence:
-          - service: dreame_vacuum.vacuum_clean_segment
+          - alias: "Start standard cleaning room"
+            service: dreame_vacuum.vacuum_clean_segment
             target:
               entity_id: "{{ _vac }}"
             data:
@@ -133,17 +200,20 @@ sequence:
           - condition: template
             value_template: "{{ preset == 'vacuum' }}"
         sequence:
-          - service: select.select_option
+          - alias: "Disable CleanGenius"
+            service: select.select_option
             target:
               entity_id: "{{ _cg_sel }}"
             data:
               option: 'off'
 
-          - wait_template: >-
+          - alias: "Wait for CleanGenius disable"
+            wait_template: >-
               {{ states(_cg_sel) in ['off','unknown','unavailable','none'] }}
             timeout: "00:00:10"
 
-          - service: select.select_option
+          - alias: "Set vacuum mode"
+            service: select.select_option
             target:
               entity_id: "{{ _cm_sel }}"
             data:
@@ -151,7 +221,8 @@ sequence:
 
           - delay: "00:00:01"
 
-          - service: dreame_vacuum.vacuum_clean_segment
+          - alias: "Start vacuum room"
+            service: dreame_vacuum.vacuum_clean_segment
             target:
               entity_id: "{{ _vac }}"
             data:
@@ -163,17 +234,20 @@ sequence:
           - condition: template
             value_template: "{{ preset == 'mop' }}"
         sequence:
-          - service: select.select_option
+          - alias: "Disable CleanGenius"
+            service: select.select_option
             target:
               entity_id: "{{ _cg_sel }}"
             data:
               option: 'off'
 
-          - wait_template: >-
+          - alias: "Wait for CleanGenius disable"
+            wait_template: >-
               {{ states(_cg_sel) in ['off','unknown','unavailable','none'] }}
             timeout: "00:00:10"
 
-          - service: select.select_option
+          - alias: "Set mop mode"
+            service: select.select_option
             target:
               entity_id: "{{ _cm_sel }}"
             data:
@@ -181,7 +255,8 @@ sequence:
 
           - delay: "00:00:01"
 
-          - service: dreame_vacuum.vacuum_clean_segment
+          - alias: "Start mop room"
+            service: dreame_vacuum.vacuum_clean_segment
             target:
               entity_id: "{{ _vac }}"
             data:
