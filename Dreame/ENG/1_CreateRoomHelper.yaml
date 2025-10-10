@@ -1,41 +1,67 @@
 blueprint:
-  name: "Dreame: Update Room List"
+  name: "🏠 Dreame: Room Helper Creation"
   description: |
-    Requirement: ``Vacuum Map Card`` used to generate the static room configuration.
-  
-    This blueprint creates a script that reads the ``rooms`` attribute from the
-    ``Vacuum Map Card`` entity and updates an `input_select` helper with the list of rooms.
-
-    Each entry in the list is formatted by combining the room name and its ``room_id``
-    in parentheses — for example: ``Kitchen (3)``.
-
-    This helper will help you identify the correct room IDs when creating scripts
-    to expose to Alexa using the ``ExposeToAlexa`` blueprint.
-
-    If no rooms are found in the ``rooms`` attribute, a notification is generated.
+    ## 📋 Prerequisites
+    - **Vacuum Map Card** configured and working
+    - Dreame/Tasshack integration active
+    
+    ## 🎯 What this blueprint does
+    Creates an **intelligent script** that automatically:
+    
+    ✅ Reads the `rooms` attribute from your robot's map  
+    ✅ Updates an `input_select` helper with all available rooms  
+    ✅ Formats each entry as **"Room Name (ID)"** for easy identification  
+    ✅ Notifies you if no configured rooms are found  
+    
+    ## 🔧 How to use it
+    1. **Select** your robot's map camera
+    2. **Create** a new `input_select` helper (or select an existing one)
+    3. **Run** the generated script
+    4. **Check** the helper to see all rooms with their IDs
+    
+    ## 💡 Example result
+    ```
+    Kitchen (3)
+    Living Room (1)
+    Bathroom (5)
+    Bedroom (2)
+    ```
+    
+    ## 🔗 Next step
+    Use the IDs found with the **"🎙️ Alexa: Room Cleaning Scripts"** blueprint to create custom voice commands!
     
   domain: script
   source_url: https://raw.githubusercontent.com/Magnum9O/HA_BluePrints/main/Dreame/ENG/1_CreateRoomHelper.yaml
   input:
     map_camera:
-      name: "Robot Map"
-      description: "Select the tassHack camera entity that contains the 'rooms' attribute."
+      name: "🗺️ Robot Map"
+      description: |
+        Select the **camera** entity that contains the `rooms` attribute of your Vacuum Map Card.
+        
+        💡 **Tip**: Usually named something like `camera.vacuum_map` or similar.
       selector:
         entity:
           domain: camera
     select_entity:
-      name: "Input Select for Rooms"
-      description: "Create and select the ``input_select`` helper to be updated with the room names."
+      name: "📝 Room Input Select Helper"
+      description: |
+        **First create** a new `input_select` helper from Home Assistant settings, then select it here.
+        
+        🔧 **Where to create it**: 
+        - Settings → Devices & Services → Helpers → Create Helper → Dropdown
+        - **OR** from the dropdown menu below: **+ Create new helper**
+        
+        ⚠️ **Important**: The helper will be automatically populated with the rooms found.
       selector:
         entity:
           domain: input_select
 
 sequence:
-  # Local variables for map and input_select
+  # Local variables for map and input select
   - variables:
       map_ent: !input map_camera
       select_ent: !input select_entity
-      # Build a list of rooms formatted as "Name (ID)" from the 'rooms' attribute.
+      # Build a list of rooms formatted as "Name (ID)" from the rooms attribute.
       room_options: >-
         {% set ns = namespace(opts=[]) %}
         {% set rooms = state_attr(map_ent, 'rooms') %}
@@ -49,7 +75,7 @@ sequence:
           {% endfor %}
         {% endif %}
         {{ ns.opts }}
-  # Update the input_select with the list or send a notification if empty
+  # Update the input_select with the list, or notify if empty
   - choose:
       - conditions:
           - condition: template
@@ -59,13 +85,28 @@ sequence:
             data:
               entity_id: "{{ select_ent }}"
               options: "{{ room_options }}"
-      # If no rooms are found, send a notification
+          - service: persistent_notification.create
+            data:
+              title: "✅ Room Update Completed"
+              message: >-
+                **Perfect!** Found {{ room_options | length }} rooms in map {{ map_ent }}.
+                
+                The rooms have been added to helper **{{ select_ent }}** and are ready to use!
+                
+                🎙️ **Next step**: Use the "Alexa: Room Cleaning Scripts" blueprint to create voice commands.
+      # If no rooms found, send notification
       - conditions: []
         sequence:
           - service: persistent_notification.create
             data:
-              title: "Room Update"
+              title: "⚠️ No Rooms Found"
               message: >-
-                No rooms were found in the 'rooms' attribute of the map {{ map_ent }}.
-                Make sure the tassHack integration has created the map and that the robot
-                has generated a layout with defined rooms.
+                **Warning!** No rooms were found in the `rooms` attribute of map {{ map_ent }}.
+                
+                🔧 **Possible solutions**:
+                • Verify that the Tasshack/Dreame integration is configured correctly
+                • Make sure the robot has completed at least one full mapping
+                • Check that the Vacuum Map Card is configured correctly
+                • Try running a full cleaning cycle to update the map
+                
+                📞 **Need help?** Check the blueprint documentation on GitHub!
