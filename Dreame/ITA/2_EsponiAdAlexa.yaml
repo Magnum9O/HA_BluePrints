@@ -11,10 +11,10 @@ blueprint:
     
     ## 🏠 Modalità di Pulizia Disponibili
     
-    | Modalità | Descrizione | Tecnologia |
-    |----------|-------------|------------|
-    | 🧹 **Aspirazione** | Solo aspirazione | Cleaning Mode |
-    | 💧 **Lavaggio** | Solo lavaggio | Cleaning Mode |
+    | **Modalità** | **Descrizione** | **Tecnologia** |
+    |:---:|:---:|:---:|
+    | 🧹 **Aspirazione** | Solo aspirazione | Pulizia Personalizzata |
+    | 💧 **Lavaggio** | Solo lavaggio | Pulizia Personalizzata |
     | ✨ **Pulizia** | Aspirazione + Lavaggio | CleanGenius |
     | 🔥 **Pulizia Profonda** | Aspirazione + Lavaggio Intensivo | CleanGenius Deep |
     
@@ -55,7 +55,7 @@ blueprint:
     
     ## ⚙️ Note Tecniche
     - **CleanGenius**: Modalità avanzata che combina aspirazione e lavaggio
-    - **Cleaning Mode**: Modalità base per aspirazione o lavaggio separati
+    - **Pulizia Personalizzata**: Modalità base per aspirazione o lavaggio separati
     - **Timeout**: 10 secondi per il cambio delle impostazioni
     - **Validazione**: Controlla automaticamente che l'ID stanza sia valido
     
