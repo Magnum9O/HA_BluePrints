@@ -1,75 +1,141 @@
 blueprint:
-  name: "Creazione script Dreame da esporre ad Alexa"
+  name: "🎙️ Alexa: Script Pulizia Stanze Dreame"
   description: |
-    Genera uno script per avviare la pulizia di **una stanza specifica** del robot Dreame,
-    pronto per essere esposto ad Alexa. L'``ID`` stanza viene fissato al momento della creazione,
-    così puoi clonare lo script per ogni stanza/preset.
-    Per aiutarti nella mpappatura ``stanza/ID``, utilizza il BluePrint #1 (``dreame_create_room``),
-    e scorri l'helper per vedere gli ``ID`` delle stanze.
-
-    ``NOTA: le modalità **pulizia** e **pulizia profonda** attivano la modalità clean genius e clean genius profonda, che aspirano e lavano contemporanemente``
-
-    Successivamente, puoi esporre lo script creato ad Alexa tramite Nabu, Lambda o Matter
-    ``Se usi matter, assegna subito un label esposto a matter allo script!``
-
-    Comandi vocali per richiamare gli script da Alexa:
-    - "avvia ``<nome script>``"
-    - "apri ``<nome script>``"
-
-    ``Esempio:`` Creo il primo script in cui definisco l'aspirazione del bagno. Gli dò un nome sensato, come "aspirazione bagno".
-    In questo modo ad Alexa basterà dire: ``AVVIA`` aspirazione bagno, e verrà fatta una chiamata allo script appena generato.
-    Qualora voglia aggiungere anche un'altra modalità di pulizia, come ad esempio il solo lavaggio, basterà clonare lo script appena creato, tenere l'ID della stanza (in questo caso del bagno),
-    e cambiare la modalità da aspirazione -> lavaggio.
-    Rinominio lo script clonato, e lo chiamerò ``lavaggio bagno``.
-    Ora potrò dire ad Alexa: ``AVVIA`` lavaggio bagno, e si attiverà lo script appena creato.
+    ## 🚀 Cosa fa questo blueprint
+    Crea uno **script personalizzato** per comandare il tuo robot Dreame con la voce tramite Alexa!
     
-
+    ✅ **Pulizia mirata** di una stanza specifica  
+    ✅ **4 modalità** di pulizia disponibili  
+    ✅ **Pronto per Alexa** - nessuna configurazione aggiuntiva  
+    ✅ **Facilmente clonabile** per multiple stanze  
+    
+    ## 🏠 Modalità di Pulizia Disponibili
+    
+    | Modalità | Descrizione | Tecnologia |
+    |----------|-------------|------------|
+    | 🧹 **Aspirazione** | Solo aspirazione | Cleaning Mode |
+    | 💧 **Lavaggio** | Solo lavaggio | Cleaning Mode |
+    | ✨ **Pulizia** | Aspirazione + Lavaggio | CleanGenius |
+    | 🔥 **Pulizia Profonda** | Aspirazione + Lavaggio Intensivo | CleanGenius Deep |
+    
+    ## 📋 Prerequisiti
+    1. ✅ Robot Dreame configurato in Home Assistant
+    2. ✅ Helper delle stanze creato (usa il blueprint "🏠 Creazione Helper Stanze")
+    3. ✅ Alexa configurata (Nabu Casa, Lambda, o Matter)
+    
+    ## 🎯 Come Usarlo
+    
+    ### Passo 1: Configura lo Script
+    1. **Seleziona** il tuo robot e le entità necessarie
+    2. **Inserisci** l'ID della stanza (trovalo nell'helper delle stanze)
+    3. **Scegli** la modalità di pulizia
+    4. **Salva** lo script con un nome descrittivo
+    
+    ### Passo 2: Esponi ad Alexa
+    - **Nabu Casa**: Lo script apparirà automaticamente
+    - **Matter**: Aggiungi il label "matter" allo script
+    - **Lambda**: Configura nel tuo setup AWS
+    
+    ### Passo 3: Comandi Vocali
+    **"Alexa, avvia [nome dello script]"**  
+    **"Alexa, apri [nome dello script]"**
+    
+    ## 💡 Esempi Pratici
+    
+    ### Scenario: Pulizia del Bagno
+    1. **Crea** script: "Aspirazione Bagno" (ID stanza: 5, modalità: Aspirazione)
+    2. **Clona** script: "Pulizia Bagno" (stesso ID, modalità: Pulizia)
+    3. **Comandi**: 
+       - "Alexa, avvia aspirazione bagno" 
+       - "Alexa, avvia pulizia bagno"
+    
+    ### Scenario: Cucina Completa
+    - Script 1: "Pulizia Cucina" → "Alexa, avvia pulizia cucina"
+    - Script 2: "Pulizia Profonda Cucina" → "Alexa, avvia pulizia profonda cucina"
+    
+    ## ⚙️ Note Tecniche
+    - **CleanGenius**: Modalità avanzata che combina aspirazione e lavaggio
+    - **Cleaning Mode**: Modalità base per aspirazione o lavaggio separati
+    - **Timeout**: 10 secondi per il cambio delle impostazioni
+    - **Validazione**: Controlla automaticamente che l'ID stanza sia valido
+    
   domain: script
   source_url: https://raw.githubusercontent.com/Magnum9O/HA_BluePrints/main/Dreame/ITA/2_EsponiAdAlexa.yaml
 
   input:
     vacuum_entity:
-      name: Robot Dreame
-      description: Seleziona il tuo vacuum (es. vacuum.ambrogio)
+      name: "🤖 Robot Dreame"
+      description: |
+        Seleziona il tuo aspirapolvere robot Dreame.
+        
+        💡 **Esempio**: `vacuum.dreame_l10s_ultra` o `vacuum.xiaomi_vacuum_cleaner`
       selector:
         entity:
           domain: vacuum
 
     cleangenius_select:
-      name: Seleziona l'entity corretta per CleanGenius
-      description: Selettore modalità CleanGenius (es. select.NomeRobot_cleangenius)
+      name: "✨ Entità CleanGenius"
+      description: |
+        Seleziona l'entità che controlla la modalità **CleanGenius** del tuo robot.
+        
+        💡 **Come trovarla**: Cerca tra le entità `select` del tuo robot, di solito ha un nome come:
+        - `select.nome_robot_cleangenius`
+        - `select.dreame_cleangenius`
       selector:
         entity:
           domain: select
 
     cleaning_mode_select:
-      name: Seleziona l'entity corretta per il Cleaning Mode
-      description: Selettore cleaning mode “segment” (es. select.NomeRobot_cleaning_mode)
+      name: "🔧 Entità Cleaning Mode"
+      description: |
+        Seleziona l'entità che controlla il **Cleaning Mode** (aspirazione/lavaggio separati).
+        
+        💡 **Come trovarla**: Cerca tra le entità `select` del tuo robot, di solito:
+        - `select.nome_robot_cleaning_mode`
+        - `select.dreame_cleaning_mode`
       selector:
         entity:
           domain: select
 
     room_id:
-      name: ID stanza (numero)
-      description: >
-        Copia l'ID tra parentesi dal tuo helper “Nome (ID)”. Esempio: "Kitchen (3)" → inserisci **3**.
+      name: "🏠 ID Stanza"
+      description: |
+        **Inserisci l'ID numerico** della stanza che vuoi pulire.
+        
+        🔍 **Come trovarlo**: 
+        1. Usa il blueprint "🏠 Creazione Helper Stanze"
+        2. Controlla l'helper creato per vedere "Nome Stanza (**ID**)"
+        3. Inserisci solo il numero tra parentesi
+        
+        📝 **Esempio**: Se vedi "Cucina (3)", inserisci **3**
       selector:
         number:
           min: 0
+          max: 999
           mode: box
       default: 0
 
     cleaning_preset:
-      name: Tipo di pulizia
-      description: Scegli il preset. “Pulizia/Pulizia profonda” usano CleanGenius; “Aspirazione/Lavaggio” usano cleaning_mode con CleanGenius OFF.
+      name: "🎯 Modalità di Pulizia"
+      description: |
+        Scegli la modalità di pulizia desiderata:
+        
+        🧹 **Aspirazione**: Solo aspirazione (CleanGenius OFF)
+        💧 **Lavaggio**: Solo lavaggio (CleanGenius OFF)  
+        ✨ **Pulizia**: Aspirazione + Lavaggio simultanei
+        🔥 **Pulizia Profonda**: Aspirazione + Lavaggio intensivo
       selector:
         select:
           options:
-            - Aspirazione
-            - Lavaggio
-            - Pulizia
-            - Pulizia profonda
-      default: Pulizia
+            - label: "🧹 Aspirazione"
+              value: "Aspirazione"
+            - label: "💧 Lavaggio" 
+              value: "Lavaggio"
+            - label: "✨ Pulizia"
+              value: "Pulizia"
+            - label: "🔥 Pulizia Profonda"
+              value: "Pulizia profonda"
+      default: "Pulizia"
 
 icon: mdi:robot-vacuum
 
@@ -87,6 +153,7 @@ sequence:
   # Validazione ID stanza
   - condition: template
     value_template: "{{ (_rid | int(default=-1)) >= 0 }}"
+    alias: "Verifica validità ID stanza"
 
   # Branch in base al preset
   - choose:
@@ -95,17 +162,20 @@ sequence:
           - condition: template
             value_template: "{{ preset == 'pulizia profonda' }}"
         sequence:
-          - service: select.select_option
+          - alias: "Imposta CleanGenius Deep Cleaning"
+            service: select.select_option
             target:
               entity_id: "{{ _cg_sel }}"
             data:
               option: deep_cleaning
 
-          - wait_template: >-
+          - alias: "Attendi cambio modalità CleanGenius"
+            wait_template: >-
               {{ states(_cg_sel) in ['deep_cleaning','unknown','unavailable','none'] }}
             timeout: "00:00:10"
 
-          - service: dreame_vacuum.vacuum_clean_segment
+          - alias: "Avvia pulizia profonda stanza"
+            service: dreame_vacuum.vacuum_clean_segment
             target:
               entity_id: "{{ _vac }}"
             data:
@@ -117,7 +187,8 @@ sequence:
           - condition: template
             value_template: "{{ preset == 'pulizia' }}"
         sequence:
-          - service: dreame_vacuum.vacuum_clean_segment
+          - alias: "Avvia pulizia standard stanza"
+            service: dreame_vacuum.vacuum_clean_segment
             target:
               entity_id: "{{ _vac }}"
             data:
@@ -129,17 +200,20 @@ sequence:
           - condition: template
             value_template: "{{ preset == 'aspirazione' }}"
         sequence:
-          - service: select.select_option
+          - alias: "Disattiva CleanGenius"
+            service: select.select_option
             target:
               entity_id: "{{ _cg_sel }}"
             data:
               option: 'off'
 
-          - wait_template: >-
+          - alias: "Attendi disattivazione CleanGenius"
+            wait_template: >-
               {{ states(_cg_sel) in ['off','unknown','unavailable','none'] }}
             timeout: "00:00:10"
 
-          - service: select.select_option
+          - alias: "Imposta modalità aspirazione"
+            service: select.select_option
             target:
               entity_id: "{{ _cm_sel }}"
             data:
@@ -147,7 +221,8 @@ sequence:
 
           - delay: "00:00:01"
 
-          - service: dreame_vacuum.vacuum_clean_segment
+          - alias: "Avvia aspirazione stanza"
+            service: dreame_vacuum.vacuum_clean_segment
             target:
               entity_id: "{{ _vac }}"
             data:
@@ -159,17 +234,20 @@ sequence:
           - condition: template
             value_template: "{{ preset == 'lavaggio' }}"
         sequence:
-          - service: select.select_option
+          - alias: "Disattiva CleanGenius"
+            service: select.select_option
             target:
               entity_id: "{{ _cg_sel }}"
             data:
               option: 'off'
 
-          - wait_template: >-
+          - alias: "Attendi disattivazione CleanGenius"
+            wait_template: >-
               {{ states(_cg_sel) in ['off','unknown','unavailable','none'] }}
             timeout: "00:00:10"
 
-          - service: select.select_option
+          - alias: "Imposta modalità lavaggio"
+            service: select.select_option
             target:
               entity_id: "{{ _cm_sel }}"
             data:
@@ -177,7 +255,8 @@ sequence:
 
           - delay: "00:00:01"
 
-          - service: dreame_vacuum.vacuum_clean_segment
+          - alias: "Avvia lavaggio stanza"
+            service: dreame_vacuum.vacuum_clean_segment
             target:
               entity_id: "{{ _vac }}"
             data:
