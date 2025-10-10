@@ -47,7 +47,9 @@ blueprint:
       description: |
         **Crea prima** un nuovo helper `input_select` dalle impostazioni di Home Assistant, poi selezionalo qui.
         
-        🔧 **Dove crearlo**: Impostazioni → Dispositivi e Servizi → Helper → Crea Helper → Elenco a discesa
+        🔧 **Dove crearlo**: 
+        - Impostazioni → Dispositivi e Servizi → Helper → Crea Helper → Elenco a discesa
+        - **OPPURE** dal menu a tendina qui sotto: **+ Crea nuovo helper**
         
         ⚠️ **Importante**: L'helper verrà automaticamente popolato con le stanze trovate.
       selector:
