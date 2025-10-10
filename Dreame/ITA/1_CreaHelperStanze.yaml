@@ -1,31 +1,55 @@
 blueprint:
-  name: "Dreame: Aggiorna elenco stanze"
+  name: "🏠 Dreame: Creazione Helper Stanze"
   description: |
-    Requisito: ``Vacuum Map card`` con cui generare la configurazione statica delle stanze
-  
-    Questo blueprint crea uno script che legge l'attributo ``rooms`` della mappa
-    ``Vacuum Map card`` e aggiorna un helper `input_select` con l'elenco delle stanze.
-
-    Ogni voce dell'elenco viene formata concatenando il nome della stanza e il suo
-    ``room_id`` fra parentesi, ad esempio ``Cucina (3)``.
-
-    Questo helper ti aiuterà a trovare gli ID delle stanze per la creazione degli script
-    da esporre ad Alexa con il blueprint ``EsponiAdAlexa``
-
-    Se non vengono trovate stanze nell'attributo ``rooms``, viene generata una notifica.
+    ## 📋 Prerequisiti
+    - **Vacuum Map Card** configurata e funzionante
+    - Integrazione Dreame/Tasshack attiva
+    
+    ## 🎯 Cosa fa questo blueprint
+    Crea automaticamente uno **script intelligente** che:
+    
+    ✅ Legge l'attributo `rooms` dalla tua mappa del robot  
+    ✅ Aggiorna un helper `input_select` con tutte le stanze disponibili  
+    ✅ Formatta ogni voce come **"Nome Stanza (ID)"** per facile identificazione  
+    ✅ Ti notifica se non trova stanze configurate  
+    
+    ## 🔧 Come usarlo
+    1. **Seleziona** la camera della mappa del tuo robot
+    2. **Crea** un nuovo helper `input_select` (o seleziona uno esistente)
+    3. **Esegui** lo script generato
+    4. **Controlla** l'helper per vedere tutte le stanze con i loro ID
+    
+    ## 💡 Esempio risultato
+    ```
+    Cucina (3)
+    Soggiorno (1)
+    Bagno (5)
+    Camera da letto (2)
+    ```
+    
+    ## 🔗 Prossimo passo
+    Usa gli ID trovati con il blueprint **"🎙️ Alexa: Script Pulizia Stanze"** per creare comandi vocali personalizzati!
     
   domain: script
   source_url: https://raw.githubusercontent.com/Magnum9O/HA_BluePrints/main/Dreame/ITA/1_CreaHelperStanze.yaml
   input:
     map_camera:
-      name: "Mappa del robot"
-      description: "Seleziona la camera tasshack che contiene l'attributo 'rooms'."
+      name: "🗺️ Mappa del Robot"
+      description: |
+        Seleziona l'entità **camera** che contiene l'attributo `rooms` della tua mappa Vacuum Map Card.
+        
+        💡 **Suggerimento**: Di solito ha un nome come `camera.vacuum_map` o simile.
       selector:
         entity:
           domain: camera
     select_entity:
-      name: "Input Select per le stanze"
-      description: "Crea e seleziona l'helper ``input_select`` da aggiornare con i nomi delle stanze."
+      name: "📝 Helper Input Select per le Stanze"
+      description: |
+        **Crea prima** un nuovo helper `input_select` dalle impostazioni di Home Assistant, poi selezionalo qui.
+        
+        🔧 **Dove crearlo**: Impostazioni → Dispositivi e Servizi → Helper → Crea Helper → Elenco a discesa
+        
+        ⚠️ **Importante**: L'helper verrà automaticamente popolato con le stanze trovate.
       selector:
         entity:
           domain: input_select
@@ -59,13 +83,28 @@ sequence:
             data:
               entity_id: "{{ select_ent }}"
               options: "{{ room_options }}"
+          - service: persistent_notification.create
+            data:
+              title: "✅ Aggiornamento Stanze Completato"
+              message: >-
+                **Perfetto!** Trovate {{ room_options | length }} stanze nella mappa {{ map_ent }}.
+                
+                Le stanze sono state aggiunte all'helper **{{ select_ent }}** e sono pronte per l'uso!
+                
+                🎙️ **Prossimo passo**: Usa il blueprint "Alexa: Script Pulizia Stanze" per creare i comandi vocali.
       # Se non ci sono stanze, invia una notifica
       - conditions: []
         sequence:
           - service: persistent_notification.create
             data:
-              title: "Aggiornamento stanze"
+              title: "⚠️ Nessuna Stanza Trovata"
               message: >-
-                Non sono state trovate stanze nell'attributo 'rooms' della mappa {{ map_ent }}.
-                Assicurati che l'integrazione tasshack abbia creato la mappa e che il robot abbia
-                generato un layout con le stanze.
+                **Attenzione!** Non sono state trovate stanze nell'attributo `rooms` della mappa {{ map_ent }}.
+                
+                🔧 **Possibili soluzioni**:
+                • Verifica che l'integrazione Tasshack/Dreame sia configurata correttamente
+                • Assicurati che il robot abbia completato almeno una mappatura completa
+                • Controlla che la Vacuum Map Card sia configurata correttamente
+                • Prova a far fare una pulizia completa al robot per aggiornare la mappa
+                
+                📞 **Hai bisogno di aiuto?** Controlla la documentazione del blueprint su GitHub!
