@@ -35,332 +35,332 @@ blueprint:
 
   input:
 
-  vacuum_entity:
-    name: Dreame Robot
-    description: Select your Dreame vacuum.
-    selector:
-      entity:
-        domain: vacuum
+    vacuum_entity:
+      name: Dreame Robot
+      description: Select your Dreame vacuum.
+      selector:
+        entity:
+          domain: vacuum
 
-  map_camera:
-    name: Map
-    description: Select the camera that exposes the 'rooms' attribute (e.g., camera.YourRobot_map) generated with the Vacuum Map card. Required.
-    selector:
-      entity:
-        domain: camera
+    map_camera:
+      name: Map
+      description: Select the camera that exposes the 'rooms' attribute (e.g., camera.YourRobot_map) generated with the Vacuum Map card. Required.
+      selector:
+        entity:
+          domain: camera
 
-  cleaned_today_helper:
-    name: "Cleaning Performed" flag
-    description: Boolean that turns on after cleaning and is reset every day at the chosen time.
-    selector:
-      entity:
-        domain: input_boolean
+    cleaned_today_helper:
+      name: Cleaning Performed flag
+      description: Boolean that turns on after cleaning and is reset every day at the chosen time.
+      selector:
+        entity:
+          domain: input_boolean
 
-  reset_time:
-    name: Daily reset time
-    description: Time at which to turn off the “Cleaning Performed” flag.
-    default: "23:59:00"
-    selector:
-      time: {}
+    reset_time:
+      name: Daily reset time
+      description: Time at which to turn off the “Cleaning Performed” flag.
+      default: "23:59:00"
+      selector:
+        time: {}
 
-  presence_helper:
-    name: Presence helper (optional)
-    description: Presence-control entity; if set, the automation runs only when its value matches “Required presence value”.
-    default: ""
-    selector:
-      entity: {}
+    presence_helper:
+      name: Presence helper (optional)
+      description: Presence-control entity; if set, the automation runs only when its value matches “Required presence value”.
+      default: ""
+      selector:
+        entity: {}
 
-  presence_required_value:
-    name: Required presence value (optional)
-    description: Examples, 1, home, on. If empty, presence is ignored.
-    default: ""
+    presence_required_value:
+      name: Required presence value (optional)
+      description: Examples, 1, home, on. If empty, presence is ignored.
+      default: ""
 
-  # --- Morning (always available) ---
-  morning_enabled:
-    name: Enable morning schedule
-    default: false
-    selector:
-      boolean: {}
+    # --- Morning (always available) ---
+    morning_enabled:
+      name: Enable morning schedule
+      default: false
+      selector:
+        boolean: {}
 
-  morning_time:
-    name: Morning cleaning time
-    default: "08:30:00"
-    selector:
-      time: {}
+    morning_time:
+      name: Morning cleaning time
+      default: "08:30:00"
+      selector:
+        time: {}
 
-  morning_days:
-    name: Morning days
-    description: Days of the week (leave empty for all days).
-    default: []
-    selector:
-      select:
-        options: [mon, tue, wed, thu, fri, sat, sun]
-        multiple: true
-        sort: false
+    morning_days:
+      name: Morning days
+      description: Days of the week (leave empty for all days).
+      default: []
+      selector:
+        select:
+          options: [mon, tue, wed, thu, fri, sat, sun]
+          multiple: true
+          sort: false
 
-  morning_preset:
-    name: Morning mode
-    default: genius
-    selector:
-      select:
-        options:
-          - label: "Vacuum only"
-            value: sweeping
-          - label: "Mop only"
-            value: mopping
-          - label: "Vacuum and mop"
-            value: sweeping_and_mopping
-          - label: "Mop after vacuum"
-            value: mopping_after_sweeping
-          - label: "CleanGenius"
-            value: genius
-          - label: "CleanGenius Deep"
-            value: genius_deep
-        multiple: false
-        custom_value: false
+    morning_preset:
+      name: Morning mode
+      default: genius
+      selector:
+        select:
+          options:
+            - label: "Vacuum only"
+              value: sweeping
+            - label: "Mop only"
+              value: mopping
+            - label: "Vacuum and mop"
+              value: sweeping_and_mopping
+            - label: "Mop after vacuum"
+              value: mopping_after_sweeping
+            - label: "CleanGenius"
+              value: genius
+            - label: "CleanGenius Deep"
+              value: genius_deep
+          multiple: false
+          custom_value: false
 
-  morning_rooms:
-    name: Morning rooms
-    description: Examples, "2,3,4" or "Kitchen,Bathroom". If empty → whole house.
-    default: ""
+    morning_rooms:
+      name: Morning rooms
+      description: Examples, "2,3,4" or "Kitchen,Bathroom". If empty → whole house.
+      default: ""
 
-  # --- Evening (always available) ---
-  evening_enabled:
-    name: Enable evening schedule
-    default: false
-    selector:
-      boolean: {}
+    # --- Evening (always available) ---
+    evening_enabled:
+      name: Enable evening schedule
+      default: false
+      selector:
+        boolean: {}
 
-  evening_time:
-    name: Evening cleaning time
-    default: "18:00:00"
-    selector:
-      time: {}
+    evening_time:
+      name: Evening cleaning time
+      default: "18:00:00"
+      selector:
+        time: {}
 
-  evening_days:
-    name: Evening days
-    description: Days of the week (leave empty for all days).
-    default: []
-    selector:
-      select:
-        options: [mon, tue, wed, thu, fri, sat, sun]
-        multiple: true
-        sort: false
+    evening_days:
+      name: Evening days
+      description: Days of the week (leave empty for all days).
+      default: []
+      selector:
+        select:
+          options: [mon, tue, wed, thu, fri, sat, sun]
+          multiple: true
+          sort: false
 
-  evening_preset:
-    name: Evening mode
-    default: genius
-    selector:
-      select:
-        options:
-          - label: "Vacuum only"
-            value: sweeping
-          - label: "Mop only"
-            value: mopping
-          - label: "Vacuum and mop"
-            value: sweeping_and_mopping
-          - label: "Mop after vacuum"
-            value: mopping_after_sweeping
-          - label: "CleanGenius"
-            value: genius
-          - label: "CleanGenius Deep"
-            value: genius_deep
-        multiple: false
-        custom_value: false
+    evening_preset:
+      name: Evening mode
+      default: genius
+      selector:
+        select:
+          options:
+            - label: "Vacuum only"
+              value: sweeping
+            - label: "Mop only"
+              value: mopping
+            - label: "Vacuum and mop"
+              value: sweeping_and_mopping
+            - label: "Mop after vacuum"
+              value: mopping_after_sweeping
+            - label: "CleanGenius"
+              value: genius
+            - label: "CleanGenius Deep"
+              value: genius_deep
+          multiple: false
+          custom_value: false
 
-  evening_rooms:
-    name: Evening rooms
-    description: Examples, "2,3,4" or "Kitchen,Bathroom". If empty → whole house.
-    default: ""
+    evening_rooms:
+      name: Evening rooms
+      description: Examples, "2,3,4" or "Kitchen,Bathroom". If empty → whole house.
+      default: ""
 
-  # --- Advanced blocks A–D (always available) ---
-  blockA_enabled:
-    name: Enable block A
-    default: false
-    selector:
-      boolean: {}
+    # --- Advanced blocks A–D (always available) ---
+    blockA_enabled:
+      name: Enable block A
+      default: false
+      selector:
+        boolean: {}
 
-  blockA_time:
-    name: Block A time
-    default: "09:00:00"
-    selector:
-      time: {}
+    blockA_time:
+      name: Block A time
+      default: "09:00:00"
+      selector:
+        time: {}
 
-  blockA_days:
-    name: Block A days
-    default: []
-    selector:
-      select:
-        options: [mon, tue, wed, thu, fri, sat, sun]
-        multiple: true
-        sort: false
+    blockA_days:
+      name: Block A days
+      default: []
+      selector:
+        select:
+          options: [mon, tue, wed, thu, fri, sat, sun]
+          multiple: true
+          sort: false
 
-  blockA_preset:
-    name: Block A mode
-    default: sweeping
-    selector:
-      select:
-        options:
-          - label: "Vacuum only"
-            value: sweeping
-          - label: "Mop only"
-            value: mopping
-          - label: "Vacuum and mop"
-            value: sweeping_and_mopping
-          - label: "Mop after vacuum"
-            value: mopping_after_sweeping
-          - label: "CleanGenius"
-            value: genius
-          - label: "CleanGenius Deep"
-            value: genius_deep
-        multiple: false
-        custom_value: false
+    blockA_preset:
+      name: Block A mode
+      default: sweeping
+      selector:
+        select:
+          options:
+            - label: "Vacuum only"
+              value: sweeping
+            - label: "Mop only"
+              value: mopping
+            - label: "Vacuum and mop"
+              value: sweeping_and_mopping
+            - label: "Mop after vacuum"
+              value: mopping_after_sweeping
+            - label: "CleanGenius"
+              value: genius
+            - label: "CleanGenius Deep"
+              value: genius_deep
+          multiple: false
+          custom_value: false
 
-  blockA_rooms:
-    name: Block A rooms
-    description: Examples, "2,3,4" or "Kitchen,Bathroom". If empty → whole house.
-    default: ""
+    blockA_rooms:
+      name: Block A rooms
+      description: Examples, "2,3,4" or "Kitchen,Bathroom". If empty → whole house.
+      default: ""
 
-  blockB_enabled:
-    name: Enable block B
-    default: false
-    selector:
-      boolean: {}
+    blockB_enabled:
+      name: Enable block B
+      default: false
+      selector:
+        boolean: {}
 
-  blockB_time:
-    name: Block B time
-    default: "10:30:00"
-    selector:
-      time: {}
+    blockB_time:
+      name: Block B time
+      default: "10:30:00"
+      selector:
+        time: {}
 
-  blockB_days:
-    name: Block B days
-    default: []
-    selector:
-      select:
-        options: [mon, tue, wed, thu, fri, sat, sun]
-        multiple: true
-        sort: false
+    blockB_days:
+      name: Block B days
+      default: []
+      selector:
+        select:
+          options: [mon, tue, wed, thu, fri, sat, sun]
+          multiple: true
+          sort: false
 
-  blockB_preset:
-    name: Block B mode
-    default: mopping
-    selector:
-      select:
-        options:
-          - label: "Vacuum only"
-            value: sweeping
-          - label: "Mop only"
-            value: mopping
-          - label: "Vacuum and mop"
-            value: sweeping_and_mopping
-          - label: "Mop after vacuum"
-            value: mopping_after_sweeping
-          - label: "CleanGenius"
-            value: genius
-          - label: "CleanGenius Deep"
-            value: genius_deep
-        multiple: false
-        custom_value: false
+    blockB_preset:
+      name: Block B mode
+      default: mopping
+      selector:
+        select:
+          options:
+            - label: "Vacuum only"
+              value: sweeping
+            - label: "Mop only"
+              value: mopping
+            - label: "Vacuum and mop"
+              value: sweeping_and_mopping
+            - label: "Mop after vacuum"
+              value: mopping_after_sweeping
+            - label: "CleanGenius"
+              value: genius
+            - label: "CleanGenius Deep"
+              value: genius_deep
+          multiple: false
+          custom_value: false
 
-  blockB_rooms:
-    name: Block B rooms
-    description: Examples, "2,3,4" or "Kitchen,Bathroom". If empty → whole house.
-    default: ""
+    blockB_rooms:
+      name: Block B rooms
+      description: Examples, "2,3,4" or "Kitchen,Bathroom". If empty → whole house.
+      default: ""
 
-  blockC_enabled:
-    name: Enable block C
-    default: false
-    selector:
-      boolean: {}
+    blockC_enabled:
+      name: Enable block C
+      default: false
+      selector:
+        boolean: {}
 
-  blockC_time:
-    name: Block C time
-    default: "15:00:00"
-    selector:
-      time: {}
+    blockC_time:
+      name: Block C time
+      default: "15:00:00"
+      selector:
+        time: {}
 
-  blockC_days:
-    name: Block C days
-    default: []
-    selector:
-      select:
-        options: [mon, tue, wed, thu, fri, sat, sun]
-        multiple: true
-        sort: false
+    blockC_days:
+      name: Block C days
+      default: []
+      selector:
+        select:
+          options: [mon, tue, wed, thu, fri, sat, sun]
+          multiple: true
+          sort: false
 
-  blockC_preset:
-    name: Block C mode
-    default: genius
-    selector:
-      select:
-        options:
-          - label: "Vacuum only"
-            value: sweeping
-          - label: "Mop only"
-            value: mopping
-          - label: "Vacuum and mop"
-            value: sweeping_and_mopping
-          - label: "Mop after vacuum"
-            value: mopping_after_sweeping
-          - label: "CleanGenius"
-            value: genius
-          - label: "CleanGenius Deep"
-            value: genius_deep
-        multiple: false
-        custom_value: false
+    blockC_preset:
+      name: Block C mode
+      default: genius
+      selector:
+        select:
+          options:
+            - label: "Vacuum only"
+              value: sweeping
+            - label: "Mop only"
+              value: mopping
+            - label: "Vacuum and mop"
+              value: sweeping_and_mopping
+            - label: "Mop after vacuum"
+              value: mopping_after_sweeping
+            - label: "CleanGenius"
+              value: genius
+            - label: "CleanGenius Deep"
+              value: genius_deep
+          multiple: false
+          custom_value: false
 
-  blockC_rooms:
-    name: Block C rooms
-    description: Examples, "2,3,4" or "Kitchen,Bathroom". If empty → whole house.
-    default: ""
+    blockC_rooms:
+      name: Block C rooms
+      description: Examples, "2,3,4" or "Kitchen,Bathroom". If empty → whole house.
+      default: ""
 
-  blockD_enabled:
-    name: Enable block D
-    default: false
-    selector:
-      boolean: {}
+    blockD_enabled:
+      name: Enable block D
+      default: false
+      selector:
+        boolean: {}
 
-  blockD_time:
-    name: Block D time
-    default: "18:30:00"
-    selector:
-      time: {}
+    blockD_time:
+      name: Block D time
+      default: "18:30:00"
+      selector:
+        time: {}
 
-  blockD_days:
-    name: Block D days
-    default: []
-    selector:
-      select:
-        options: [mon, tue, wed, thu, fri, sat, sun]
-        multiple: true
-        sort: false
+    blockD_days:
+      name: Block D days
+      default: []
+      selector:
+        select:
+          options: [mon, tue, wed, thu, fri, sat, sun]
+          multiple: true
+          sort: false
 
-  blockD_preset:
-    name: Block D mode
-    default: genius_deep
-    selector:
-      select:
-        options:
-          - label: "Vacuum only"
-            value: sweeping
-          - label: "Mop only"
-            value: mopping
-          - label: "Vacuum and mop"
-            value: sweeping_and_mopping
-          - label: "Mop after vacuum"
-            value: mopping_after_sweeping
-          - label: "CleanGenius"
-            value: genius
-          - label: "CleanGenius Deep"
-            value: genius_deep
-        multiple: false
-        custom_value: false
+    blockD_preset:
+      name: Block D mode
+      default: genius_deep
+      selector:
+        select:
+          options:
+            - label: "Vacuum only"
+              value: sweeping
+            - label: "Mop only"
+              value: mopping
+            - label: "Vacuum and mop"
+              value: sweeping_and_mopping
+            - label: "Mop after vacuum"
+              value: mopping_after_sweeping
+            - label: "CleanGenius"
+              value: genius
+            - label: "CleanGenius Deep"
+              value: genius_deep
+          multiple: false
+          custom_value: false
 
-  blockD_rooms:
-    name: Block D rooms
-    description: Examples, "2,3,4" or "Kitchen,Bathroom". If empty → whole house.
-    default: ""
+    blockD_rooms:
+      name: Block D rooms
+      description: Examples, "2,3,4" or "Kitchen,Bathroom". If empty → whole house.
+      default: ""
 
 mode: restart
 max_exceeded: silent
@@ -504,7 +504,7 @@ action:
                       sequence:
                         - service: select.select_option
                           target:
-                            entity_id: select.{{ states(vac).split('.')[0] if false else 'ambrogio_cleangenius_2' }}
+                            entity_id: "{{ cg_sel }}"
                           data:
                             option: "off"
                         - wait_template: "{{ states(cg_sel) in ['off','unknown','unavailable','none'] }}"
