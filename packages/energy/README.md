@@ -255,12 +255,8 @@ A generic Lovelace example is available at [examples/dashboard-energy.yaml](http
 ## Recommended Repo Structure
 
 ```text
-HA_BluePrints/
-  README.md
   packages/
     energy/
-      README.md
-      CHANGELOG.md
       automations.yaml
       helpers.yaml
       scripts.yaml
@@ -268,6 +264,4 @@ HA_BluePrints/
       shell_command.yaml
       scripts/
         sync_energy_thresholds.py
-      examples/
-        dashboard-energy.yaml
 ```
