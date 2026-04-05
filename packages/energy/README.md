@@ -139,18 +139,18 @@ Without the Python sync, the package still works, but with a conservative fallba
 - `input_number.energy_contract_limit_w`
 - `input_number.energy_warning_delay_seconds`
 
-These helpers are included directly in the package via [helpers.yaml](/c:/Users/Manue/Documents/StudioCode/HA_BluePrints/packages/energy/helpers.yaml), so you do not need to create them manually if you install the whole package.
+These helpers are included directly in the package via [helpers.yaml](https://github.com/Magnum9O/HA_BluePrints/tree/main/packages/energy/helpers.yaml), so you do not need to create them manually if you install the whole package.
 
 ## Files To Install
 
 Copy these files into your Home Assistant config under `packages/energy/`:
 
-- [automations.yaml](/c:/Users/Manue/Documents/StudioCode/HA_BluePrints/packages/energy/automations.yaml)
-- [helpers.yaml](/c:/Users/Manue/Documents/StudioCode/HA_BluePrints/packages/energy/helpers.yaml)
-- [scripts.yaml](/c:/Users/Manue/Documents/StudioCode/HA_BluePrints/packages/energy/scripts.yaml)
-- [template.yaml](/c:/Users/Manue/Documents/StudioCode/HA_BluePrints/packages/energy/template.yaml)
-- [shell_command.yaml](/c:/Users/Manue/Documents/StudioCode/HA_BluePrints/packages/energy/shell_command.yaml)
-- [scripts/sync_energy_thresholds.py](/c:/Users/Manue/Documents/StudioCode/HA_BluePrints/packages/energy/scripts/sync_energy_thresholds.py)
+- [automations.yaml](https://github.com/Magnum9O/HA_BluePrints/tree/main/packages/energy/automations.yaml)
+- [helpers.yaml](https://github.com/Magnum9O/HA_BluePrints/tree/main/packages/energy/helpers.yaml)
+- [scripts.yaml](https://github.com/Magnum9O/HA_BluePrints/tree/main/packages/energy/scripts.yaml)
+- [template.yaml](https://github.com/Magnum9O/HA_BluePrints/tree/main/packages/energy/template.yaml)
+- [shell_command.yaml](https://github.com/Magnum9O/HA_BluePrints/tree/main/packages/energy/shell_command.yaml)
+- [scripts/sync_energy_thresholds.py](https://github.com/Magnum9O/HA_BluePrints/tree/main/packages/energy/scripts/sync_energy_thresholds.py)
 
 ## Installation
 
@@ -216,7 +216,7 @@ These dynamic thresholds are used by the package logic itself, not only by the d
 
 ## Example Dashboard
 
-A generic Lovelace example is available at [examples/dashboard-energy.yaml](/c:/Users/Manue/Documents/StudioCode/HA_BluePrints/packages/energy/examples/dashboard-energy.yaml).
+A generic Lovelace example is available at [examples/dashboard-energy.yaml](https://github.com/Magnum9O/HA_BluePrints/tree/main/packages/energy/examples/dashboard-energy.yaml).
 
 ## Known Limits
 
