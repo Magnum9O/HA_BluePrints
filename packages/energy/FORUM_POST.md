@@ -2,7 +2,7 @@
 
 ## Title
 
-Label-driven Home Assistant energy package for overload alerts and automatic load shedding ⚡
+Label-driven Home Assistant energy package for overload alerts and automatic load shedding
 
 ## Body
 
@@ -16,10 +16,10 @@ The goal is simple: mark the loads you want to watch, mark the ones that are saf
 
 So in simple terms:
 
-1. create the labels 🏷️
-2. assign them to your devices
-3. copy the package 📦
-4. restart Home Assistant 🔄
+1. create the labels
+2. assign them to the device, not the entity
+3. copy the package
+4. restart Home Assistant
 5. enjoy
 
 If you also add a token and run the Python sync, the package becomes smarter because it learns dynamic thresholds from recorder history.
@@ -33,30 +33,30 @@ It is effectively a two-part package:
 
 The Python part is not there for the dashboard. The dashboard is optional and only visualizes the entities exposed by the package.
 
-### ✨ A Few Real Examples
+### A Few Real Examples
 
 Example setup:
 
 - monitored only: microwave, oven
 - manageable: kettle smart plug, dishwasher smart plug
 
-Scenario 1: overload, but only advisory loads are active 👀
+Scenario 1: overload, but only advisory loads are active
 
 > High consumption detected. Critical context: Kitchen. No automatic plan is sufficient: it is better to reduce load in Kitchen.
 
-Scenario 2: overload, one manageable load is active and can be shed ⚠️
+Scenario 2: overload, one manageable load is active and can be shed
 
 > High consumption detected. Critical context: Kitchen. If usage stays high, Kettle will be turned off in one minute.
 
-Scenario 3: even the best shutdown would not be enough 🚫
+Scenario 3: even the best shutdown would not be enough
 
 > Consumption is still high. Even turning off Dishwasher would remain above the limit: it is better to reduce load in Kitchen.
 
-Scenario 4: the package turns something off and the house comes back under the limit ✅
+Scenario 4: the package turns something off and the house comes back under the limit
 
 > Household load returned below the limit. Turned off Kettle.
 
-### 🔧 Main Features
+### Main features
 
 - label-based discovery for monitored devices
 - separation between advisory devices and manageable loads
@@ -66,7 +66,7 @@ Scenario 4: the package turns something off and the house comes back under the l
 - dry run and debug scripts
 - optional voice notifications
 
-### 🧠 How It Works
+### How it works
 
 - `EnergyMainPower` identifies the main household power sensor
 - `EnergyAdvisory` marks devices used for context detection
@@ -75,14 +75,14 @@ Scenario 4: the package turns something off and the house comes back under the l
 - thresholds are generated from the last 60 days of history through a Python sync script
 - the package first warns, then waits, recalculates, and only shuts down loads if the plan still makes sense
 
-### 📝 Important Notes
+### Important notes
 
 - recorder must be enabled
 - a long-lived access token is required in `secrets.yaml`
 - Alexa announcements are optional, not required
 - hardcoded room names and private multi-entity exceptions from my setup were removed from the public core
 
-### 📁 Repo Structure
+### Repo structure
 
 - package files under `packages/energy/`
 - built-in helpers inside the package

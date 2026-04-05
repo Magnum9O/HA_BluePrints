@@ -270,5 +270,4 @@ HA_BluePrints/
         sync_energy_thresholds.py
       examples/
         dashboard-energy.yaml
-      FORUM_POST.md
 ```
