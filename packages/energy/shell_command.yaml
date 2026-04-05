@@ -1,0 +1,3 @@
+shell_command:
+  energy_sync_thresholds: >-
+    python3 /config/packages/energy/scripts/sync_energy_thresholds.py '{{ targets_json }}'

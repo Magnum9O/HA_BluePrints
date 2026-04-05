@@ -1,0 +1,947 @@
+script:
+  energy_registry_shared:
+    alias: Energy Registry Shared
+    sequence:
+      - variables:
+          manageable_loads: &energy_manageable_loads >-
+            {% set ns = namespace(out=[]) %}
+            {% for device_id in label_devices('EnergyManageable') %}
+              {% set device_entities_list = device_entities(device_id) %}
+              {% set power_entities = device_entities_list
+                | select('match', '^sensor\.')
+                | select('is_state_attr', 'device_class', 'power')
+                | list %}
+              {% set switch_entities = device_entities_list
+                | select('match', '^switch\.')
+                | list %}
+              {% if power_entities | count == 1 and switch_entities | count == 1 %}
+                {% set power_sensor = power_entities | first %}
+                {% set switch_entity = switch_entities | first %}
+                {% set threshold_entity = 'sensor.energy_threshold_device_' ~ device_id %}
+                {% set active_threshold = states(threshold_entity) | float(20) %}
+                {% set device_name = device_attr(device_id, 'name_by_user')
+                  or device_attr(device_id, 'name')
+                  or state_attr(power_sensor, 'friendly_name')
+                  or power_sensor %}
+                {% set ns.out = ns.out + [{
+                  'id': power_sensor | replace('sensor.', '') | replace('_power', ''),
+                  'power_sensor': power_sensor,
+                  'threshold_entity': threshold_entity,
+                  'active_threshold': active_threshold,
+                  'display_name': device_name,
+                  'off_service': 'homeassistant.turn_off',
+                  'off_entities': [switch_entity]
+                }] %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.out }}
+          advisory_contexts: &energy_advisory_contexts >-
+            {% set advisory_device_ids = (label_devices('EnergyAdvisory') + label_devices('EnergyManageable'))
+              | unique
+              | list %}
+            {% set ns = namespace(out=[]) %}
+            {% for device_id in advisory_device_ids %}
+              {% set device_entities_list = device_entities(device_id) %}
+              {% set power_entities = device_entities_list
+                | select('match', '^sensor\.')
+                | select('is_state_attr', 'device_class', 'power')
+                | list %}
+              {% if power_entities | count == 1 %}
+                {% set power_sensor = power_entities | first %}
+                {% set threshold_entity = 'sensor.energy_threshold_device_' ~ device_id %}
+                {% set active_threshold = states(threshold_entity) | float(20) %}
+                {% set current_area = area_name(device_id) or area_name(power_sensor) or '' %}
+                {% if current_area %}
+                  {% set context_id = current_area
+                    | lower
+                    | regex_replace('[^a-z0-9]+', '_')
+                    | regex_replace('(^_+|_+$)', '') %}
+                  {% set context_display_name = current_area %}
+                  {% set advice_text = 'reduce load in ' ~ current_area %}
+                {% else %}
+                  {% set context_id = 'general' %}
+                  {% set context_display_name = 'general household load' %}
+                  {% set advice_text = 'reduce general household load' %}
+                {% endif %}
+                {% set device_name = device_attr(device_id, 'name_by_user')
+                  or device_attr(device_id, 'name')
+                  or state_attr(power_sensor, 'friendly_name')
+                  or power_sensor %}
+                {% set ns.out = ns.out + [{
+                  'id': power_sensor | replace('sensor.', '') | replace('_power', ''),
+                  'power_sensor': power_sensor,
+                  'threshold_entity': threshold_entity,
+                  'active_threshold': active_threshold,
+                  'display_name': device_name,
+                  'context_id': context_id,
+                  'context_display_name': context_display_name,
+                  'advice_text': advice_text
+                }] %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.out }}
+      - stop: Internal registry for shared YAML anchors
+
+  sync_energy_thresholds:
+    alias: Sync Energy Thresholds
+    mode: single
+    sequence:
+      - variables:
+          threshold_targets: >-
+            {% set ns = namespace(items=[]) %}
+            {% set tracked_devices = (label_devices('EnergyAdvisory') + label_devices('EnergyManageable'))
+              | unique
+              | list %}
+            {% for device_id in tracked_devices %}
+              {% set device_name = device_attr(device_id, 'name_by_user')
+                or device_attr(device_id, 'name')
+                or device_id %}
+              {% set power_entities = device_entities(device_id)
+                | select('match', '^sensor\.')
+                | select('is_state_attr', 'device_class', 'power')
+                | list %}
+              {% if power_entities | count == 1 %}
+                {% set power_sensor = power_entities | first %}
+                {% set ns.items = ns.items + [{
+                  'key': 'device_' ~ device_id,
+                  'sensor': power_sensor,
+                  'name': device_name
+                }] %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.items }}
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ threshold_targets | count > 0 }}"
+            sequence:
+              - service: shell_command.energy_sync_thresholds
+                data:
+                  targets_json: "{{ threshold_targets | tojson }}"
+        default:
+          - service: system_log.write
+            data:
+              level: warning
+              message: ENERGY THRESHOLDS | No power sensors discovered via EnergyAdvisory or EnergyManageable labels.
+
+  debug_energy_monitoring:
+    alias: Debug Energy Monitoring
+    fields:
+      announce:
+        description: Send a final optional voice announcement
+        example: "true"
+        required: false
+    sequence:
+      - variables:
+          manageable_loads: *energy_manageable_loads
+          advisory_contexts: *energy_advisory_contexts
+          load_report_lines: >-
+            {% set ns = namespace(lines=[]) %}
+            {% for load in manageable_loads %}
+              {% set current_power = states(load.power_sensor) | float(0) %}
+              {% set is_active = current_power > load.active_threshold %}
+              {% set ns.lines = ns.lines + [
+                load.display_name ~ ' | sensor=' ~ load.power_sensor ~
+                ' | power=' ~ (current_power | round(0) | string) ~ 'W' ~
+                ' | active_threshold=' ~ (load.active_threshold | string) ~ 'W' ~
+                ' | active=' ~ ('yes' if is_active else 'no') ~
+                ' | service=' ~ load.off_service ~
+                ' | target=' ~ (load.off_entities | join(', '))
+              ] %}
+            {% endfor %}
+            {{ ns.lines }}
+          context_report_lines: >-
+            {% set ns = namespace(lines=[]) %}
+            {% for context in advisory_contexts %}
+              {% set current_power = states(context.power_sensor) | float(0) %}
+              {% set is_active = current_power > context.active_threshold %}
+              {% set ns.lines = ns.lines + [
+                context.display_name ~ ' | context=' ~ context.context_display_name ~
+                ' | sensor=' ~ context.power_sensor ~
+                ' | power=' ~ (current_power | round(0) | string) ~ 'W' ~
+                ' | active_threshold=' ~ (context.active_threshold | string) ~ 'W' ~
+                ' | active=' ~ ('yes' if is_active else 'no') ~
+                ' | advice=' ~ context.advice_text
+              ] %}
+            {% endfor %}
+            {{ ns.lines }}
+      - repeat:
+          for_each: "{{ load_report_lines }}"
+          sequence:
+            - service: system_log.write
+              data:
+                level: warning
+                message: "ENERGY DEBUG | {{ repeat.item }}"
+      - repeat:
+          for_each: "{{ context_report_lines }}"
+          sequence:
+            - service: system_log.write
+              data:
+                level: warning
+                message: "ENERGY CONTEXT | {{ repeat.item }}"
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ announce | default(false) }}"
+            sequence:
+              - service: script.notify_energy
+                data:
+                  message: >-
+                    Energy debug completed. Check the system log for the full monitoring report.
+
+  notify_energy:
+    alias: Notify Energy
+    fields:
+      message: {}
+    sequence:
+      - variables:
+          notify_targets: >-
+            {{ label_devices('EnergyNotify')
+               | map('device_entities')
+               | sum(start=[])
+               | select('match', '^media_player\.')
+               | list }}
+          can_announce_via_alexa: >-
+            {{ has_service('notify', 'alexa_media') and notify_targets | count > 0 }}
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ can_announce_via_alexa }}"
+            sequence:
+              - service: notify.alexa_media
+                data:
+                  target: "{{ notify_targets }}"
+                  message: "{{ message }}"
+                  data:
+                    type: announce
+        default:
+          - service: system_log.write
+            data:
+              level: info
+              message: >-
+                ENERGY NOTIFY | Voice notification skipped. Optional Alexa Media Player
+                service or EnergyNotify targets not available. Message: {{ message }}
+
+  handle_managed_load:
+    alias: Handle Managed Load
+    mode: parallel
+    max: 5
+    fields:
+      power_sensor:
+        description: Power sensor entity id for the managed load
+        example: sensor.kettle_power
+        required: true
+      active_threshold:
+        description: Watt threshold that confirms the load is actually active
+        example: "100"
+        required: true
+      display_name:
+        description: Friendly name used in logs and notifications
+        example: Kettle
+        required: true
+      off_service:
+        description: Service used to turn the load off
+        example: switch.turn_off
+        required: true
+      off_entities:
+        description: Entity or entities to turn off
+        example: "['switch.kettle']"
+        required: true
+      dry_run:
+        description: Log only without turning anything off
+        example: "true"
+        required: false
+      announce_before_shutdown:
+        description: Send a warning announcement before shutdown
+        example: "true"
+        required: false
+      warning_delay_seconds:
+        description: Delay between warning and shutdown
+        example: "60"
+        required: false
+    sequence:
+      - variables:
+          current_power: "{{ states(power_sensor) | float(0) }}"
+          is_active: "{{ current_power > (active_threshold | float(0)) }}"
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ not is_active }}"
+            sequence:
+              - service: system_log.write
+                data:
+                  level: info
+                  message: >-
+                    ENERGY SKIP | sensor={{ power_sensor }} | name={{ display_name }} |
+                    power={{ current_power | round(0) }}W | active_threshold={{ active_threshold }}W
+          - conditions:
+              - condition: template
+                value_template: "{{ dry_run | default(false) }}"
+            sequence:
+              - service: system_log.write
+                data:
+                  level: warning
+                  message: >-
+                    ENERGY DRY RUN | sensor={{ power_sensor }} | name={{ display_name }} |
+                    power={{ current_power | round(0) }}W | active_threshold={{ active_threshold }}W |
+                    service={{ off_service }} | target={{ (off_entities if off_entities is list else [off_entities]) | join(', ') }}
+          - conditions: []
+            sequence:
+              - service: script.turn_off_load_with_delay
+                data:
+                  power_sensor: "{{ power_sensor }}"
+                  threshold_watt: "{{ active_threshold }}"
+                  friendly_name: "{{ display_name }}"
+                  off_service: "{{ off_service }}"
+                  off_entities: "{{ off_entities if off_entities is list else [off_entities] }}"
+                  announce_before_shutdown: "{{ announce_before_shutdown | default(true) }}"
+                  warning_delay_seconds: "{{ warning_delay_seconds | default(60) }}"
+
+  turn_off_load_with_delay:
+    alias: Turn Off Load With Delay
+    description: >
+      Check whether a managed load is still consuming above threshold, wait the configured
+      delay, and turn it off only if the main household load is still above the contract limit.
+    mode: parallel
+    max: 10
+    fields:
+      power_sensor:
+        description: Power sensor entity id
+        example: sensor.kettle_power
+        required: true
+      threshold_watt:
+        description: Active threshold in watt
+        example: "100"
+        required: true
+      friendly_name:
+        description: Friendly name for logs and announcements
+        example: Kettle
+        required: true
+      off_service:
+        description: Service to call for shutdown
+        example: homeassistant.turn_off
+        required: true
+      off_entities:
+        description: Entity or entities to turn off
+        example: "['switch.kettle']"
+        required: true
+      announce_before_shutdown:
+        description: Whether to send an announcement before shutdown
+        example: "true"
+        required: false
+      warning_delay_seconds:
+        description: Seconds to wait before shutdown
+        example: "60"
+        required: false
+    sequence:
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ states(power_sensor) | float(0) > (threshold_watt | float(0)) }}"
+            sequence:
+              - variables:
+                  should_announce_before: "{{ announce_before_shutdown | default(true) }}"
+                  warning_delay: "{{ warning_delay_seconds | default(60) | int(60) }}"
+                  contract_threshold_raw: "{{ states('sensor.energy_contract_limit') }}"
+                  contract_threshold_available: >-
+                    {{ contract_threshold_raw not in ['unknown', 'unavailable', 'none', ''] }}
+                  warning_delay_phrase: >-
+                    {% if warning_delay <= 0 %}
+                      immediately
+                    {% elif warning_delay == 60 %}
+                      in one minute
+                    {% elif warning_delay == 1 %}
+                      in 1 second
+                    {% else %}
+                      in {{ warning_delay }} seconds
+                    {% endif %}
+              - service: system_log.write
+                data:
+                  level: info
+                  message: >-
+                    ENERGY ACTION | {{ friendly_name }} is consuming
+                    {{ states(power_sensor) | float(0) | round(0) }}W
+                    (threshold {{ threshold_watt }}W). Warn_before={{ should_announce_before }}.
+              - choose:
+                  - conditions:
+                      - condition: template
+                        value_template: "{{ should_announce_before }}"
+                    sequence:
+                      - service: script.notify_energy
+                        data:
+                          message: "High consumption detected. Turning off {{ friendly_name }} {{ warning_delay_phrase }}."
+              - choose:
+                  - conditions:
+                      - condition: template
+                        value_template: "{{ warning_delay > 0 }}"
+                    sequence:
+                      - delay:
+                          seconds: "{{ warning_delay }}"
+              - choose:
+                  - conditions:
+                      - condition: template
+                        value_template: "{{ not contract_threshold_available }}"
+                    sequence:
+                      - service: system_log.write
+                        data:
+                          level: warning
+                          message: >-
+                            ENERGY ACTION | Contract limit not available.
+                            Shutdown canceled for {{ friendly_name }}.
+                      - stop: Contract limit unavailable
+              - condition: template
+                value_template: >-
+                  {{ states('sensor.energy_total_power') | float(0) >
+                     states('sensor.energy_contract_limit') | float(0) }}
+              - condition: template
+                value_template: >-
+                  {% set targets = off_entities if off_entities is list else [off_entities] %}
+                  {% set ns = namespace(active=false) %}
+                  {% for entity in targets %}
+                    {% if states(entity) not in ['off', 'unavailable', 'unknown'] %}
+                      {% set ns.active = true %}
+                    {% endif %}
+                  {% endfor %}
+                  {{ ns.active }}
+              - service: "{{ off_service }}"
+                target:
+                  entity_id: "{{ off_entities if off_entities is list else [off_entities] }}"
+              - service: system_log.write
+                data:
+                  level: warning
+                  message: >-
+                    ENERGY ACTION | {{ friendly_name }} turned off automatically.
+                    Current total load: {{ states('sensor.energy_total_power') | float(0) | round(0) }}W
+              - service: script.notify_energy
+                data:
+                  message: "Turned off {{ friendly_name }} because the household load stayed too high."
+        default: []
+
+  plan_energy_shedding:
+    alias: Plan Energy Shedding
+    description: >
+      Compute the minimum shutdown plan for discovered manageable loads.
+      In dry run it only logs the proposed actions.
+    mode: queued
+    max: 5
+    fields:
+      dry_run:
+        description: Calculate only, without turning anything off
+        example: "true"
+        required: false
+      announce_before_shutdown:
+        description: Send a warning before each planned shutdown
+        example: "true"
+        required: false
+      warning_delay_seconds:
+        description: Delay before each planned shutdown
+        example: "60"
+        required: false
+    sequence:
+      - variables:
+          total_power: "{{ states('sensor.energy_total_power') | float(0) }}"
+          threshold_limit_raw: "{{ states('sensor.energy_contract_limit') }}"
+          threshold_limit_available: >-
+            {{ threshold_limit_raw not in ['unknown', 'unavailable', 'none', ''] }}
+          threshold_limit: "{{ threshold_limit_raw | float(0) if threshold_limit_available else 0 }}"
+          overload_watts: "{{ [total_power - threshold_limit, 0] | max | round(0) }}"
+          manageable_loads: *energy_manageable_loads
+          active_loads: >-
+            {% set ns = namespace(out=[]) %}
+            {% for load in manageable_loads %}
+              {% set current_power = states(load.power_sensor) | float(0) %}
+              {% if current_power > load.active_threshold %}
+                {% set ns.out = ns.out + [{
+                  'id': load.id,
+                  'power_sensor': load.power_sensor,
+                  'active_threshold': load.active_threshold,
+                  'display_name': load.display_name,
+                  'off_service': load.off_service,
+                  'off_entities': load.off_entities,
+                  'current_power': current_power
+                }] %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.out }}
+          single_plan: >-
+            {% set candidates = active_loads
+               | selectattr('current_power', 'ge', overload_watts | float(0))
+               | sort(attribute='current_power')
+               | list %}
+            {{ [candidates | first] if candidates | count > 0 else [] }}
+          greedy_plan: >-
+            {% set sorted_loads = active_loads | sort(attribute='current_power', reverse=true) | list %}
+            {% set ns = namespace(sum=0, out=[]) %}
+            {% for load in sorted_loads %}
+              {% if ns.sum < overload_watts | float(0) %}
+                {% set ns.out = ns.out + [load] %}
+                {% set ns.sum = ns.sum + load.current_power %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.out }}
+          shutdown_plan: >-
+            {{ single_plan if single_plan | count > 0 else greedy_plan }}
+          planned_reduction: >-
+            {% set ns = namespace(sum=0) %}
+            {% for load in shutdown_plan %}
+              {% set ns.sum = ns.sum + load.current_power %}
+            {% endfor %}
+            {{ ns.sum | round(0) }}
+          target_power_after_plan: "{{ (total_power - (planned_reduction | float(0))) | round(0) }}"
+          plan_covers_overload: >-
+            {{ shutdown_plan | count > 0 and
+               (target_power_after_plan | float(0)) <= (threshold_limit | float(0)) }}
+          plan_names: >-
+            {{ shutdown_plan | map(attribute='display_name') | list | join(', ') if shutdown_plan | count > 0 else 'none' }}
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ not threshold_limit_available }}"
+            sequence:
+              - service: system_log.write
+                data:
+                  level: warning
+                  message: >-
+                    ENERGY PLAN | Contract limit not available.
+                    Plan calculation canceled.
+              - stop: Contract limit unavailable
+      - service: system_log.write
+        data:
+          level: info
+          message: >-
+            ENERGY PLAN | total={{ total_power | round(0) }}W | limit={{ threshold_limit | round(0) }}W |
+            overload={{ overload_watts | round(0) }}W | active={{ active_loads | count }} |
+            plan={{ plan_names }} | expected_reduction={{ planned_reduction }}W |
+            expected_total={{ target_power_after_plan }}W | sufficient={{ 'yes' if plan_covers_overload else 'no' }}
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ active_loads | count == 0 }}"
+            sequence:
+              - service: system_log.write
+                data:
+                  level: warning
+                  message: >-
+                    ENERGY PLAN | No manageable load is active above its local threshold.
+          - conditions:
+              - condition: template
+                value_template: "{{ shutdown_plan | count == 0 }}"
+            sequence:
+              - service: system_log.write
+                data:
+                  level: warning
+                  message: >-
+                    ENERGY PLAN | No shutdown plan could be calculated.
+          - conditions:
+              - condition: template
+                value_template: "{{ dry_run | default(false) }}"
+            sequence:
+              - repeat:
+                  for_each: "{{ shutdown_plan }}"
+                  sequence:
+                    - service: script.handle_managed_load
+                      data:
+                        power_sensor: "{{ repeat.item.power_sensor }}"
+                        active_threshold: "{{ repeat.item.active_threshold }}"
+                        display_name: "{{ repeat.item.display_name }}"
+                        off_service: "{{ repeat.item.off_service }}"
+                        off_entities: "{{ repeat.item.off_entities }}"
+                        dry_run: true
+              - choose:
+                  - conditions:
+                      - condition: template
+                        value_template: "{{ not plan_covers_overload }}"
+                    sequence:
+                      - service: system_log.write
+                        data:
+                          level: warning
+                          message: >-
+                            ENERGY PLAN | Dry run complete: even the best plan would not fully cover the overload.
+          - conditions:
+              - condition: template
+                value_template: "{{ not plan_covers_overload }}"
+            sequence:
+              - service: system_log.write
+                data:
+                  level: warning
+                  message: >-
+                    ENERGY PLAN | Plan not executed: even turning off {{ plan_names }}
+                    would still remain above the contract limit.
+          - conditions: []
+            sequence:
+              - repeat:
+                  for_each: "{{ shutdown_plan }}"
+                  sequence:
+                    - service: script.turn_on
+                      target:
+                        entity_id: script.handle_managed_load
+                      data:
+                        variables:
+                          power_sensor: "{{ repeat.item.power_sensor }}"
+                          active_threshold: "{{ repeat.item.active_threshold }}"
+                          display_name: "{{ repeat.item.display_name }}"
+                          off_service: "{{ repeat.item.off_service }}"
+                          off_entities: "{{ repeat.item.off_entities }}"
+                          announce_before_shutdown: "{{ announce_before_shutdown | default(true) }}"
+                          warning_delay_seconds: "{{ warning_delay_seconds | default(60) }}"
+
+  handle_energy_overload:
+    alias: Handle Energy Overload
+    description: >
+      Analyze the overload context, warn the user, wait the configured tolerance window,
+      recompute the plan, and shut down only the loads that can actually bring the home back in range.
+    mode: single
+    sequence:
+      - variables:
+          manageable_loads: *energy_manageable_loads
+          advisory_contexts: *energy_advisory_contexts
+          warning_delay_seconds_raw: "{{ states('sensor.energy_warning_delay_seconds') }}"
+          warning_delay_seconds: "{{ warning_delay_seconds_raw | int(60) if warning_delay_seconds_raw not in ['unknown', 'unavailable', 'none', ''] else 60 }}"
+          warning_delay_phrase: >-
+            {% if warning_delay_seconds <= 0 %}
+              immediately
+            {% elif warning_delay_seconds == 60 %}
+              in one minute
+            {% elif warning_delay_seconds == 1 %}
+              in 1 second
+            {% else %}
+              in {{ warning_delay_seconds }} seconds
+            {% endif %}
+          total_power: "{{ states('sensor.energy_total_power') | float(0) }}"
+          threshold_limit_raw: "{{ states('sensor.energy_contract_limit') }}"
+          threshold_limit_available: >-
+            {{ threshold_limit_raw not in ['unknown', 'unavailable', 'none', ''] }}
+          threshold_limit: "{{ threshold_limit_raw | float(0) if threshold_limit_available else 0 }}"
+          overload_watts: "{{ [total_power - threshold_limit, 0] | max | round(0) }}"
+          active_loads: >-
+            {% set ns = namespace(out=[]) %}
+            {% for load in manageable_loads %}
+              {% set current_power = states(load.power_sensor) | float(0) %}
+              {% if current_power > load.active_threshold %}
+                {% set ns.out = ns.out + [{
+                  'id': load.id,
+                  'power_sensor': load.power_sensor,
+                  'active_threshold': load.active_threshold,
+                  'display_name': load.display_name,
+                  'off_service': load.off_service,
+                  'off_entities': load.off_entities,
+                  'current_power': current_power
+                }] %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.out }}
+          active_contexts: >-
+            {% set ns = namespace(out=[]) %}
+            {% for context_id in advisory_contexts | map(attribute='context_id') | unique | list %}
+              {% set context_items = advisory_contexts | selectattr('context_id', 'eq', context_id) | list %}
+              {% set current_context = namespace(sum=0, contributors=[]) %}
+              {% for context in context_items %}
+                {% set current_power = states(context.power_sensor) | float(0) %}
+                {% if current_power > context.active_threshold %}
+                  {% set current_context.sum = current_context.sum + current_power %}
+                  {% set current_context.contributors = current_context.contributors + [context.display_name] %}
+                {% endif %}
+              {% endfor %}
+              {% if current_context.sum > 0 %}
+                {% set ns.out = ns.out + [{
+                  'id': context_id,
+                  'display_name': context_items | map(attribute='context_display_name') | first,
+                  'advice_text': context_items | map(attribute='advice_text') | first,
+                  'current_power': current_context.sum,
+                  'contributors': current_context.contributors
+                }] %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.out | sort(attribute='current_power', reverse=true) | list }}
+          single_plan: >-
+            {% set candidates = active_loads
+               | selectattr('current_power', 'ge', overload_watts | float(0))
+               | sort(attribute='current_power')
+               | list %}
+            {{ [candidates | first] if candidates | count > 0 else [] }}
+          greedy_plan: >-
+            {% set sorted_loads = active_loads | sort(attribute='current_power', reverse=true) | list %}
+            {% set ns = namespace(sum=0, out=[]) %}
+            {% for load in sorted_loads %}
+              {% if ns.sum < overload_watts | float(0) %}
+                {% set ns.out = ns.out + [load] %}
+                {% set ns.sum = ns.sum + load.current_power %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.out }}
+          shutdown_plan: >-
+            {{ single_plan if single_plan | count > 0 else greedy_plan }}
+          planned_reduction: >-
+            {% set ns = namespace(sum=0) %}
+            {% for load in shutdown_plan %}
+              {% set ns.sum = ns.sum + load.current_power %}
+            {% endfor %}
+            {{ ns.sum | round(0) }}
+          target_power_after_plan: "{{ (total_power - (planned_reduction | float(0))) | round(0) }}"
+          plan_covers_overload: >-
+            {{ shutdown_plan | count > 0 and
+               (target_power_after_plan | float(0)) <= (threshold_limit | float(0)) }}
+          context_summary: >-
+            {% set names = active_contexts | map(attribute='display_name') | list %}
+            {% if names | count == 0 %}
+              High consumption detected.
+            {% elif names | count == 1 %}
+              High consumption detected. Critical context: {{ names[0] }}.
+            {% elif names | count == 2 %}
+              High consumption detected. Critical contexts: {{ names[0] }} and {{ names[1] }}.
+            {% else %}
+              High consumption detected. Critical contexts: {{ names[0] }}, {{ names[1] }}, and {{ names[2] }}.
+            {% endif %}
+          advice_summary: >-
+            {% set advice = active_contexts | map(attribute='advice_text') | unique | list %}
+            {% if advice | count == 0 %}
+              reduce general household load
+            {% elif advice | count == 1 %}
+              {{ advice[0] }}
+            {% elif advice | count == 2 %}
+              {{ advice[0] }} or {{ advice[1] }}
+            {% else %}
+              {{ advice[0] }}, {{ advice[1] }}, or {{ advice[2] }}
+            {% endif %}
+          plan_names: >-
+            {{ shutdown_plan | map(attribute='display_name') | list | join(', ') if shutdown_plan | count > 0 else 'none' }}
+          initial_message: >-
+            {% if plan_covers_overload %}
+              {{ context_summary }} If usage stays high, {{ plan_names }} will be turned off {{ warning_delay_phrase }}.
+            {% else %}
+              {{ context_summary }} No automatic plan is sufficient: it is better to {{ advice_summary }}.
+            {% endif %}
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ not threshold_limit_available }}"
+            sequence:
+              - service: system_log.write
+                data:
+                  level: warning
+                  message: >-
+                    ENERGY OVERLOAD | Contract limit not available.
+                    Overload handling canceled.
+              - stop: Contract limit unavailable
+      - condition: template
+        value_template: "{{ overload_watts > 0 }}"
+      - service: system_log.write
+        data:
+          level: warning
+          message: >-
+            ENERGY OVERLOAD | total={{ total_power | round(0) }}W | limit={{ threshold_limit | round(0) }}W |
+            overload={{ overload_watts | round(0) }}W | contexts={{ active_contexts | map(attribute='display_name') | list | join(', ') if active_contexts | count > 0 else 'none' }} |
+            plan={{ plan_names }} | expected_reduction={{ planned_reduction }}W |
+            expected_total={{ target_power_after_plan }}W | sufficient={{ 'yes' if plan_covers_overload else 'no' }}
+      - service: script.notify_energy
+        data:
+          message: "{{ initial_message }}"
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ warning_delay_seconds > 0 }}"
+            sequence:
+              - delay:
+                  seconds: "{{ warning_delay_seconds }}"
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: >-
+                  {{ states('sensor.energy_total_power') | float(0) <=
+                     states('sensor.energy_contract_limit') | float(0) }}
+            sequence:
+              - service: system_log.write
+                data:
+                  level: info
+                  message: >-
+                    ENERGY RECOVERY | Household load returned below threshold before any shutdown.
+              - service: script.notify_energy
+                data:
+                  message: "Load returned below the contract limit. No shutdown was needed."
+        default:
+          - variables:
+              total_power_after_wait: "{{ states('sensor.energy_total_power') | float(0) }}"
+              threshold_limit_after_wait_raw: "{{ states('sensor.energy_contract_limit') }}"
+              threshold_limit_after_wait_available: >-
+                {{ threshold_limit_after_wait_raw not in ['unknown', 'unavailable', 'none', ''] }}
+              threshold_limit_after_wait: >-
+                {{ threshold_limit_after_wait_raw | float(0) if threshold_limit_after_wait_available else 0 }}
+              overload_watts_after_wait: "{{ [total_power_after_wait - threshold_limit_after_wait, 0] | max | round(0) }}"
+              active_loads_after_wait: >-
+                {% set ns = namespace(out=[]) %}
+                {% for load in manageable_loads %}
+                  {% set current_power = states(load.power_sensor) | float(0) %}
+                  {% if current_power > load.active_threshold %}
+                    {% set ns.out = ns.out + [{
+                      'id': load.id,
+                      'power_sensor': load.power_sensor,
+                      'active_threshold': load.active_threshold,
+                      'display_name': load.display_name,
+                      'off_service': load.off_service,
+                      'off_entities': load.off_entities,
+                      'current_power': current_power
+                    }] %}
+                  {% endif %}
+                {% endfor %}
+                {{ ns.out }}
+              active_contexts_after_wait: >-
+                {% set ns = namespace(out=[]) %}
+                {% for context_id in advisory_contexts | map(attribute='context_id') | unique | list %}
+                  {% set context_items = advisory_contexts | selectattr('context_id', 'eq', context_id) | list %}
+                  {% set current_context = namespace(sum=0, contributors=[]) %}
+                  {% for context in context_items %}
+                    {% set current_power = states(context.power_sensor) | float(0) %}
+                    {% if current_power > context.active_threshold %}
+                      {% set current_context.sum = current_context.sum + current_power %}
+                      {% set current_context.contributors = current_context.contributors + [context.display_name] %}
+                    {% endif %}
+                  {% endfor %}
+                  {% if current_context.sum > 0 %}
+                    {% set ns.out = ns.out + [{
+                      'id': context_id,
+                      'display_name': context_items | map(attribute='context_display_name') | first,
+                      'advice_text': context_items | map(attribute='advice_text') | first,
+                      'current_power': current_context.sum,
+                      'contributors': current_context.contributors
+                    }] %}
+                  {% endif %}
+                {% endfor %}
+                {{ ns.out | sort(attribute='current_power', reverse=true) | list }}
+              single_plan_after_wait: >-
+                {% set candidates = active_loads_after_wait
+                   | selectattr('current_power', 'ge', overload_watts_after_wait | float(0))
+                   | sort(attribute='current_power')
+                   | list %}
+                {{ [candidates | first] if candidates | count > 0 else [] }}
+              greedy_plan_after_wait: >-
+                {% set sorted_loads = active_loads_after_wait | sort(attribute='current_power', reverse=true) | list %}
+                {% set ns = namespace(sum=0, out=[]) %}
+                {% for load in sorted_loads %}
+                  {% if ns.sum < overload_watts_after_wait | float(0) %}
+                    {% set ns.out = ns.out + [load] %}
+                    {% set ns.sum = ns.sum + load.current_power %}
+                  {% endif %}
+                {% endfor %}
+                {{ ns.out }}
+              shutdown_plan_after_wait: >-
+                {{ single_plan_after_wait if single_plan_after_wait | count > 0 else greedy_plan_after_wait }}
+              planned_reduction_after_wait: >-
+                {% set ns = namespace(sum=0) %}
+                {% for load in shutdown_plan_after_wait %}
+                  {% set ns.sum = ns.sum + load.current_power %}
+                {% endfor %}
+                {{ ns.sum | round(0) }}
+              target_power_after_plan_after_wait: >-
+                {{ (total_power_after_wait - (planned_reduction_after_wait | float(0))) | round(0) }}
+              plan_covers_overload_after_wait: >-
+                {{ shutdown_plan_after_wait | count > 0 and
+                   (target_power_after_plan_after_wait | float(0)) <= (threshold_limit_after_wait | float(0)) }}
+              plan_names_after_wait: >-
+                {{ shutdown_plan_after_wait | map(attribute='display_name') | list | join(', ') if shutdown_plan_after_wait | count > 0 else 'none' }}
+              advice_summary_after_wait: >-
+                {% set advice = active_contexts_after_wait | map(attribute='advice_text') | unique | list %}
+                {% if advice | count == 0 %}
+                  reduce general household load
+                {% elif advice | count == 1 %}
+                  {{ advice[0] }}
+                {% elif advice | count == 2 %}
+                  {{ advice[0] }} or {{ advice[1] }}
+                {% else %}
+                  {{ advice[0] }}, {{ advice[1] }}, or {{ advice[2] }}
+                {% endif %}
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ not threshold_limit_after_wait_available }}"
+                sequence:
+                  - service: system_log.write
+                    data:
+                      level: warning
+                      message: >-
+                        ENERGY RECHECK | Contract limit not available.
+                        Recalculation canceled.
+                  - stop: Contract limit unavailable
+          - service: system_log.write
+            data:
+              level: warning
+              message: >-
+                ENERGY RECHECK | total={{ total_power_after_wait | round(0) }}W | limit={{ threshold_limit_after_wait | round(0) }}W |
+                overload={{ overload_watts_after_wait | round(0) }}W |
+                plan={{ plan_names_after_wait }} | expected_reduction={{ planned_reduction_after_wait }}W |
+                expected_total={{ target_power_after_plan_after_wait }}W | sufficient={{ 'yes' if plan_covers_overload_after_wait else 'no' }}
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ active_loads_after_wait | count == 0 }}"
+                sequence:
+                  - service: script.notify_energy
+                    data:
+                      message: >-
+                        Consumption is still high, but no manageable load is currently active.
+                        It is better to {{ advice_summary_after_wait }}.
+              - conditions:
+                  - condition: template
+                    value_template: "{{ shutdown_plan_after_wait | count == 0 }}"
+                sequence:
+                  - service: script.notify_energy
+                    data:
+                      message: >-
+                        Consumption is still high. No automatic plan is available:
+                        it is better to {{ advice_summary_after_wait }}.
+              - conditions:
+                  - condition: template
+                    value_template: "{{ not plan_covers_overload_after_wait }}"
+                sequence:
+                  - service: script.notify_energy
+                    data:
+                      message: >-
+                        Consumption is still high. Even turning off {{ plan_names_after_wait }}
+                        would remain above the limit: it is better to {{ advice_summary_after_wait }}.
+              - conditions: []
+                sequence:
+                  - repeat:
+                      for_each: "{{ shutdown_plan_after_wait }}"
+                      sequence:
+                        - service: script.turn_on
+                          target:
+                            entity_id: script.handle_managed_load
+                          data:
+                            variables:
+                              power_sensor: "{{ repeat.item.power_sensor }}"
+                              active_threshold: "{{ repeat.item.active_threshold }}"
+                              display_name: "{{ repeat.item.display_name }}"
+                              off_service: "{{ repeat.item.off_service }}"
+                              off_entities: "{{ repeat.item.off_entities }}"
+                              announce_before_shutdown: false
+                              warning_delay_seconds: 0
+                  - delay:
+                      seconds: 20
+                  - variables:
+                      final_total_power: "{{ states('sensor.energy_total_power') | float(0) }}"
+                      final_in_range: "{{ final_total_power <= (threshold_limit_after_wait | float(0)) }}"
+                      advice_summary_final: >-
+                        {% set advice = active_contexts_after_wait | map(attribute='advice_text') | unique | list %}
+                        {% if advice | count == 0 %}
+                          reduce general household load
+                        {% elif advice | count == 1 %}
+                          {{ advice[0] }}
+                        {% elif advice | count == 2 %}
+                          {{ advice[0] }} or {{ advice[1] }}
+                        {% else %}
+                          {{ advice[0] }}, {{ advice[1] }}, or {{ advice[2] }}
+                        {% endif %}
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ final_in_range }}"
+                        sequence:
+                          - service: script.notify_energy
+                            data:
+                              message: >-
+                                Household load returned below the limit. Turned off {{ plan_names_after_wait }}.
+                    default:
+                      - service: script.notify_energy
+                        data:
+                          message: >-
+                            Turned off {{ plan_names_after_wait }}, but consumption is still high.
+                            It is better to {{ advice_summary_final }}.

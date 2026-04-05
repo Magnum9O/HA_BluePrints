@@ -1,0 +1,297 @@
+template:
+  - sensor:
+      - name: "Energy Total Power"
+        unique_id: energy_total_power
+        availability: >
+          {% set candidates = (
+              label_entities('EnergyMainPower')
+              + (
+                label_devices('EnergyMainPower')
+                | map('device_entities')
+                | sum(start=[])
+              )
+            )
+            | unique
+            | select('match', '^sensor\.')
+            | select('is_state_attr', 'device_class', 'power')
+            | list %}
+          {{ candidates | count == 1 and states(candidates | first) not in ['unknown', 'unavailable', 'none', ''] }}
+        state: >
+          {% set candidates = (
+              label_entities('EnergyMainPower')
+              + (
+                label_devices('EnergyMainPower')
+                | map('device_entities')
+                | sum(start=[])
+              )
+            )
+            | unique
+            | select('match', '^sensor\.')
+            | select('is_state_attr', 'device_class', 'power')
+            | list %}
+          {% if candidates | count == 1 %}
+            {{ states(candidates | first) }}
+          {% else %}
+            unknown
+          {% endif %}
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        icon: mdi:home-lightning-bolt
+        attributes:
+          source_entity: >
+            {% set candidates = (
+                label_entities('EnergyMainPower')
+                + (
+                  label_devices('EnergyMainPower')
+                  | map('device_entities')
+                  | sum(start=[])
+                )
+              )
+              | unique
+              | select('match', '^sensor\.')
+              | select('is_state_attr', 'device_class', 'power')
+              | list %}
+            {{ candidates | first if candidates | count == 1 else none }}
+          source_count: >
+            {{ (
+                 label_entities('EnergyMainPower')
+                 + (
+                   label_devices('EnergyMainPower')
+                   | map('device_entities')
+                   | sum(start=[])
+                 )
+               )
+               | unique
+               | select('match', '^sensor\.')
+               | select('is_state_attr', 'device_class', 'power')
+               | list
+               | count }}
+
+      - name: "Energy Contract Limit"
+        unique_id: energy_contract_limit
+        availability: >
+          {% set value = states('input_number.energy_contract_limit_w') %}
+          {{ value not in ['unknown', 'unavailable', 'none', ''] }}
+        state: >
+          {% set value = states('input_number.energy_contract_limit_w') %}
+          {% if value not in ['unknown', 'unavailable', 'none', ''] %}
+            {{ value | float(0) | round(0) }}
+          {% else %}
+            unknown
+          {% endif %}
+        unit_of_measurement: "W"
+        icon: mdi:flash
+        attributes:
+          source_entity: >
+            {% set value = states('input_number.energy_contract_limit_w') %}
+            {% if value not in ['unknown', 'unavailable', 'none', ''] %}
+              input_number.energy_contract_limit_w
+            {% else %}
+              none
+            {% endif %}
+
+      - name: "Energy Warning Delay Seconds"
+        unique_id: energy_warning_delay_seconds
+        availability: >
+          {% set value = states('input_number.energy_warning_delay_seconds') %}
+          {{ value not in ['unknown', 'unavailable', 'none', ''] }}
+        state: >
+          {% set value = states('input_number.energy_warning_delay_seconds') %}
+          {% if value not in ['unknown', 'unavailable', 'none', ''] %}
+            {{ value | int(60) }}
+          {% else %}
+            unknown
+          {% endif %}
+        unit_of_measurement: "s"
+        icon: mdi:timer-outline
+        attributes:
+          source_entity: >
+            {% set value = states('input_number.energy_warning_delay_seconds') %}
+            {% if value not in ['unknown', 'unavailable', 'none', ''] %}
+              input_number.energy_warning_delay_seconds
+            {% else %}
+              none
+            {% endif %}
+
+      - name: "Energy Contract Usage"
+        unique_id: energy_contract_usage
+        availability: >
+          {% set contract_limit = states('sensor.energy_contract_limit') %}
+          {{ contract_limit not in ['unknown', 'unavailable', 'none', ''] and (contract_limit | float(0)) > 0 }}
+        state: >
+          {% set total_power = states('sensor.energy_total_power') | float(0) %}
+          {% set contract_limit = states('sensor.energy_contract_limit') | float(0) %}
+          {{ ((total_power / contract_limit) * 100) | round(1) }}
+        unit_of_measurement: "%"
+        icon: mdi:percent
+
+      - name: "Energy Available Margin"
+        unique_id: energy_available_margin
+        state: >
+          {% set total_power = states('sensor.energy_total_power') | float(0) %}
+          {% set contract_limit_raw = states('sensor.energy_contract_limit') %}
+          {% if contract_limit_raw not in ['unknown', 'unavailable', 'none', ''] %}
+            {% set contract_limit = contract_limit_raw | float(0) %}
+            {{ (contract_limit - total_power) | round(0) }}
+          {% else %}
+            unknown
+          {% endif %}
+        unit_of_measurement: "W"
+        icon: mdi:lightning-bolt
+
+      - name: "Energy Active High-Load Devices"
+        unique_id: energy_active_high_load_devices
+        state: >
+          {% set tracked_devices = (label_devices('EnergyAdvisory') + label_devices('EnergyManageable'))
+            | unique
+            | list %}
+          {% set ns = namespace(count=0) %}
+          {% for device_id in tracked_devices %}
+            {% set power_entities = device_entities(device_id)
+              | select('match', '^sensor\.')
+              | select('is_state_attr', 'device_class', 'power')
+              | list %}
+            {% if power_entities | count == 1 %}
+              {% set power_sensor = power_entities | first %}
+              {% set current_power = states(power_sensor) | float(0) %}
+              {% set threshold_entity = 'sensor.energy_threshold_device_' ~ device_id %}
+              {% set active_threshold = states(threshold_entity) | float(20) %}
+              {% if current_power > active_threshold %}
+                {% set ns.count = ns.count + 1 %}
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+          {{ ns.count }}
+        icon: mdi:power-plug
+
+      - name: "Energy Active High-Load Device List"
+        unique_id: energy_active_high_load_device_list
+        state: >
+          {% set ns = namespace(items=[]) %}
+          {% set tracked_devices = (label_devices('EnergyAdvisory') + label_devices('EnergyManageable'))
+            | unique
+            | list %}
+          {% for device_id in tracked_devices %}
+            {% set power_entities = device_entities(device_id)
+              | select('match', '^sensor\.')
+              | select('is_state_attr', 'device_class', 'power')
+              | list %}
+            {% if power_entities | count == 1 %}
+              {% set power_sensor = power_entities | first %}
+              {% set current_power = states(power_sensor) | float(0) %}
+              {% set threshold_entity = 'sensor.energy_threshold_device_' ~ device_id %}
+              {% set active_threshold = states(threshold_entity) | float(20) %}
+              {% if current_power > active_threshold %}
+                {% set friendly_name = device_attr(device_id, 'name_by_user')
+                  or device_attr(device_id, 'name')
+                  or state_attr(power_sensor, 'friendly_name')
+                  or power_sensor %}
+                {% set ns.items = ns.items + [friendly_name ~ ' (' ~ (current_power | round(0)) ~ 'W)'] %}
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+          {{ ns.items | join(', ') if ns.items else 'None' }}
+        icon: mdi:format-list-bulleted
+        attributes:
+          markdown: >
+            {% set ns = namespace(items=[]) %}
+            {% set tracked_devices = (label_devices('EnergyAdvisory') + label_devices('EnergyManageable'))
+              | unique
+              | list %}
+            {% for device_id in tracked_devices %}
+              {% set power_entities = device_entities(device_id)
+                | select('match', '^sensor\.')
+                | select('is_state_attr', 'device_class', 'power')
+                | list %}
+              {% if power_entities | count == 1 %}
+                {% set power_sensor = power_entities | first %}
+                {% set current_power = states(power_sensor) | float(0) %}
+                {% set threshold_entity = 'sensor.energy_threshold_device_' ~ device_id %}
+                {% set active_threshold = states(threshold_entity) | float(20) %}
+                {% if current_power > active_threshold %}
+                  {% set friendly_name = device_attr(device_id, 'name_by_user')
+                    or device_attr(device_id, 'name')
+                    or state_attr(power_sensor, 'friendly_name')
+                    or power_sensor %}
+                  {% set max_sample = state_attr(threshold_entity, 'max_sample') | float(0) %}
+                  {% set reference_power = max_sample if max_sample > 0 else active_threshold %}
+                  {% set ratio = (current_power / reference_power) if reference_power > 0 else 0 %}
+                  {% if ratio < 0.33 %}
+                    {% set level = 'LOW' %}
+                  {% elif ratio < 0.66 %}
+                    {% set level = 'MED' %}
+                  {% else %}
+                    {% set level = 'HIGH' %}
+                  {% endif %}
+                  {% set relative_max = ((current_power / max_sample) * 100) | round(0) if max_sample > 0 else none %}
+                  {% set ns.items = ns.items + [{
+                    'name': friendly_name,
+                    'power': current_power,
+                    'level': level,
+                    'relative_max': relative_max
+                  }] %}
+                {% endif %}
+              {% endif %}
+            {% endfor %}
+            {% set items = ns.items | sort(attribute='power', reverse=true) | list %}
+            {% if items | count == 0 %}
+              No high-load devices active.
+            {% else %}
+              {% for item in items %}
+              [{{ item.level }}] **{{ item.name }}** - {{ item.power | round(0) }}W
+              {% if item.relative_max is not none %}
+              (~{{ item.relative_max }}% of the 60-day max)
+              {% endif %}
+              {% if not loop.last %}
+
+              {% endif %}
+              {% endfor %}
+            {% endif %}
+
+      - name: "Energy Management Status"
+        unique_id: energy_management_status
+        availability: >
+          {% set contract_limit = states('sensor.energy_contract_limit') %}
+          {{ contract_limit not in ['unknown', 'unavailable', 'none', ''] and (contract_limit | float(0)) > 0 }}
+        state: >
+          {% set total_power = states('sensor.energy_total_power') | float(0) %}
+          {% set contract_limit = states('sensor.energy_contract_limit') | float(0) %}
+          {% set usage_percent = (total_power / contract_limit * 100) %}
+          {% if usage_percent < 70 %}
+            OK
+          {% elif usage_percent < 90 %}
+            Warning
+          {% elif usage_percent < 100 %}
+            Alert
+          {% else %}
+            Critical
+          {% endif %}
+        icon: >
+          {% set contract_limit_raw = states('sensor.energy_contract_limit') %}
+          {% if contract_limit_raw not in ['unknown', 'unavailable', 'none', ''] and (contract_limit_raw | float(0)) > 0 %}
+            {% set total_power = states('sensor.energy_total_power') | float(0) %}
+            {% set contract_limit = contract_limit_raw | float(0) %}
+            {% set usage_percent = (total_power / contract_limit * 100) %}
+            {% if usage_percent < 70 %}
+              mdi:check-circle
+            {% elif usage_percent < 90 %}
+              mdi:alert
+            {% elif usage_percent < 100 %}
+              mdi:alert-circle
+            {% else %}
+              mdi:alert-octagon
+            {% endif %}
+          {% else %}
+            mdi:help-circle
+          {% endif %}
+
+  - binary_sensor:
+      - name: "Energy Contract Overload"
+        unique_id: energy_contract_overload
+        availability: >
+          {% set contract_limit = states('sensor.energy_contract_limit') %}
+          {{ contract_limit not in ['unknown', 'unavailable', 'none', ''] and (contract_limit | float(0)) > 0 }}
+        state: >
+          {{ states('sensor.energy_total_power') | float(0) > states('sensor.energy_contract_limit') | float(0) }}
+        device_class: problem

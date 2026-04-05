@@ -1,0 +1,34 @@
+automation:
+  - id: energy_thresholds_sync_on_start
+    alias: Energy Thresholds Sync On Start
+    trigger:
+      - platform: homeassistant
+        event: start
+    action:
+      - delay:
+          minutes: 2
+      - service: script.sync_energy_thresholds
+        data: {}
+    mode: single
+
+  - id: energy_thresholds_sync_nightly
+    alias: Energy Thresholds Sync Nightly
+    trigger:
+      - platform: time
+        at: "03:30:00"
+    action:
+      - service: script.sync_energy_thresholds
+        data: {}
+    mode: single
+
+  - id: energy_manage_contract_overload
+    alias: Energy Manage Contract Overload
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.energy_contract_overload
+        from: "off"
+        to: "on"
+    action:
+      - service: script.handle_energy_overload
+        data: {}
+    mode: single

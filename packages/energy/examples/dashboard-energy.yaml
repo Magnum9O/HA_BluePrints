@@ -1,0 +1,66 @@
+title: Energy
+views:
+  - title: Energy
+    path: energy
+    icon: mdi:lightning-bolt
+    type: sections
+    max_columns: 3
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Contract
+            heading_style: title
+            icon: mdi:flash
+          - type: tile
+            entity: sensor.energy_total_power
+            name: Total Power
+          - type: tile
+            entity: sensor.energy_contract_limit
+            name: Contract Limit
+          - type: tile
+            entity: sensor.energy_contract_usage
+            name: Usage
+          - type: tile
+            entity: sensor.energy_available_margin
+            name: Margin
+          - type: tile
+            entity: binary_sensor.energy_contract_overload
+            name: Overload
+          - type: tile
+            entity: sensor.energy_management_status
+            name: Status
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Discovery
+            heading_style: title
+            icon: mdi:power-plug
+          - type: tile
+            entity: sensor.energy_active_high_load_devices
+            name: Active Devices
+          - type: tile
+            entity: sensor.energy_active_high_load_device_list
+            name: Active List
+          - type: tile
+            entity: sensor.energy_thresholds_last_sync
+            name: Last Threshold Sync
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Controls
+            heading_style: title
+            icon: mdi:tune
+          - type: entities
+            title: Helpers
+            entities:
+              - entity: input_number.energy_contract_limit_w
+              - entity: input_number.energy_warning_delay_seconds
+          - type: entities
+            title: Actions
+            entities:
+              - entity: script.sync_energy_thresholds
+              - entity: script.debug_energy_monitoring
+              - entity: script.plan_energy_shedding
