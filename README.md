@@ -14,3 +14,10 @@
 <p>
   For the detailed setup, examples, and optional Python threshold sync, check each package or blueprint README and related Home Assistant Community posts.
 </p>
+ ## ☕ Support my work
+
+If you like my projects and want to support what I do, you can buy me a coffee:
+
+👉 https://buymeacoffee.com/magnum90
+
+Your support helps me keep building and sharing new 3D printing and Home Assistant projects 🚀
